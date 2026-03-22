@@ -1,0 +1,103 @@
+import { createApi } from '@reduxjs/toolkit/query/react';
+import baseQueryWithReauth, { saveToken, saveRefreshToken } from '@/lib/baseQuery';
+import type {
+  LoginRequest,
+  CreateOrganizationRequest,
+  UserResponse,
+  OrganizationResponse,
+  ApiResponse,
+  RegisterWithOrganizationRequest,
+} from '@/lib/auth-types';
+import { parsePlansFromApi, type PublicPlan } from '@/lib/plan-utils';
+
+export const authApi = createApi({
+  reducerPath: 'authApi',
+  baseQuery: baseQueryWithReauth,
+  refetchOnMountOrArgChange: true,
+  refetchOnFocus: true,
+  refetchOnReconnect: true,
+  tagTypes: ['User', 'Organization'],
+  endpoints: (builder) => ({
+    login: builder.mutation<ApiResponse<UserResponse>, LoginRequest>({
+      query: (credentials) => ({
+        url: '/account/login',
+        method: 'POST',
+        body: credentials,
+      }),
+      invalidatesTags: ['User'],
+    }),
+
+    register: builder.mutation<void, {
+      FullName: string;
+      Email: string;
+      Password: string;
+      ConfirmationPassword: string;
+      Birthday: string;
+      Gender: number;
+      Phone?: string;
+      OrganizationId?: number;
+    }>({
+      query: (body) => ({
+        url: '/account/register',
+        method: 'POST',
+        body,
+      }),
+    }),
+    regiterWithOrganization: builder.mutation<void, RegisterWithOrganizationRequest>({
+      query: (body) => ({
+        url: '/account/register-with-organization',
+        method: 'POST',
+        body,
+      }),
+    }),
+
+    getPlans: builder.query<PublicPlan[], void>({
+      query: () => ({ url: '/plan', method: 'GET' }),
+      transformResponse: (raw: unknown) => parsePlansFromApi(raw),
+    }),
+    createOrganization: builder.mutation<OrganizationResponse, CreateOrganizationRequest>({
+      query: (data) => ({
+        url: '/organization',
+        method: 'POST',
+        body: { Name: data.name, Code: data.code },
+      }),
+      invalidatesTags: ['Organization'],
+    }),
+
+    refreshToken: builder.mutation<void, { refreshToken: string }>({
+      query: (body) => ({
+        url: '/account/refresh',
+        method: 'POST',
+        body,
+      }),
+    }),
+
+    logout: builder.mutation<void, void>({
+      query: () => {
+        return {
+          url: '/account/logout',
+          method: 'POST',
+        };
+      },
+      invalidatesTags: ['User'],
+    }),
+    resetPassword: builder.mutation<void, { email: string }>({
+      query: (body) => ({
+        url: '/account/forgot-password',
+        method: 'POST',
+        body,
+      }),
+    }),
+  }),
+});
+
+export const {
+  useLoginMutation,
+  useRegisterMutation,
+  useRegiterWithOrganizationMutation,
+  useGetPlansQuery,
+  useCreateOrganizationMutation,
+  useRefreshTokenMutation,
+  useLogoutMutation,
+  useResetPasswordMutation
+} = authApi;

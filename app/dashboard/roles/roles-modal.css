@@ -1,0 +1,99 @@
+/* Permisos por entidad: toggle Ver + operaciones */
+.roles-permissions-field {
+  grid-column: 1 / -1;
+}
+
+.roles-permissions-label {
+  display: block;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.roles-permissions-hint {
+  margin: 0 0 16px;
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.roles-permissions-loading {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.roles-entity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.roles-entity-card {
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.roles-entity-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.roles-entity-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.roles-entity-title {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.roles-entity-desc {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.roles-entity-ops {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0 0 0 4px;
+  border-left: 2px solid #e2e8f0;
+}
+
+.roles-entity-op {
+  margin: 0;
+  padding: 6px 0 6px 10px;
+}
+
+.roles-op-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.875rem;
+  color: #475569;
+  cursor: pointer;
+  user-select: none;
+}
+
+.roles-op-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  margin: 0;
+  margin-right: 12px;
+  accent-color: #4f6ef7;
+  cursor: pointer;
+  flex-shrink: 0;
+}
