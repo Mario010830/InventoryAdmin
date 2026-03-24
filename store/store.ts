@@ -11,6 +11,7 @@ import storage from "redux-persist/lib/storage"; // localStorage
 import { authSlice } from "../app/login/_slices/authSlice";
 import { authApi } from "../app/login/_service/authApi";
 import { productsApi } from "@/app/dashboard/products/_service/productsApi";
+import { elyerroImportApi } from "@/app/dashboard/products/_service/elyerroImportApi";
 import { inventoryApi } from "@/app/dashboard/inventory/_service/inventoryApi";
 import { categoriesApi } from "@/app/dashboard/categories/_service/categoriesApi";
 import { suppliersApi } from "@/app/dashboard/suppliers/_service/suppliersApi";
@@ -40,6 +41,7 @@ const combinedReducer = combineReducers({
   cart: cartSlice.reducer,
   [authApi.reducerPath]: authApi.reducer,
   [productsApi.reducerPath]: productsApi.reducer,
+  [elyerroImportApi.reducerPath]: elyerroImportApi.reducer,
   [inventoryApi.reducerPath]: inventoryApi.reducer,
   [categoriesApi.reducerPath]: categoriesApi.reducer,
   [suppliersApi.reducerPath]: suppliersApi.reducer,
@@ -78,6 +80,7 @@ const persistedReducer = persistReducer(persistConfig, rootReducer);
 const apiMiddleware = [
   authApi.middleware,
   productsApi.middleware,
+  elyerroImportApi.middleware,
   inventoryApi.middleware,
   categoriesApi.middleware,
   suppliersApi.middleware,

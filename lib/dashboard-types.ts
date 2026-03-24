@@ -73,6 +73,55 @@ export interface UpdateProductRequest {
   tagIds?: number[];
 }
 
+/** El Yerro Menú — vista previa (scraping, sin persistencia). */
+export interface ElYerroPreviewProduct {
+  nombre: string;
+  descripcion: string;
+  precio: number;
+  precioOriginal?: number | null;
+  moneda: string;
+  imagenUrl: string;
+  categoria: string;
+  slug: string;
+  disponible: boolean;
+  tieneDescuento: boolean;
+  porcentajeDescuento?: number | null;
+}
+
+export interface ElYerroPreviewCategory {
+  nombre: string;
+  slug: string;
+  cantidadProductos: number;
+  url: string;
+  productos: ElYerroPreviewProduct[];
+}
+
+export interface ElYerroPreviewResult {
+  nombreNegocio: string;
+  businessUrlNormalizada: string;
+  categorias: ElYerroPreviewCategory[];
+  errores: string[];
+}
+
+export interface ElYerroImportPreviewRequest {
+  businessUrl: string;
+  categoriasAImportar?: string[] | null;
+}
+
+export interface ElYerroImportExecuteRequest extends ElYerroImportPreviewRequest {
+  importarSoloDisponibles?: boolean;
+  actualizarSiExiste?: boolean;
+}
+
+export interface ElYerroImportResult {
+  nombreNegocio: string;
+  totalImportados: number;
+  totalOmitidos: number;
+  errores: string[];
+  /** Productos creados/actualizados según contrato de la API. */
+  productosImportados: unknown[];
+}
+
 export interface ProductCategoryResponse {
   id: number;
   name: string;

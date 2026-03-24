@@ -13,6 +13,7 @@ import { Icon } from "@/components/ui/Icon";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 import type {
   CreateProductRequest,
+  ProductTipo,
   ProductCategoryResponse,
 } from "@/lib/dashboard-types";
 import {
@@ -265,7 +266,7 @@ export function ProductImportWizard({
   const { formatCup } = useDisplayCurrency();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
   const [fileName, setFileName] = useState("");
   const [sheetCaption, setSheetCaption] = useState("");
   const [columnLabels, setColumnLabels] = useState<string[]>([]);
@@ -287,6 +288,9 @@ export function ProductImportWizard({
   const [failCount, setFailCount] = useState(0);
   const [stockFailCount, setStockFailCount] = useState(0);
   const [stockOkCount, setStockOkCount] = useState(0);
+  const [selectedLocationId, setSelectedLocationId] = useState<number | null>(
+    null,
+  );
   /** Productos creados sin categoría — paso 5 para asignar. */
   const [productsNeedingCategory, setProductsNeedingCategory] = useState<
     { id: number; name: string }[]
@@ -295,6 +299,14 @@ export function ProductImportWizard({
     Record<number, number | "">
   >({});
   const [savingCategories, setSavingCategories] = useState(false);
+  /** Tipos por producto — paso 6 para asignar inventariable/elaborado. */
+  const [productsNeedingTipo, setProductsNeedingTipo] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [tipoAssign, setTipoAssign] = useState<Record<number, ProductTipo | "">>(
+    {},
+  );
+  const [savingTipos, setSavingTipos] = useState(false);
 
   const { data: categoriesResult, isFetching: categoriesLoading } =
     useGetProductCategoriesQuery(
@@ -316,11 +328,32 @@ export function ProductImportWizard({
     return first != null ? Number(first) : null;
   }, [movementCtx?.locationId, locationsResult?.data]);
 
-  const inventoryLocationLabel = useMemo(() => {
-    if (movementCtx?.locationName) return movementCtx.locationName;
-    const loc = locationsResult?.data?.[0];
-    return loc?.name ?? null;
-  }, [movementCtx?.locationName, locationsResult?.data]);
+  const locationOptions = useMemo(
+    () =>
+      (locationsResult?.data ?? []).map((loc) => ({
+        id: Number(loc.id),
+        name: String(loc.name ?? `ID ${loc.id}`),
+      })),
+    [locationsResult?.data],
+  );
+
+  const selectedLocationLabel = useMemo(() => {
+    if (selectedLocationId == null) return null;
+    const found = locationOptions.find((loc) => loc.id === selectedLocationId);
+    if (found) return found.name;
+    if (
+      movementCtx?.locationId === selectedLocationId &&
+      movementCtx?.locationName
+    ) {
+      return movementCtx.locationName;
+    }
+    return `ID ${selectedLocationId}`;
+  }, [
+    selectedLocationId,
+    locationOptions,
+    movementCtx?.locationId,
+    movementCtx?.locationName,
+  ]);
 
   const categories = categoriesResult?.data ?? [];
   const categoryLookup = useMemo(
@@ -354,14 +387,24 @@ export function ProductImportWizard({
     setFailCount(0);
     setStockFailCount(0);
     setStockOkCount(0);
+    setSelectedLocationId(null);
     setProductsNeedingCategory([]);
     setCategoryAssign({});
     setSavingCategories(false);
+    setProductsNeedingTipo([]);
+    setTipoAssign({});
+    setSavingTipos(false);
   }, []);
 
   useEffect(() => {
     if (!open) resetState();
   }, [open, resetState]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (selectedLocationId != null) return;
+    if (defaultLocationId != null) setSelectedLocationId(defaultLocationId);
+  }, [open, selectedLocationId, defaultLocationId]);
 
   const colIndex = useCallback(
     (key: MappingKey): number | undefined => {
@@ -590,8 +633,9 @@ export function ProductImportWizard({
     let fail = 0;
     let stockOk = 0;
     let stockFail = 0;
-    const locId = defaultLocationId;
+    const locId = selectedLocationId;
     const needCategoryAfter: { id: number; name: string }[] = [];
+    const needTipoAfter: { id: number; name: string }[] = [];
     for (let i = 0; i < list.length; i++) {
       setImportIndex(i + 1);
       const item = list[i];
@@ -611,6 +655,10 @@ export function ProductImportWizard({
             name: created.name || item.payload.name,
           });
         }
+        needTipoAfter.push({
+          id: created.id,
+          name: created.name || item.payload.name,
+        });
         const qty = item.stockQty;
         if (
           item.wantsStockMovement &&
@@ -644,6 +692,8 @@ export function ProductImportWizard({
     setStockFailCount(stockFail);
     setProductsNeedingCategory(needCategoryAfter);
     setCategoryAssign({});
+    setProductsNeedingTipo(needTipoAfter);
+    setTipoAssign({});
     setImporting(false);
     setStep(4);
   };
@@ -671,7 +721,11 @@ export function ProductImportWizard({
         }).unwrap();
       }
       toast.success("Categorías actualizadas.");
-      onClose();
+      if (productsNeedingTipo.length > 0) {
+        setStep(6);
+      } else {
+        onClose();
+      }
     } catch {
       toast.error("No se pudieron guardar todas las categorías.");
     } finally {
@@ -679,19 +733,49 @@ export function ProductImportWizard({
     }
   };
 
+  const allTipoSlotsFilled = useMemo(() => {
+    if (productsNeedingTipo.length === 0) return true;
+    return productsNeedingTipo.every((p) => {
+      const t = tipoAssign[p.id];
+      return t === "inventariable" || t === "elaborado";
+    });
+  }, [productsNeedingTipo, tipoAssign]);
+
+  const saveAssignedTipos = async () => {
+    if (!allTipoSlotsFilled || productsNeedingTipo.length === 0) return;
+    setSavingTipos(true);
+    try {
+      for (const p of productsNeedingTipo) {
+        const tipo = tipoAssign[p.id];
+        if (tipo !== "inventariable" && tipo !== "elaborado") continue;
+        await updateProduct({
+          id: p.id,
+          body: { tipo },
+        }).unwrap();
+      }
+      toast.success("Tipos actualizados.");
+      onClose();
+    } catch {
+      toast.error("No se pudieron guardar todos los tipos.");
+    } finally {
+      setSavingTipos(false);
+    }
+  };
+
   const handleClose = () => {
-    if (importing || savingCategories) return;
+    if (importing || savingCategories || savingTipos) return;
     onClose();
   };
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !importing && !savingCategories) onClose();
+      if (e.key === "Escape" && !importing && !savingCategories && !savingTipos)
+        onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, importing, savingCategories, onClose]);
+  }, [open, importing, savingCategories, savingTipos, onClose]);
 
   if (!open) return null;
 
@@ -712,6 +796,7 @@ export function ProductImportWizard({
     "Vista previa",
     "Resumen",
     "Categorías",
+    "Tipo",
   ] as const;
 
   return (
@@ -746,7 +831,7 @@ export function ProductImportWizard({
             className="product-import-wizard__close"
             onClick={handleClose}
             aria-label="Cerrar"
-            disabled={importing || savingCategories}
+            disabled={importing || savingCategories || savingTipos}
           >
             <Icon name="close" />
           </button>
@@ -885,11 +970,10 @@ export function ProductImportWizard({
                         <strong className="product-import-wizard__meta-strong">
                           Entrada de inventario:
                         </strong>{" "}
-                        {defaultLocationId != null ? (
+                        {selectedLocationId != null ? (
                           <>
                             ubicación «
-                            {inventoryLocationLabel ??
-                              `ID ${defaultLocationId}`}
+                            {selectedLocationLabel}
                             » · razón «
                             {MOVEMENT_REASON_LABEL[
                               IMPORT_EXCEL_MOVEMENT_REASON
@@ -903,6 +987,33 @@ export function ProductImportWizard({
                             o usuario).
                           </span>
                         )}
+                        {locationOptions.length > 0 ? (
+                          <>
+                            <br />
+                            <strong className="product-import-wizard__meta-strong">
+                              Ubicación de entrada:
+                            </strong>{" "}
+                            <select
+                              value={
+                                selectedLocationId == null
+                                  ? ""
+                                  : String(selectedLocationId)
+                              }
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setSelectedLocationId(v === "" ? null : Number(v));
+                              }}
+                              aria-label="Ubicación para entrada de inventario"
+                            >
+                              <option value="">— Elegir ubicación —</option>
+                              {locationOptions.map((loc) => (
+                                <option key={loc.id} value={loc.id}>
+                                  {loc.name}
+                                </option>
+                              ))}
+                            </select>
+                          </>
+                        ) : null}
                       </>
                     ) : null}
                   </p>
@@ -973,7 +1084,7 @@ export function ProductImportWizard({
                     Tras crear cada producto, si hay cantidad se registra una{" "}
                     <strong>entrada de inventario</strong> (
                     {MOVEMENT_REASON_LABEL[IMPORT_EXCEL_MOVEMENT_REASON]})
-                    {defaultLocationId == null ? (
+                    {selectedLocationId == null ? (
                       <span className="product-import-wizard__meta-warn">
                         {" "}
                         — sin ubicación no se crearán movimientos.
@@ -1004,7 +1115,7 @@ export function ProductImportWizard({
                         className={
                           r.categoryUnknown ||
                           r.categoryMissing ||
-                          (r.wantsStockMovement && defaultLocationId == null)
+                          (r.wantsStockMovement && selectedLocationId == null)
                             ? "product-import-wizard__row-warn"
                             : undefined
                         }
@@ -1057,7 +1168,7 @@ export function ProductImportWizard({
                         </td>
                         <td>
                           {r.wantsStockMovement && r.stockQty != null ? (
-                            defaultLocationId != null ? (
+                            selectedLocationId != null ? (
                               <span className="dt-tag dt-tag--green">
                                 Entrada {r.stockQty} u.
                               </span>
@@ -1162,6 +1273,14 @@ export function ProductImportWizard({
                   categoría — pulsa «Asignar categorías» para completarlas.
                 </p>
               ) : null}
+              {productsNeedingTipo.length > 0 ? (
+                <p className="product-import-wizard__summary-pending">
+                  {productsNeedingTipo.length} producto
+                  {productsNeedingTipo.length === 1 ? "" : "s"} pendiente
+                  {productsNeedingTipo.length === 1 ? "" : "s"} de tipo —
+                  selecciona si son inventariables o elaborados.
+                </p>
+              ) : null}
             </div>
           )}
 
@@ -1216,6 +1335,60 @@ export function ProductImportWizard({
               {!allCategorySlotsFilled ? (
                 <p className="product-import-wizard__error">
                   Selecciona una categoría en cada fila para continuar.
+                </p>
+              ) : null}
+            </>
+          )}
+          {step === 6 && (
+            <>
+              <p className="product-import-wizard__meta product-import-wizard__meta--block">
+                Elige el <strong>tipo de producto</strong> para cada fila.
+                Esto evita que entren todos como elaborados.
+              </p>
+              <div className="product-import-wizard__table-scroll">
+                <table className="product-import-wizard__mapping-table">
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Tipo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {productsNeedingTipo.map((p) => (
+                      <tr key={p.id}>
+                        <td>{p.name || `ID ${p.id}`}</td>
+                        <td>
+                          <select
+                            value={
+                              tipoAssign[p.id] === undefined
+                                ? ""
+                                : String(tipoAssign[p.id])
+                            }
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setTipoAssign((prev) => ({
+                                ...prev,
+                                [p.id]:
+                                  v === "inventariable" || v === "elaborado"
+                                    ? v
+                                    : "",
+                              }));
+                            }}
+                            aria-label={`Tipo para ${p.name}`}
+                          >
+                            <option value="">— Elegir —</option>
+                            <option value="inventariable">Inventariable</option>
+                            <option value="elaborado">Elaborado</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {!allTipoSlotsFilled ? (
+                <p className="product-import-wizard__error">
+                  Selecciona un tipo en cada fila para continuar.
                 </p>
               ) : null}
             </>
@@ -1300,6 +1473,23 @@ export function ProductImportWizard({
                   Asignar categorías ({productsNeedingCategory.length})
                 </button>
               </>
+            ) : productsNeedingTipo.length > 0 ? (
+              <>
+                <button
+                  type="button"
+                  className="product-import-wizard__btn product-import-wizard__btn--ghost"
+                  onClick={handleClose}
+                >
+                  Cerrar
+                </button>
+                <button
+                  type="button"
+                  className="product-import-wizard__btn product-import-wizard__btn--primary"
+                  onClick={() => setStep(6)}
+                >
+                  Asignar tipo ({productsNeedingTipo.length})
+                </button>
+              </>
             ) : (
               <button
                 type="button"
@@ -1322,7 +1512,10 @@ export function ProductImportWizard({
               <button
                 type="button"
                 className="product-import-wizard__btn product-import-wizard__btn--ghost"
-                onClick={onClose}
+                onClick={() => {
+                  if (productsNeedingTipo.length > 0) setStep(6);
+                  else onClose();
+                }}
                 disabled={savingCategories}
               >
                 Omitir
@@ -1338,6 +1531,40 @@ export function ProductImportWizard({
                 }
               >
                 {savingCategories ? "Guardando…" : "Guardar categorías"}
+              </button>
+            </>
+          )}
+          {step === 6 && (
+            <>
+              <button
+                type="button"
+                className="product-import-wizard__btn product-import-wizard__btn--ghost"
+                onClick={() =>
+                  setStep(productsNeedingCategory.length > 0 ? 5 : 4)
+                }
+                disabled={savingTipos}
+              >
+                Atrás
+              </button>
+              <button
+                type="button"
+                className="product-import-wizard__btn product-import-wizard__btn--ghost"
+                onClick={onClose}
+                disabled={savingTipos}
+              >
+                Omitir
+              </button>
+              <button
+                type="button"
+                className="product-import-wizard__btn product-import-wizard__btn--primary"
+                onClick={() => void saveAssignedTipos()}
+                disabled={
+                  !allTipoSlotsFilled ||
+                  savingTipos ||
+                  productsNeedingTipo.length === 0
+                }
+              >
+                {savingTipos ? "Guardando…" : "Guardar tipos"}
               </button>
             </>
           )}

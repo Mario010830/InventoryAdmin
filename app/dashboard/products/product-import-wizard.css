@@ -401,6 +401,455 @@
   box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.12);
 }
 
+.product-import-wizard__mapping-table input[type="url"],
+.product-import-wizard__mapping-table input[type="text"] {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.8125rem;
+  background: #ffffff;
+  color: #0f172a;
+  box-sizing: border-box;
+}
+
+.product-import-wizard__mapping-table input[type="url"]:focus,
+.product-import-wizard__mapping-table input[type="text"]:focus {
+  outline: none;
+  border-color: #4f6ef7;
+  box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.12);
+}
+
+.product-import-wizard__mapping-table textarea {
+  width: 100%;
+  max-width: 100%;
+  min-height: 72px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  background: #ffffff;
+  color: #0f172a;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.product-import-wizard__mapping-table textarea:focus {
+  outline: none;
+  border-color: #4f6ef7;
+  box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.12);
+}
+
+.product-import-wizard__text-input {
+  width: 100%;
+  max-width: 420px;
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.875rem;
+  background: #ffffff;
+  color: #0f172a;
+  box-sizing: border-box;
+}
+
+.product-import-wizard__text-input:focus {
+  outline: none;
+  border-color: #4f6ef7;
+  box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.12);
+}
+
+.product-import-wizard__mapping-table input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #4f6ef7;
+  cursor: pointer;
+}
+
+/* Árbol compacto de categorías (El Yerro) — mismo sistema visual */
+.product-import-wizard__elyerro-tree {
+  margin-top: 12px;
+  max-height: min(44vh, 420px);
+  overflow: auto;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  background: #fafafa;
+  padding: 8px;
+}
+
+.product-import-wizard__elyerro-cat {
+  border-radius: 8px;
+  background: #ffffff;
+  margin-bottom: 8px;
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+}
+
+.product-import-wizard__elyerro-cat summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.product-import-wizard__elyerro-cat summary::-webkit-details-marker {
+  display: none;
+}
+
+.product-import-wizard__elyerro-cat-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.product-import-wizard__elyerro-cat-slug {
+  font-weight: 400;
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.product-import-wizard__elyerro-product-list {
+  margin: 0;
+  padding: 0 8px 10px 36px;
+  list-style: none;
+}
+
+.product-import-wizard__elyerro-product {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 8px 0;
+  border-top: 1px solid #f8fafc;
+  font-size: 0.75rem;
+}
+
+.product-import-wizard__elyerro-product:first-child {
+  border-top: none;
+}
+
+.product-import-wizard__elyerro-product img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #e2e8f0;
+}
+
+.product-import-wizard__elyerro-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 12px 0 8px;
+  font-size: 0.8125rem;
+}
+
+.product-import-wizard__elyerro-toolbar button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #4f6ef7;
+  font-size: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.product-import-wizard__elyerro-toolbar button:hover {
+  color: #4338ca;
+}
+
+.product-import-wizard__elyerro-errors {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  font-size: 0.8125rem;
+  color: #9a3412;
+  text-align: left;
+}
+
+.product-import-wizard__elyerro-errors ul {
+  margin: 8px 0 0;
+  padding-left: 1.1rem;
+}
+
+/* Paso 1 El Yerro — formulario (URL + categorías opcionales) */
+.product-import-wizard__elyerro-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.product-import-wizard__elyerro-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.product-import-wizard__elyerro-field-label {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.product-import-wizard__elyerro-field-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.product-import-wizard__elyerro-textarea {
+  width: 100%;
+  min-height: 96px;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  background: #ffffff;
+  color: #0f172a;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.product-import-wizard__elyerro-textarea:focus {
+  outline: none;
+  border-color: #4f6ef7;
+  box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.12);
+}
+
+.product-import-wizard__elyerro-category-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.product-import-wizard__elyerro-category-input {
+  flex: 1 1 160px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  background: #ffffff;
+  color: #0f172a;
+  box-sizing: border-box;
+}
+
+.product-import-wizard__elyerro-category-input:focus {
+  outline: none;
+  border-color: #4f6ef7;
+  box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.12);
+}
+
+.product-import-wizard__elyerro-category-add-btn {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.product-import-wizard__elyerro-chip-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.product-import-wizard__elyerro-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 6px 6px 6px 12px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  font-size: 0.8125rem;
+  color: #0f172a;
+}
+
+.product-import-wizard__elyerro-chip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.product-import-wizard__elyerro-chip-remove {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.product-import-wizard__elyerro-chip-remove:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: #0f172a;
+}
+
+.product-import-wizard__elyerro-chip-remove .material-icons {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.product-import-wizard__elyerro-chip-empty {
+  margin: 10px 0 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.product-import-wizard__elyerro-url-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-radius: 12px;
+  border: 1px dashed #e2e8f0;
+  background: #fafafa;
+  padding: 28px 24px 22px;
+  box-sizing: border-box;
+}
+
+.product-import-wizard__elyerro-url-card--active {
+  border-style: solid;
+  border-color: rgba(79, 110, 247, 0.35);
+  background: #f8fafc;
+}
+
+.product-import-wizard__elyerro-url-card .product-import-wizard__text-input {
+  width: 100%;
+  max-width: none;
+  text-align: left;
+  align-self: stretch;
+}
+
+/* Paso 2 — opciones y lista de productos */
+.product-import-wizard__elyerro-option-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  color: #334155;
+}
+
+.product-import-wizard__elyerro-option-check input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #4f6ef7;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.product-import-wizard__elyerro-summary-line {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.product-import-wizard__elyerro-summary-line strong {
+  color: #0f172a;
+}
+
+.product-import-wizard__elyerro-preview-caption {
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.product-import-wizard__elyerro-toolbar-label {
+  font-weight: 600;
+  color: #475569;
+  margin-right: auto;
+}
+
+.product-import-wizard__elyerro-toolbar-hint {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.45;
+  width: 100%;
+  flex-basis: 100%;
+}
+
+.product-import-wizard__elyerro-product-body {
+  min-width: 0;
+}
+
+.product-import-wizard__elyerro-product-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.product-import-wizard__elyerro-product-desc {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-top: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.product-import-wizard__elyerro-product-tags {
+  margin-top: 4px;
+}
+
+.product-import-wizard__elyerro-product-price {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.product-import-wizard__elyerro-thumb-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #e2e8f0;
+  display: block;
+  flex-shrink: 0;
+}
+
+.product-import-wizard__elyerro-errors--in-summary {
+  margin-top: 12px;
+  text-align: left;
+}
+
 .product-import-wizard__req {
   color: #dc2626;
   font-weight: 600;
@@ -500,6 +949,28 @@
   height: 100%;
   background: linear-gradient(90deg, #4f6ef7, #6366f1);
   transition: width 0.2s ease;
+}
+
+.product-import-wizard__progress-meter-fill--indeterminate {
+  width: 45%;
+  animation: product-import-wizard-progress-pulse 1.25s ease-in-out infinite
+    alternate;
+}
+
+@keyframes product-import-wizard-progress-pulse {
+  from {
+    width: 38%;
+  }
+  to {
+    width: 52%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-import-wizard__progress-meter-fill--indeterminate {
+    animation: none;
+    width: 45%;
+  }
 }
 
 .product-import-wizard__import-run-stats {

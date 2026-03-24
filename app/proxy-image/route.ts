@@ -18,11 +18,29 @@ function allowedImageHosts(): Set<string> {
       /* ignore */
     }
   };
+  const addHost = (host: string) => {
+    const h = host.trim().toLowerCase();
+    if (h) set.add(h);
+  };
   add(process.env.TUNNEL_URL);
   add(process.env.API_IMAGE_ORIGIN);
   add(process.env.NEXT_PUBLIC_API_IMAGE_ORIGIN);
+  add(process.env.NEXT_PUBLIC_API_URL);
   add("http://inventorydevelop.us-east-2.elasticbeanstalk.com");
   add("https://inventorydevelop.us-east-2.elasticbeanstalk.com");
+  add("http://162.220.165.172:5000");
+  add("https://162.220.165.172:5000");
+  /** Menú El Yerro / CDN de imágenes del scraper */
+  add("https://elyerromenu.com");
+  add("https://www.elyerromenu.com");
+  /** Lista extra: "host1,host2" o URLs completas separadas por coma */
+  const extra = process.env.NEXT_PUBLIC_PROXY_IMAGE_HOSTS ?? "";
+  for (const part of extra.split(",")) {
+    const p = part.trim();
+    if (!p) continue;
+    if (p.startsWith("http://") || p.startsWith("https://")) add(p);
+    else addHost(p);
+  }
   return set;
 }
 

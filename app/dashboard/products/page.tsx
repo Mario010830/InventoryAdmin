@@ -33,6 +33,7 @@ import "./products-table.css";
 import { ProductDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
 import { ProductsBulkToolbar } from "@/components/DataTableBulkToolbar";
 import { ProductImportWizard } from "./ProductImportWizard";
+import { ElYerroImportWizard } from "./ElYerroImportWizard";
 
 function ProductMarginCell({ row }: { row: ProductResponse }) {
   const { formatCup } = useDisplayCurrency();
@@ -386,6 +387,7 @@ export default function ProductsPage() {
 
   const [confirmCostHigherOpen, setConfirmCostHigherOpen] = useState(false);
   const [importWizardOpen, setImportWizardOpen] = useState(false);
+  const [elyerroWizardOpen, setElyerroWizardOpen] = useState(false);
 
   // ─── Queries ──────────────────────────────────────────────────────────────
 
@@ -767,14 +769,24 @@ export default function ProductsPage() {
         addButtonDataTutorial="tutorial-products-add"
         toolbarExtra={
           canCreateProduct ? (
-            <button
-              type="button"
-              className="dt-btn-ghost"
-              onClick={() => setImportWizardOpen(true)}
-            >
-              <Icon name="upload_file" />
-              <span className="dt-btn-ghost__label">Importar productos</span>
-            </button>
+            <>
+              <button
+                type="button"
+                className="dt-btn-ghost"
+                onClick={() => setImportWizardOpen(true)}
+              >
+                <Icon name="upload_file" />
+                <span className="dt-btn-ghost__label">Importar Excel</span>
+              </button>
+              <button
+                type="button"
+                className="dt-btn-ghost"
+                onClick={() => setElyerroWizardOpen(true)}
+              >
+                <Icon name="restaurant_menu" />
+                <span className="dt-btn-ghost__label">Importar El Yerro</span>
+              </button>
+            </>
           ) : undefined
         }
         actions={[
@@ -972,6 +984,10 @@ export default function ProductsPage() {
 
       {/* ── Confirmar costo mayor que precio ── */}
       <ProductImportWizard open={importWizardOpen} onClose={() => setImportWizardOpen(false)} />
+      <ElYerroImportWizard
+        open={elyerroWizardOpen}
+        onClose={() => setElyerroWizardOpen(false)}
+      />
 
       {confirmCostHigherOpen && (
         <div className="modal-overlay" onClick={() => setConfirmCostHigherOpen(false)}>
