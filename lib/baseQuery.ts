@@ -2,7 +2,7 @@ import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { setAuthCookie, removeAuthCookie } from '@/app/login/_service/sessionCookie';
 
-const BACKEND_URL = "https://unequivocally-shrinelike-zara.ngrok-free.dev/api";
+const BACKEND_URL = "http://162.220.165.172:5000/api";
 
 /**
  * URL base de la API.

@@ -8,7 +8,7 @@ import type {
   ApiResponse,
 } from "./auth-types";
 
-const BACKEND_URL = "https://unequivocally-shrinelike-zara.ngrok-free.dev/api";
+const BACKEND_URL = "http://162.220.165.172:5000/api";
 
 /** URL base de la API.
  * Usamos siempre la URL remota (NEXT_PUBLIC_API_URL o BACKEND_URL),
@@ -61,7 +61,6 @@ export function clearSession(): void {
 export async function login(
   credentials: LoginRequest
 ): Promise<{ user: UserResponse }> {
-  console.log(getApiUrl())
   const res = await fetch(`${getApiUrl()}/account/login`, {
     method: "POST",
     headers: {

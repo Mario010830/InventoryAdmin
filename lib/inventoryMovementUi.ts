@@ -20,6 +20,7 @@ export const INVENTORY_MOVEMENT_REASONS: { value: string; label: string }[] = [
   { value: "DevolucionCliente", label: "Devolución cliente" },
   { value: "TransferenciaEntrada", label: "Transferencia entrada" },
   { value: "StockInicial", label: "Stock inicial" },
+  { value: "ImportacionExcel", label: "Importación por Excel" },
   { value: "Venta", label: "Venta" },
   { value: "Dano", label: "Daño" },
   { value: "UsoInterno", label: "Uso interno" },
@@ -38,6 +39,9 @@ export const INVENTORY_MOVEMENT_REASONS: { value: string; label: string }[] = [
 export const MOVEMENT_REASON_LABEL = Object.fromEntries(
   INVENTORY_MOVEMENT_REASONS.map((r) => [r.value, r.label]),
 ) as Record<string, string>;
+
+/** Razón fija para movimientos creados desde importación masiva de productos. */
+export const IMPORT_EXCEL_MOVEMENT_REASON = "ImportacionExcel" as const;
 
 export function formatMovementReason(raw: string | null | undefined): string {
   const t = raw?.trim();

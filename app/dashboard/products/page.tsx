@@ -32,6 +32,7 @@ import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 import "./products-table.css";
 import { ProductDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
 import { ProductsBulkToolbar } from "@/components/DataTableBulkToolbar";
+import { ProductImportWizard } from "./ProductImportWizard";
 
 function ProductMarginCell({ row }: { row: ProductResponse }) {
   const { formatCup } = useDisplayCurrency();
@@ -384,6 +385,7 @@ export default function ProductsPage() {
   const filtersChanged = useRef(false);
 
   const [confirmCostHigherOpen, setConfirmCostHigherOpen] = useState(false);
+  const [importWizardOpen, setImportWizardOpen] = useState(false);
 
   // ─── Queries ──────────────────────────────────────────────────────────────
 
@@ -763,6 +765,18 @@ export default function ProductsPage() {
         onAdd={openCreate}
         addDisabled={!canCreateProduct}
         addButtonDataTutorial="tutorial-products-add"
+        toolbarExtra={
+          canCreateProduct ? (
+            <button
+              type="button"
+              className="dt-btn-ghost"
+              onClick={() => setImportWizardOpen(true)}
+            >
+              <Icon name="upload_file" />
+              <span className="dt-btn-ghost__label">Importar productos</span>
+            </button>
+          ) : undefined
+        }
         actions={[
           { icon: "edit", label: "Editar", onClick: openEdit, disabled: () => !canEditProduct },
           { icon: "delete_outline", label: "Eliminar", onClick: openDelete, variant: "danger", disabled: () => !canDeleteProduct },
@@ -957,6 +971,8 @@ export default function ProductsPage() {
       />
 
       {/* ── Confirmar costo mayor que precio ── */}
+      <ProductImportWizard open={importWizardOpen} onClose={() => setImportWizardOpen(false)} />
+
       {confirmCostHigherOpen && (
         <div className="modal-overlay" onClick={() => setConfirmCostHigherOpen(false)}>
           <div className="modal-box confirm-modal" onClick={(e) => e.stopPropagation()}>
