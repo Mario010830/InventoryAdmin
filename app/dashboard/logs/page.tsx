@@ -3,10 +3,10 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
-  usePrefetchAllPagesWhileSearching,
+  useLoadAllRemainingPages,
   SEARCH_TABLE_CHUNK_PAGE_SIZE,
   TABLE_SEARCH_DEBOUNCE_MS,
-} from "@/lib/usePrefetchAllPagesWhileSearching";
+} from "@/lib/useLoadAllRemainingPages";
 import type { LogResponse } from "@/lib/dashboard-types";
 import { DataTable } from "@/components/DataTable";
 import type { DataTableColumn } from "@/components/DataTable";
@@ -52,15 +52,8 @@ export default function LogsPage() {
   const [filterUserId, setFilterUserId] = useState("");
   const [logDateFrom, setLogDateFrom] = useState("");
   const [logDateTo, setLogDateTo] = useState("");
-  const shouldPrefetchAll =
-    debouncedFilterText.trim().length > 0 ||
-    actionKind !== "" ||
-    filterUserId !== "" ||
-    logDateFrom !== "" ||
-    logDateTo !== "";
-  const perPage = shouldPrefetchAll ? Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE) : pageSize;
+  const perPage = Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
   const loadNextPage = useCallback(() => setPage((p) => p + 1), []);
-  const isLoadingMore = useRef(false);
   const filtersChanged = useRef(false);
 
   const { data: result, isLoading, isFetching } = useGetLogsQuery({
@@ -81,18 +74,11 @@ export default function LogsPage() {
     });
   }, [result?.data, page]);
 
-  usePrefetchAllPagesWhileSearching({
-    isSearchActive: shouldPrefetchAll,
+  useLoadAllRemainingPages({
     isFetching,
     pagination: result?.pagination,
     loadNextPage,
   });
-
-  useEffect(() => {
-    if (!isFetching) {
-      isLoadingMore.current = false;
-    }
-  }, [isFetching]);
 
   useEffect(() => {
     if (!filtersChanged.current) {
@@ -165,16 +151,9 @@ export default function LogsPage() {
     logDateFrom !== "" ||
     logDateTo !== "";
 
-  const hasMore =
-    !shouldPrefetchAll && result?.pagination
-      ? page < result.pagination.totalPages
-      : false;
-
-  const handleLoadMore = () => {
-    if (isLoadingMore.current || !hasMore) return;
-    isLoadingMore.current = true;
-    setPage((p) => p + 1);
-  };
+  const allPagesLoaded =
+    result?.pagination != null &&
+    page >= (result.pagination.totalPages ?? 1);
 
   return (
     <>
@@ -259,9 +238,8 @@ export default function LogsPage() {
         title="Logs del sistema"
         titleIcon="receipt_long"
         infiniteScroll
-        onLoadMore={handleLoadMore}
-        hasMore={hasMore}
-        loadingMore={isFetching && page > 1}
+        hasMore={!allPagesLoaded}
+        loadingMore={isFetching && !allPagesLoaded}
         emptyIcon="receipt_long"
         emptyTitle="Sin registros"
         emptyDesc={

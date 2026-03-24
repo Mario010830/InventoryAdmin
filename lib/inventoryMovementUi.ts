@@ -43,6 +43,9 @@ export const MOVEMENT_REASON_LABEL = Object.fromEntries(
 /** Razón fija para movimientos creados desde importación masiva de productos. */
 export const IMPORT_EXCEL_MOVEMENT_REASON = "ImportacionExcel" as const;
 
+/** Razón para entradas de stock tras importar desde El Yerro (stock inicial). */
+export const IMPORT_ELYERRO_MOVEMENT_REASON = "StockInicial" as const;
+
 export function formatMovementReason(raw: string | null | undefined): string {
   const t = raw?.trim();
   if (!t) return "—";

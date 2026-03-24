@@ -3,10 +3,10 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
-  usePrefetchAllPagesWhileSearching,
+  useLoadAllRemainingPages,
   SEARCH_TABLE_CHUNK_PAGE_SIZE,
   TABLE_SEARCH_DEBOUNCE_MS,
-} from "@/lib/usePrefetchAllPagesWhileSearching";
+} from "@/lib/useLoadAllRemainingPages";
 import type { LocationResponse } from "@/lib/auth-types";
 import type { CreateLocationRequest, BusinessHoursDto } from "@/lib/dashboard-types";
 import { DataTable } from "@/components/DataTable";
@@ -26,6 +26,8 @@ import { Icon } from "@/components/ui/Icon";
 import { useAppSelector } from "@/store/store";
 import "../products/products-modal.css";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
+import { toast } from "sonner";
+import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
 import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
 import { BusinessCategoryLucideGlyph } from "@/components/dashboard/BusinessCategoryLucideGlyph";
 import "./locations-grid.css";
@@ -66,9 +68,7 @@ export default function LocationsPage() {
   const [filterText, setFilterText] = useState("");
   const [filterBusinessCategoryId, setFilterBusinessCategoryId] = useState("");
   const debouncedFilterText = useDebouncedValue(filterText, TABLE_SEARCH_DEBOUNCE_MS);
-  const shouldPrefetchAll =
-    debouncedFilterText.trim().length > 0 || filterBusinessCategoryId !== "";
-  const perPage = shouldPrefetchAll ? Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE) : pageSize;
+  const perPage = Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
   const loadNextPage = useCallback(() => setPage((p) => p + 1), []);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<LocationResponse | null>(null);
@@ -83,7 +83,6 @@ export default function LocationsPage() {
     makeEmptyBusinessHoursState(),
   );
   const [formLoading, setFormLoading] = useState(false);
-  const isLoadingMore = useRef(false);
   const filtersChanged = useRef(false);
   const formLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -183,18 +182,11 @@ export default function LocationsPage() {
     });
   }, [result?.data, page]);
 
-  usePrefetchAllPagesWhileSearching({
-    isSearchActive: shouldPrefetchAll,
+  useLoadAllRemainingPages({
     isFetching,
     pagination: result?.pagination,
     loadNextPage,
   });
-
-  useEffect(() => {
-    if (!isFetching) {
-      isLoadingMore.current = false;
-    }
-  }, [isFetching]);
 
   useEffect(() => {
     if (!filtersChanged.current) { filtersChanged.current = true; return; }
@@ -228,16 +220,9 @@ export default function LocationsPage() {
 
   const gridFiltersActive = filterText.trim() !== "" || filterBusinessCategoryId !== "";
 
-  const hasMore =
-    !shouldPrefetchAll && result?.pagination
-      ? page < result.pagination.totalPages
-      : false;
-
-  const handleLoadMore = () => {
-    if (isLoadingMore.current || !hasMore) return;
-    isLoadingMore.current = true;
-    setPage((p) => p + 1);
-  };
+  const allPagesLoaded =
+    result?.pagination != null &&
+    page >= (result.pagination.totalPages ?? 1);
 
   const openCreate = () => {
     setEditing(null);
@@ -411,10 +396,18 @@ export default function LocationsPage() {
   };
 
   const handleBulkDeleteLocations = async (ids: number[]) => {
-    for (const id of ids) {
-      await deleteLocation(id).unwrap();
+    const tid = toast.loading(`Eliminando ${ids.length} ubicación(es)…`);
+    try {
+      await withSuppressedMutationToasts(async () => {
+        for (const id of ids) {
+          await deleteLocation(id).unwrap();
+        }
+      });
+      toast.success(`${ids.length} ubicación(es) eliminada(s).`, { id: tid });
+      setAllRows((prev) => prev.filter((r) => !ids.includes(r.id)));
+    } catch {
+      toast.error("No se pudieron eliminar todas las ubicaciones.", { id: tid });
     }
-    setAllRows((prev) => prev.filter((r) => !ids.includes(r.id)));
   };
 
   const handleDelete = async () => {
@@ -500,9 +493,8 @@ export default function LocationsPage() {
           showEditButton: () => canEditLocation,
         }}
         infiniteScroll
-        onLoadMore={handleLoadMore}
-        hasMore={hasMore}
-        loadingMore={isFetching && page > 1}
+        hasMore={!allPagesLoaded}
+        loadingMore={isFetching && !allPagesLoaded}
         emptyIcon="warehouse"
         emptyTitle="Sin registros"
         emptyDesc={

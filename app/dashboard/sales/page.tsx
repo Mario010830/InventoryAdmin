@@ -3,10 +3,10 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
-  usePrefetchAllPagesWhileSearching,
+  useLoadAllRemainingPages,
   SEARCH_TABLE_CHUNK_PAGE_SIZE,
   TABLE_SEARCH_DEBOUNCE_MS,
-} from "@/lib/usePrefetchAllPagesWhileSearching";
+} from "@/lib/useLoadAllRemainingPages";
 import { Icon } from "@/components/ui/Icon";
 import { DataTable } from "@/components/DataTable";
 import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
@@ -91,14 +91,7 @@ export default function SalesPage() {
   const [amountMin, setAmountMin] = useState("");
   const [amountMax, setAmountMax] = useState("");
   const [filterSellerId, setFilterSellerId] = useState("");
-  const shouldPrefetchAll =
-    debouncedFilterText.trim().length > 0 ||
-    saleDateFrom !== "" ||
-    saleDateTo !== "" ||
-    amountMin.trim() !== "" ||
-    amountMax.trim() !== "" ||
-    filterSellerId !== "";
-  const perPage = shouldPrefetchAll ? Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE) : pageSize;
+  const perPage = Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
   const loadNextPage = useCallback(() => setPage((p) => p + 1), []);
   const [allRows, setAllRows]   = useState<SaleOrderResponse[]>([]);
 
@@ -123,8 +116,7 @@ export default function SalesPage() {
     });
   }, [result?.data, result?.pagination?.currentPage, page]);
 
-  usePrefetchAllPagesWhileSearching({
-    isSearchActive: shouldPrefetchAll,
+  useLoadAllRemainingPages({
     isFetching,
     pagination: result?.pagination,
     loadNextPage,
@@ -213,10 +205,9 @@ export default function SalesPage() {
     amountMax.trim() !== "" ||
     filterSellerId !== "";
 
-  const hasMore =
-    !shouldPrefetchAll && result?.pagination
-      ? page < result.pagination.totalPages
-      : false;
+  const allPagesLoaded =
+    result?.pagination != null &&
+    page >= (result.pagination.totalPages ?? 1);
 
   const isBusy = isConfirming || isCancelling;
 
@@ -365,9 +356,8 @@ export default function SalesPage() {
         titleIcon="point_of_sale"
         actions={actions}
         infiniteScroll
-        onLoadMore={() => { if (!isFetching && hasMore) setPage((p) => p + 1); }}
-        hasMore={hasMore}
-        loadingMore={isFetching && page > 1}
+        hasMore={!allPagesLoaded}
+        loadingMore={isFetching && !allPagesLoaded}
         emptyIcon="receipt_long"
         emptyTitle="Sin órdenes"
         emptyDesc={

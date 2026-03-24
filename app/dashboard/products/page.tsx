@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
-  usePrefetchAllPagesWhileSearching,
+  useLoadAllRemainingPages,
   SEARCH_TABLE_CHUNK_PAGE_SIZE,
   TABLE_SEARCH_DEBOUNCE_MS,
-} from "@/lib/usePrefetchAllPagesWhileSearching";
+} from "@/lib/useLoadAllRemainingPages";
 import { Icon } from "@/components/ui/Icon";
 import type { ProductResponse, CreateProductRequest, ProductTipo } from "@/lib/dashboard-types";
 import "./products-modal.css";
@@ -25,12 +25,20 @@ import { DeleteModal } from "@/components/DeleteModal";
 import { FormModal } from "@/components/FormModal";
 import Switch from "@/components/Switch";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
+import { toast } from "sonner";
+import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
 import { TagSelector } from "./TagSelector";
 import { ProductImageGallery } from "./ProductImageGallery";
 import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 import "./products-table.css";
 import { ProductDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
+
+/** Máximo de productos a pedir en una sola página para que «seleccionar todo» cubra el catálogo sin depender del scroll. */
+const MAX_PRODUCTS_SINGLE_FETCH = 10_000;
+
+/** Reactivar el botón «Importar El Yerro» cuando proceda. */
+const ELYERRO_IMPORT_ENABLED = false;
 import { ProductsBulkToolbar } from "@/components/DataTableBulkToolbar";
 import { ProductImportWizard } from "./ProductImportWizard";
 import { ElYerroImportWizard } from "./ElYerroImportWizard";
@@ -363,14 +371,11 @@ export default function ProductsPage() {
   const [filterForSale, setFilterForSale] = useState<string>("");
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
-  const shouldPrefetchAll =
-    debouncedFilterText.trim().length > 0 ||
-    filterCategoryId !== "" ||
-    filterAvailable !== "" ||
-    filterForSale !== "" ||
-    priceMin.trim() !== "" ||
-    priceMax.trim() !== "";
-  const perPage = shouldPrefetchAll ? Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE) : pageSize;
+  const [listPerPageOverride, setListPerPageOverride] = useState<number | null>(
+    null,
+  );
+  const effectivePerPage =
+    listPerPageOverride ?? Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
   const loadNextPage = useCallback(() => setPage((p) => p + 1), []);
   const [allRows, setAllRows] = useState<ProductResponse[]>([]);
 
@@ -391,7 +396,10 @@ export default function ProductsPage() {
 
   // ─── Queries ──────────────────────────────────────────────────────────────
 
-  const { data: result, isLoading, isFetching } = useGetProductsQuery({ page, perPage });
+  const { data: result, isLoading, isFetching } = useGetProductsQuery({
+    page,
+    perPage: effectivePerPage,
+  });
   const { data: categoriesResult } = useGetProductCategoriesQuery({ perPage: 100 });
 
   const [createProduct] = useCreateProductMutation();
@@ -424,8 +432,24 @@ export default function ProductsPage() {
     });
   }, [result?.data, result?.pagination?.currentPage, page]);
 
-  usePrefetchAllPagesWhileSearching({
-    isSearchActive: shouldPrefetchAll,
+  /** Tras la primera respuesta, si hay varias páginas, pedir hasta `totalCount` (tope) en una sola petición para tener todo el catálogo en memoria. */
+  useEffect(() => {
+    const tc = result?.pagination?.totalCount;
+    const tp = result?.pagination?.totalPages;
+    if (tc == null || tp == null) return;
+    if (tp <= 1) return;
+    const cap = Math.min(tc, MAX_PRODUCTS_SINGLE_FETCH);
+    if ((listPerPageOverride ?? 0) >= cap) return;
+    setListPerPageOverride(cap);
+    setPage(1);
+    setAllRows([]);
+  }, [
+    result?.pagination?.totalCount,
+    result?.pagination?.totalPages,
+    listPerPageOverride,
+  ]);
+
+  useLoadAllRemainingPages({
     isFetching,
     pagination: result?.pagination,
     loadNextPage,
@@ -488,14 +512,40 @@ export default function ProductsPage() {
     priceMin.trim() !== "" ||
     priceMax.trim() !== "";
 
-  const hasMore =
-    !shouldPrefetchAll && result?.pagination
-      ? page < result.pagination.totalPages
-      : false;
+  const allPagesLoaded =
+    result?.pagination != null &&
+    page >= (result.pagination.totalPages ?? 1);
 
-  const handleLoadMore = () => {
-    if (!isFetching && hasMore) setPage((p) => p + 1);
-  };
+  const filteredDataRef = useRef(filteredData);
+  filteredDataRef.current = filteredData;
+  const allPagesLoadedRef = useRef(allPagesLoaded);
+  allPagesLoadedRef.current = allPagesLoaded;
+  const isFetchingRef = useRef(isFetching);
+  isFetchingRef.current = isFetching;
+
+  const onBulkSelectAllProducts = useCallback(async () => {
+    const deadline = Date.now() + 120_000;
+    while (!allPagesLoadedRef.current && Date.now() < deadline) {
+      loadNextPage();
+      await new Promise<void>((resolve) => {
+        const id = setInterval(() => {
+          if (allPagesLoadedRef.current) {
+            clearInterval(id);
+            resolve();
+          } else if (!isFetchingRef.current) {
+            clearInterval(id);
+            resolve();
+          }
+        }, 40);
+        setTimeout(() => {
+          clearInterval(id);
+          resolve();
+        }, 60_000);
+      });
+    }
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+    return filteredDataRef.current.map((r) => String(r.id));
+  }, [loadNextPage]);
 
   // ─── Form handlers ─────────────────────────────────────────────────────────
 
@@ -625,28 +675,62 @@ export default function ProductsPage() {
   };
 
   const handleBulkDeleteProducts = async (ids: number[]) => {
-    for (const id of ids) {
-      await deleteProduct(id).unwrap();
+    const tid = toast.loading(`Eliminando ${ids.length} producto(s)…`);
+    try {
+      await withSuppressedMutationToasts(async () => {
+        for (const id of ids) {
+          await deleteProduct(id).unwrap();
+        }
+      });
+      toast.success(`${ids.length} producto(s) eliminado(s).`, { id: tid });
+      setAllRows((prev) => prev.filter((r) => !ids.includes(r.id)));
+    } catch {
+      toast.error("No se pudieron eliminar todos los productos.", { id: tid });
     }
-    setAllRows((prev) => prev.filter((r) => !ids.includes(r.id)));
   };
 
   const handleBulkSetAvailable = async (value: boolean, ids: number[]) => {
-    for (const id of ids) {
-      await updateProduct({ id, body: { isAvailable: value } }).unwrap();
+    const tid = toast.loading(`Actualizando disponibilidad (${ids.length})…`);
+    try {
+      await withSuppressedMutationToasts(async () => {
+        for (const id of ids) {
+          await updateProduct({ id, body: { isAvailable: value } }).unwrap();
+        }
+      });
+      toast.success(
+        `${ids.length} producto(s) marcado(s) como ${value ? "disponibles" : "no disponibles"}.`,
+        { id: tid },
+      );
+      setAllRows((prev) =>
+        prev.map((r) => (ids.includes(r.id) ? { ...r, isAvailable: value } : r)),
+      );
+    } catch {
+      toast.error("No se pudo actualizar la disponibilidad de todos.", {
+        id: tid,
+      });
     }
-    setAllRows((prev) =>
-      prev.map((r) => (ids.includes(r.id) ? { ...r, isAvailable: value } : r)),
-    );
   };
 
   const handleBulkSetForSale = async (value: boolean, ids: number[]) => {
-    for (const id of ids) {
-      await updateProduct({ id, body: { isForSale: value } }).unwrap();
+    const tid = toast.loading(`Actualizando venta (${ids.length})…`);
+    try {
+      await withSuppressedMutationToasts(async () => {
+        for (const id of ids) {
+          await updateProduct({ id, body: { isForSale: value } }).unwrap();
+        }
+      });
+      toast.success(
+        `${ids.length} producto(s) marcado(s) como ${value ? "en venta" : "fuera de venta"}.`,
+        { id: tid },
+      );
+      setAllRows((prev) =>
+        prev.map((r) => (ids.includes(r.id) ? { ...r, isForSale: value } : r)),
+      );
+    } catch {
+      toast.error("No se pudo actualizar el estado de venta de todos.", {
+        id: tid,
+      });
     }
-    setAllRows((prev) =>
-      prev.map((r) => (ids.includes(r.id) ? { ...r, isForSale: value } : r)),
-    );
   };
 
   // ─── Render ────────────────────────────────────────────────────────────────
@@ -781,7 +865,15 @@ export default function ProductsPage() {
               <button
                 type="button"
                 className="dt-btn-ghost"
-                onClick={() => setElyerroWizardOpen(true)}
+                disabled={!ELYERRO_IMPORT_ENABLED}
+                title={
+                  !ELYERRO_IMPORT_ENABLED
+                    ? "Importación desde El Yerro deshabilitada temporalmente."
+                    : undefined
+                }
+                onClick={() =>
+                  ELYERRO_IMPORT_ENABLED && setElyerroWizardOpen(true)
+                }
               >
                 <Icon name="restaurant_menu" />
                 <span className="dt-btn-ghost__label">Importar El Yerro</span>
@@ -811,9 +903,10 @@ export default function ProductsPage() {
           showEditButton: () => canEditProduct,
         }}
         infiniteScroll
-        onLoadMore={handleLoadMore}
-        hasMore={hasMore}
-        loadingMore={isFetching && page > 1}
+        onLoadMore={allPagesLoaded ? undefined : loadNextPage}
+        hasMore={!allPagesLoaded}
+        loadingMore={isFetching && !allPagesLoaded}
+        onBulkSelectAll={onBulkSelectAllProducts}
         emptyIcon="inventory_2"
         emptyTitle="Sin registros"
         emptyDesc={

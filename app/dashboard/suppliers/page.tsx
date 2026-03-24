@@ -3,10 +3,10 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
-  usePrefetchAllPagesWhileSearching,
+  useLoadAllRemainingPages,
   SEARCH_TABLE_CHUNK_PAGE_SIZE,
   TABLE_SEARCH_DEBOUNCE_MS,
-} from "@/lib/usePrefetchAllPagesWhileSearching";
+} from "@/lib/useLoadAllRemainingPages";
 import type { SupplierResponse, CreateSupplierRequest } from "@/lib/dashboard-types";
 import { DataTable } from "@/components/DataTable";
 import type { DataTableColumn } from "@/components/DataTable";
@@ -22,6 +22,8 @@ import Switch from "@/components/Switch";
 import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
 import "../products/products-modal.css";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
+import { toast } from "sonner";
+import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
 import { SupplierDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
 
 const COLUMNS: DataTableColumn<SupplierResponse>[] = [
@@ -49,8 +51,7 @@ export default function SuppliersPage() {
   const [filterText, setFilterText] = useState("");
   const debouncedFilterText = useDebouncedValue(filterText, TABLE_SEARCH_DEBOUNCE_MS);
   const [filterActive, setFilterActive] = useState("");
-  const shouldPrefetchAll = debouncedFilterText.trim().length > 0 || filterActive !== "";
-  const perPage = shouldPrefetchAll ? Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE) : pageSize;
+  const perPage = Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
   const loadNextPage = useCallback(() => setPage((p) => p + 1), []);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<SupplierResponse | null>(null);
@@ -60,7 +61,6 @@ export default function SuppliersPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState<SupplierResponse | null>(null);
   const [deleteError, setDeleteError] = useState("");
-  const isLoadingMore = useRef(false);
   const filtersChanged = useRef(false);
 
   // ─── Permissions ──────────────────────────────────────────────────────────
@@ -87,18 +87,11 @@ export default function SuppliersPage() {
     });
   }, [result?.data, page]);
 
-  usePrefetchAllPagesWhileSearching({
-    isSearchActive: shouldPrefetchAll,
+  useLoadAllRemainingPages({
     isFetching,
     pagination: result?.pagination,
     loadNextPage,
   });
-
-  useEffect(() => {
-    if (!isFetching) {
-      isLoadingMore.current = false;
-    }
-  }, [isFetching]);
 
   useEffect(() => {
     if (!filtersChanged.current) { filtersChanged.current = true; return; }
@@ -131,16 +124,9 @@ export default function SuppliersPage() {
 
   const gridFiltersActive = filterText.trim() !== "" || filterActive !== "";
 
-  const hasMore =
-    !shouldPrefetchAll && result?.pagination
-      ? page < result.pagination.totalPages
-      : false;
-
-  const handleLoadMore = () => {
-    if (isLoadingMore.current || !hasMore) return;
-    isLoadingMore.current = true;
-    setPage((p) => p + 1);
-  };
+  const allPagesLoaded =
+    result?.pagination != null &&
+    page >= (result.pagination.totalPages ?? 1);
 
   const openCreate = () => {
     setEditing(null);
@@ -227,10 +213,18 @@ export default function SuppliersPage() {
   };
 
   const handleBulkDeleteSuppliers = async (ids: number[]) => {
-    for (const id of ids) {
-      await deleteSupplier(id).unwrap();
+    const tid = toast.loading(`Eliminando ${ids.length} proveedor(es)…`);
+    try {
+      await withSuppressedMutationToasts(async () => {
+        for (const id of ids) {
+          await deleteSupplier(id).unwrap();
+        }
+      });
+      toast.success(`${ids.length} proveedor(es) eliminado(s).`, { id: tid });
+      setAllRows((prev) => prev.filter((r) => !ids.includes(r.id)));
+    } catch {
+      toast.error("No se pudieron eliminar todos los proveedores.", { id: tid });
     }
-    setAllRows((prev) => prev.filter((r) => !ids.includes(r.id)));
   };
 
   return (
@@ -297,9 +291,8 @@ export default function SuppliersPage() {
           showEditButton: () => canEditSupplier,
         }}
         infiniteScroll
-        onLoadMore={handleLoadMore}
-        hasMore={hasMore}
-        loadingMore={isFetching && page > 1}
+        hasMore={!allPagesLoaded}
+        loadingMore={isFetching && !allPagesLoaded}
         emptyIcon="local_shipping"
         emptyTitle="Sin registros"
         emptyDesc={

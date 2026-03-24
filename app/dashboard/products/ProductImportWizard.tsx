@@ -30,7 +30,14 @@ import {
   useGetProductCategoriesQuery,
   useUpdateProductMutation,
 } from "./_service/productsApi";
+import {
+  beginSuppressMutationToasts,
+  endSuppressMutationToasts,
+  withSuppressedMutationToasts,
+} from "@/lib/mutationToastControl";
 import "./product-import-wizard.css";
+
+const EXCEL_IMPORT_TOAST_ID = "excel-product-import";
 
 type MappingKey =
   | "name"
@@ -636,66 +643,83 @@ export function ProductImportWizard({
     const locId = selectedLocationId;
     const needCategoryAfter: { id: number; name: string }[] = [];
     const needTipoAfter: { id: number; name: string }[] = [];
-    for (let i = 0; i < list.length; i++) {
-      setImportIndex(i + 1);
-      const item = list[i];
-      if (!item.payload) {
-        fail++;
-        setFailCount(fail);
-        continue;
-      }
-      try {
-        const created = await createProduct(item.payload).unwrap();
-        ok++;
-        setOkCount(ok);
-        const pCat = item.payload.categoryId;
-        if (pCat == null || pCat === 0) {
-          needCategoryAfter.push({
+    beginSuppressMutationToasts();
+    toast.loading(`Importando… 0 / ${list.length}`, { id: EXCEL_IMPORT_TOAST_ID });
+    try {
+      for (let i = 0; i < list.length; i++) {
+        setImportIndex(i + 1);
+        if (i % 5 === 0 || i === list.length - 1) {
+          toast.loading(`Importando… ${i + 1} / ${list.length}`, {
+            id: EXCEL_IMPORT_TOAST_ID,
+          });
+        }
+        const item = list[i];
+        if (!item.payload) {
+          fail++;
+          setFailCount(fail);
+          continue;
+        }
+        try {
+          const created = await createProduct(item.payload).unwrap();
+          ok++;
+          setOkCount(ok);
+          const pCat = item.payload.categoryId;
+          if (pCat == null || pCat === 0) {
+            needCategoryAfter.push({
+              id: created.id,
+              name: created.name || item.payload.name,
+            });
+          }
+          needTipoAfter.push({
             id: created.id,
             name: created.name || item.payload.name,
           });
-        }
-        needTipoAfter.push({
-          id: created.id,
-          name: created.name || item.payload.name,
-        });
-        const qty = item.stockQty;
-        if (
-          item.wantsStockMovement &&
-          qty != null &&
-          qty > 0 &&
-          locId != null
-        ) {
-          try {
-            await createMovement({
-              productId: created.id,
-              locationId: locId,
-              type: 0,
-              quantity: qty,
-              reason: IMPORT_EXCEL_MOVEMENT_REASON,
-            }).unwrap();
-            stockOk++;
-            setStockOkCount(stockOk);
-          } catch {
-            stockFail++;
-            setStockFailCount(stockFail);
+          const qty = item.stockQty;
+          if (
+            item.wantsStockMovement &&
+            qty != null &&
+            qty > 0 &&
+            locId != null
+          ) {
+            try {
+              await createMovement({
+                productId: created.id,
+                locationId: locId,
+                type: 0,
+                quantity: qty,
+                reason: IMPORT_EXCEL_MOVEMENT_REASON,
+              }).unwrap();
+              stockOk++;
+              setStockOkCount(stockOk);
+            } catch {
+              stockFail++;
+              setStockFailCount(stockFail);
+            }
           }
+        } catch {
+          fail++;
+          setFailCount(fail);
         }
-      } catch {
-        fail++;
-        setFailCount(fail);
       }
+      setOkCount(ok);
+      setFailCount(fail);
+      setStockOkCount(stockOk);
+      setStockFailCount(stockFail);
+      const parts: string[] = [`${ok} producto(s) creado(s)`];
+      if (fail > 0) parts.push(`${fail} con error`);
+      if (stockOk > 0) parts.push(`${stockOk} entrada(s) de stock`);
+      if (stockFail > 0)
+        parts.push(`${stockFail} movimiento(s) de stock fallidos`);
+      toast.success(parts.join(" · "), { id: EXCEL_IMPORT_TOAST_ID });
+      setProductsNeedingCategory(needCategoryAfter);
+      setCategoryAssign({});
+      setProductsNeedingTipo(needTipoAfter);
+      setTipoAssign({});
+      setStep(4);
+    } finally {
+      endSuppressMutationToasts();
+      setImporting(false);
     }
-    setOkCount(ok);
-    setFailCount(fail);
-    setStockOkCount(stockOk);
-    setStockFailCount(stockFail);
-    setProductsNeedingCategory(needCategoryAfter);
-    setCategoryAssign({});
-    setProductsNeedingTipo(needTipoAfter);
-    setTipoAssign({});
-    setImporting(false);
-    setStep(4);
   };
 
   const allCategorySlotsFilled = useMemo(() => {
@@ -712,14 +736,16 @@ export function ProductImportWizard({
     if (!allCategorySlotsFilled || productsNeedingCategory.length === 0) return;
     setSavingCategories(true);
     try {
-      for (const p of productsNeedingCategory) {
-        const cid = categoryAssign[p.id];
-        if (cid === "" || cid == null) continue;
-        await updateProduct({
-          id: p.id,
-          body: { categoryId: Number(cid) },
-        }).unwrap();
-      }
+      await withSuppressedMutationToasts(async () => {
+        for (const p of productsNeedingCategory) {
+          const cid = categoryAssign[p.id];
+          if (cid === "" || cid == null) continue;
+          await updateProduct({
+            id: p.id,
+            body: { categoryId: Number(cid) },
+          }).unwrap();
+        }
+      });
       toast.success("Categorías actualizadas.");
       if (productsNeedingTipo.length > 0) {
         setStep(6);
@@ -745,14 +771,16 @@ export function ProductImportWizard({
     if (!allTipoSlotsFilled || productsNeedingTipo.length === 0) return;
     setSavingTipos(true);
     try {
-      for (const p of productsNeedingTipo) {
-        const tipo = tipoAssign[p.id];
-        if (tipo !== "inventariable" && tipo !== "elaborado") continue;
-        await updateProduct({
-          id: p.id,
-          body: { tipo },
-        }).unwrap();
-      }
+      await withSuppressedMutationToasts(async () => {
+        for (const p of productsNeedingTipo) {
+          const tipo = tipoAssign[p.id];
+          if (tipo !== "inventariable" && tipo !== "elaborado") continue;
+          await updateProduct({
+            id: p.id,
+            body: { tipo },
+          }).unwrap();
+        }
+      });
       toast.success("Tipos actualizados.");
       onClose();
     } catch {
@@ -964,59 +992,82 @@ export function ProductImportWizard({
                     <br />
                     {dataRowsForImport.length} filas de datos ·{" "}
                     {columnLabels.length} columnas
-                    {mapping.quantityStock !== "" ? (
-                      <>
-                        <br />
-                        <strong className="product-import-wizard__meta-strong">
-                          Entrada de inventario:
-                        </strong>{" "}
-                        {selectedLocationId != null ? (
-                          <>
-                            ubicación «
-                            {selectedLocationLabel}
-                            » · razón «
+                  </p>
+
+                  {mapping.quantityStock !== "" ? (
+                    <div className="product-import-wizard__stock-location-card">
+                      <div className="product-import-wizard__stock-location-card-head">
+                        <span
+                          className="product-import-wizard__stock-location-card-icon"
+                          aria-hidden
+                        >
+                          <Icon name="place" />
+                        </span>
+                        <div className="product-import-wizard__stock-location-card-text">
+                          <p className="product-import-wizard__stock-location-card-title">
+                            Entrada de inventario
+                          </p>
+                          <p className="product-import-wizard__stock-location-card-desc">
+                            Razón de movimiento: «
                             {MOVEMENT_REASON_LABEL[
                               IMPORT_EXCEL_MOVEMENT_REASON
                             ] ?? IMPORT_EXCEL_MOVEMENT_REASON}
-                            »
-                          </>
-                        ) : (
-                          <span className="product-import-wizard__meta-warn">
-                            No hay ubicación disponible: no se registrarán
-                            entradas de stock (configura ubicación en el sistema
-                            o usuario).
-                          </span>
-                        )}
-                        {locationOptions.length > 0 ? (
-                          <>
-                            <br />
-                            <strong className="product-import-wizard__meta-strong">
-                              Ubicación de entrada:
-                            </strong>{" "}
-                            <select
-                              value={
-                                selectedLocationId == null
-                                  ? ""
-                                  : String(selectedLocationId)
-                              }
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setSelectedLocationId(v === "" ? null : Number(v));
-                              }}
-                              aria-label="Ubicación para entrada de inventario"
-                            >
-                              <option value="">— Elegir ubicación —</option>
-                              {locationOptions.map((loc) => (
-                                <option key={loc.id} value={loc.id}>
-                                  {loc.name}
-                                </option>
-                              ))}
-                            </select>
-                          </>
-                        ) : null}
-                      </>
-                    ) : null}
-                  </p>
+                            ». Las cantidades del Excel se registrarán como
+                            entrada en la ubicación que elijas.
+                          </p>
+                        </div>
+                      </div>
+                      {locationOptions.length > 0 ? (
+                        <div className="product-import-wizard__stock-location-field">
+                          <label
+                            className="product-import-wizard__stock-location-label"
+                            htmlFor="import-excel-location-select"
+                          >
+                            Ubicación de entrada
+                          </label>
+                          <select
+                            id="import-excel-location-select"
+                            className="product-import-wizard__location-select"
+                            value={
+                              selectedLocationId == null
+                                ? ""
+                                : String(selectedLocationId)
+                            }
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setSelectedLocationId(
+                                v === "" ? null : Number(v),
+                              );
+                            }}
+                            aria-label="Ubicación para entrada de inventario"
+                          >
+                            <option value="">— Elegir ubicación —</option>
+                            {locationOptions.map((loc) => (
+                              <option key={loc.id} value={loc.id}>
+                                {loc.name}
+                              </option>
+                            ))}
+                          </select>
+                          {selectedLocationId != null ? (
+                            <p className="product-import-wizard__stock-location-hint">
+                              Se usará «{selectedLocationLabel}» al importar.
+                            </p>
+                          ) : (
+                            <p className="product-import-wizard__stock-location-warn product-import-wizard__stock-location-warn--inline">
+                              Elige una ubicación para registrar las entradas de
+                              stock.
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="product-import-wizard__stock-location-warn">
+                          No hay ubicaciones configuradas: no se registrarán
+                          entradas de stock hasta que exista al menos una
+                          ubicación en el sistema.
+                        </p>
+                      )}
+                    </div>
+                  ) : null}
                   <div className="product-import-wizard__table-scroll">
                     <table className="product-import-wizard__mapping-table">
                       <thead>

@@ -117,6 +117,11 @@ export interface DataTableProps<T extends { id: string | number }> {
     exportSelectedXlsx: () => void;
   }) => React.ReactNode;
   onBulkDeleteSelected?: (ids: number[]) => void | Promise<void>;
+  /**
+   * Con scroll infinito y aún hay más páginas en el servidor: antes de marcar «todas» las filas
+   * visibles, se puede cargar el resto y devolver los ids a seleccionar (p. ej. filas que pasan el filtro).
+   */
+  onBulkSelectAll?: () => Promise<string[] | void>;
 }
 
 export interface DataTableDetailDrawerConfig<T> {
@@ -265,6 +270,7 @@ export function DataTable<T extends { id: string | number }>({
   gridConfig,
   renderBulkToolbar,
   onBulkDeleteSelected,
+  onBulkSelectAll,
 }: DataTableProps<T>) {
   const { formatCup } = useDisplayCurrency();
   const gridEnabled = Boolean(gridConfig);
@@ -432,12 +438,40 @@ export function DataTable<T extends { id: string | number }>({
   }, []);
 
   const toggleSelectAll = useCallback(() => {
-    setSelectedIds((prev) => {
-      if (sortedData.length === 0) return new Set();
-      if (prev.size === sortedData.length) return new Set();
-      return new Set(sortedData.map((r) => String(r.id)));
-    });
-  }, [sortedData]);
+    void (async () => {
+      if (sortedData.length === 0) {
+        setSelectedIds(new Set());
+        return;
+      }
+      const allVisibleSelected =
+        selectedIds.size === sortedData.length &&
+        sortedData.every((r) => selectedIds.has(String(r.id)));
+      if (allVisibleSelected) {
+        setSelectedIds(new Set());
+        return;
+      }
+      if (
+        gridEnabled &&
+        infiniteScroll &&
+        hasMore &&
+        onBulkSelectAll
+      ) {
+        const ids = await onBulkSelectAll();
+        if (ids != null) {
+          setSelectedIds(new Set(ids.map(String)));
+          return;
+        }
+      }
+      setSelectedIds(new Set(sortedData.map((r) => String(r.id))));
+    })();
+  }, [
+    sortedData,
+    selectedIds,
+    gridEnabled,
+    infiniteScroll,
+    hasMore,
+    onBulkSelectAll,
+  ]);
 
   const runExport = useCallback(
     async (format: "csv" | "xlsx") => {

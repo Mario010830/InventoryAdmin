@@ -3,10 +3,10 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
-  usePrefetchAllPagesWhileSearching,
+  useLoadAllRemainingPages,
   SEARCH_TABLE_CHUNK_PAGE_SIZE,
   TABLE_SEARCH_DEBOUNCE_MS,
-} from "@/lib/usePrefetchAllPagesWhileSearching";
+} from "@/lib/useLoadAllRemainingPages";
 import type { InventoryMovementResponse, CreateInventoryMovementRequest, CreateProductRequest, ProductResponse } from "@/lib/dashboard-types";
 import { DataTable } from "@/components/DataTable";
 import type { DataTableColumn } from "@/components/DataTable";
@@ -235,14 +235,7 @@ export default function MovementsPage() {
   const [movDateTo, setMovDateTo] = useState("");
   const [filterUserId, setFilterUserId] = useState("");
   const authOrgId = useAppSelector((s) => s.auth?.organizationId) ?? 0;
-  const shouldPrefetchAll =
-    debouncedFilterText.trim().length > 0 ||
-    filterType !== "" ||
-    filterLocationId !== "" ||
-    movDateFrom !== "" ||
-    movDateTo !== "" ||
-    filterUserId !== "";
-  const perPage = shouldPrefetchAll ? Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE) : pageSize;
+  const perPage = Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
   const loadNextPage = useCallback(() => setPage((p) => p + 1), []);
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
@@ -253,7 +246,6 @@ export default function MovementsPage() {
   const productDropdownRef = useRef<HTMLDivElement>(null);
   const [productMode, setProductMode] = useState<"existing" | "new">("existing");
   const [newProductForm, setNewProductForm] = useState(initialNewProduct);
-  const isLoadingMore = useRef(false);
   const filtersChanged = useRef(false);
 
   const { data: result, isLoading, isFetching } = useGetMovementsQuery({ page, perPage });
@@ -294,18 +286,11 @@ export default function MovementsPage() {
     });
   }, [result?.data, page]);
 
-  usePrefetchAllPagesWhileSearching({
-    isSearchActive: shouldPrefetchAll,
+  useLoadAllRemainingPages({
     isFetching,
     pagination: result?.pagination,
     loadNextPage,
   });
-
-  useEffect(() => {
-    if (!isFetching) {
-      isLoadingMore.current = false;
-    }
-  }, [isFetching]);
 
   useEffect(() => {
     if (!filtersChanged.current) { filtersChanged.current = true; return; }
@@ -414,16 +399,9 @@ export default function MovementsPage() {
     movDateTo !== "" ||
     filterUserId !== "";
 
-  const hasMore =
-    !shouldPrefetchAll && result?.pagination
-      ? page < result.pagination.totalPages
-      : false;
-
-  const handleLoadMore = () => {
-    if (isLoadingMore.current || !hasMore) return;
-    isLoadingMore.current = true;
-    setPage((p) => p + 1);
-  };
+  const allPagesLoaded =
+    result?.pagination != null &&
+    page >= (result.pagination.totalPages ?? 1);
 
   const columns: DataTableColumn<InventoryMovementResponse>[] = useMemo(
     () => [
@@ -764,9 +742,8 @@ export default function MovementsPage() {
         titleIcon="swap_horiz"
         toolbarExtra={movementToolbar}
         infiniteScroll
-        onLoadMore={handleLoadMore}
-        hasMore={hasMore}
-        loadingMore={isFetching && page > 1}
+        hasMore={!allPagesLoaded}
+        loadingMore={isFetching && !allPagesLoaded}
         emptyIcon="swap_horiz"
         emptyTitle="Sin registros"
         emptyDesc={

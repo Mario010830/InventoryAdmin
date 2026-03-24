@@ -338,6 +338,7 @@ export const productsApi = createApi({
 
 export const {
   useGetProductsQuery,
+  useLazyGetProductsQuery,
   useLazyGetProductQuery,
   useCreateProductMutation,
   useUpdateProductMutation,

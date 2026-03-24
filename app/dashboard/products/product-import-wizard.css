@@ -20,6 +20,11 @@
   flex-direction: column;
 }
 
+/* Asistente El Yerro: más ancho (pasos extra + tablas) */
+.product-import-wizard__shell--elyerro-wide {
+  max-width: min(920px, calc(100vw - 32px));
+}
+
 .product-import-wizard__header {
   display: flex;
   align-items: flex-start;
@@ -360,6 +365,176 @@
   margin: 14px 0 0;
   font-size: 0.8125rem;
   color: #b91c1c;
+}
+
+/* Entrada de inventario — paso mapeo Excel (selector de ubicación visible) */
+.product-import-wizard__stock-location-card {
+  margin: 0 0 18px;
+  padding: 16px 18px 18px;
+  border-radius: 12px;
+  border: 1px solid #c7d2fe;
+  background: linear-gradient(180deg, #f8faff 0%, #ffffff 100%);
+  box-shadow:
+    0 0 0 1px rgba(79, 110, 247, 0.06),
+    0 8px 24px -12px rgba(15, 23, 42, 0.12);
+}
+
+.product-import-wizard__stock-location-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.product-import-wizard__stock-location-card-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(79, 110, 247, 0.12);
+  color: #4f6ef7;
+  font-size: 20px;
+}
+
+.product-import-wizard__stock-location-card-icon .material-icons {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.product-import-wizard__stock-location-card-text {
+  min-width: 0;
+}
+
+.product-import-wizard__stock-location-card-title {
+  margin: 0 0 6px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.product-import-wizard__stock-location-card-desc {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.product-import-wizard__stock-location-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.product-import-wizard__stock-location-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #475569;
+}
+
+.product-import-wizard__location-select {
+  width: 100%;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  padding-right: 36px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #ffffff;
+  color: #0f172a;
+  box-sizing: border-box;
+  cursor: pointer;
+  appearance: auto;
+  background-color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.product-import-wizard__location-select:hover {
+  border-color: #94a3b8;
+}
+
+.product-import-wizard__location-select:focus {
+  outline: none;
+  border-color: #4f6ef7;
+  box-shadow:
+    0 0 0 3px rgba(79, 110, 247, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.product-import-wizard__stock-location-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.product-import-wizard__stock-location-warn {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #b45309;
+  line-height: 1.45;
+}
+
+.product-import-wizard__stock-location-warn--inline {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.product-import-wizard__stock-location-card--elyerro-inline {
+  margin-bottom: 14px;
+}
+
+.product-import-wizard__elyerro-options-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 4px 0 0;
+}
+
+.product-import-wizard__elyerro-options-stack .product-import-wizard__elyerro-option-check {
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #e2e8f0;
+}
+
+.product-import-wizard__stock-qty-input {
+  width: 100%;
+  max-width: 100px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  text-align: right;
+  box-sizing: border-box;
+}
+
+.product-import-wizard__stock-qty-input:focus {
+  outline: none;
+  border-color: #4f6ef7;
+  box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.12);
+}
+
+.product-import-wizard__stock-qty-input:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
 }
 
 /* Tablas */

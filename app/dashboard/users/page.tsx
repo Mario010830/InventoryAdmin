@@ -3,10 +3,10 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
-  usePrefetchAllPagesWhileSearching,
+  useLoadAllRemainingPages,
   SEARCH_TABLE_CHUNK_PAGE_SIZE,
   TABLE_SEARCH_DEBOUNCE_MS,
-} from "@/lib/usePrefetchAllPagesWhileSearching";
+} from "@/lib/useLoadAllRemainingPages";
 import type { UserResponse } from "@/lib/auth-types";
 import type { CreateUserRequest } from "@/lib/dashboard-types";
 import { DataTable } from "@/components/DataTable";
@@ -24,6 +24,8 @@ import { FormModal } from "@/components/FormModal";
 import { useAppSelector } from "@/store/store";
 import "../products/products-modal.css";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
+import { toast } from "sonner";
+import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
 import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
 import { UserDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
 import { UsersBulkToolbar } from "@/components/DataTableBulkToolbar";
@@ -45,9 +47,7 @@ export default function UsersPage() {
   const debouncedFilterText = useDebouncedValue(filterText, TABLE_SEARCH_DEBOUNCE_MS);
   const [filterRoleId, setFilterRoleId] = useState("");
   const [filterUserStatus, setFilterUserStatus] = useState("");
-  const shouldPrefetchAll =
-    debouncedFilterText.trim().length > 0 || filterRoleId !== "" || filterUserStatus !== "";
-  const perPage = shouldPrefetchAll ? Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE) : pageSize;
+  const perPage = Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
   const loadNextPage = useCallback(() => setPage((p) => p + 1), []);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<UserResponse | null>(null);
@@ -57,7 +57,6 @@ export default function UsersPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState<UserResponse | null>(null);
   const [deleteError, setDeleteError] = useState("");
-  const isLoadingMore = useRef(false);
   const filtersChanged = useRef(false);
 
   const user = useAppSelector((s) => s.auth);
@@ -133,18 +132,11 @@ export default function UsersPage() {
     });
   }, [result?.data, page]);
 
-  usePrefetchAllPagesWhileSearching({
-    isSearchActive: shouldPrefetchAll,
+  useLoadAllRemainingPages({
     isFetching,
     pagination: result?.pagination,
     loadNextPage,
   });
-
-  useEffect(() => {
-    if (!isFetching) {
-      isLoadingMore.current = false;
-    }
-  }, [isFetching]);
 
   useEffect(() => {
     if (!filtersChanged.current) { filtersChanged.current = true; return; }
@@ -187,16 +179,9 @@ export default function UsersPage() {
   const gridFiltersActive =
     filterText.trim() !== "" || filterRoleId !== "" || filterUserStatus !== "";
 
-  const hasMore =
-    !shouldPrefetchAll && result?.pagination
-      ? page < result.pagination.totalPages
-      : false;
-
-  const handleLoadMore = () => {
-    if (isLoadingMore.current || !hasMore) return;
-    isLoadingMore.current = true;
-    setPage((p) => p + 1);
-  };
+  const allPagesLoaded =
+    result?.pagination != null &&
+    page >= (result.pagination.totalPages ?? 1);
 
   const openCreate = () => {
     setEditing(null);
@@ -312,25 +297,48 @@ export default function UsersPage() {
   }, [loadedRows]);
 
   const handleBulkDeleteUsers = async (ids: number[]) => {
-    for (const id of ids) {
-      await deleteUser(id).unwrap();
+    const tid = toast.loading(`Eliminando ${ids.length} usuario(s)…`);
+    try {
+      await withSuppressedMutationToasts(async () => {
+        for (const id of ids) {
+          await deleteUser(id).unwrap();
+        }
+      });
+      toast.success(`${ids.length} usuario(s) eliminado(s).`, { id: tid });
+      setAllRows((prev) => prev.filter((r) => !ids.includes(r.id)));
+    } catch {
+      toast.error("No se pudieron eliminar todos los usuarios.", { id: tid });
     }
-    setAllRows((prev) => prev.filter((r) => !ids.includes(r.id)));
   };
 
   const handleBulkSetUserStatus = async (activate: boolean, ids: number[]) => {
     const sid = activate ? activeStatusId : inactiveStatusId;
     if (sid == null) return;
-    for (const id of ids) {
-      await updateUser({ id, body: { statusId: sid } }).unwrap();
-    }
-    setAllRows((prev) =>
-      prev.map((r) =>
-        ids.includes(r.id)
-          ? { ...r, statusId: sid, status: activate ? "ACTIVE" : "INACTIVE" }
-          : r,
-      ),
+    const tid = toast.loading(
+      `${activate ? "Activando" : "Desactivando"} ${ids.length} usuario(s)…`,
     );
+    try {
+      await withSuppressedMutationToasts(async () => {
+        for (const id of ids) {
+          await updateUser({ id, body: { statusId: sid } }).unwrap();
+        }
+      });
+      toast.success(
+        `${ids.length} usuario(s) ${activate ? "activado(s)" : "desactivado(s)"}.`,
+        { id: tid },
+      );
+      setAllRows((prev) =>
+        prev.map((r) =>
+          ids.includes(r.id)
+            ? { ...r, statusId: sid, status: activate ? "ACTIVE" : "INACTIVE" }
+            : r,
+        ),
+      );
+    } catch {
+      toast.error("No se pudo actualizar el estado de todos los usuarios.", {
+        id: tid,
+      });
+    }
   };
 
   return (
@@ -437,9 +445,8 @@ export default function UsersPage() {
           showEditButton: () => canEditUser,
         }}
         infiniteScroll
-        onLoadMore={handleLoadMore}
-        hasMore={hasMore}
-        loadingMore={isFetching && page > 1}
+        hasMore={!allPagesLoaded}
+        loadingMore={isFetching && !allPagesLoaded}
         emptyIcon="group"
         emptyTitle="Sin registros"
         emptyDesc="Aun no hay usuarios"

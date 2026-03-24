@@ -14,13 +14,33 @@ import type {
   ElYerroImportResult,
   ElYerroPreviewCategory,
   ElYerroPreviewResult,
+  ProductTipo,
 } from "@/lib/dashboard-types";
 import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
+import {
+  IMPORT_ELYERRO_MOVEMENT_REASON,
+  MOVEMENT_REASON_LABEL,
+} from "@/lib/inventoryMovementUi";
+import { useGetLocationsQuery } from "../locations/_service/locationsApi";
+import {
+  useCreateMovementMutation,
+  useGetMovementFormContextQuery,
+} from "../movements/_service/movementsApi";
 import {
   useImportElYerroMutation,
   usePreviewElYerroMutation,
 } from "./_service/elyerroImportApi";
+import {
+  useLazyGetProductsQuery,
+  useUpdateProductMutation,
+} from "./_service/productsApi";
+import {
+  beginSuppressMutationToasts,
+  endSuppressMutationToasts,
+} from "@/lib/mutationToastControl";
 import "./product-import-wizard.css";
+
+const ELYERRO_FINISH_TOAST_ID = "elyerro-import-finish";
 
 export interface ElYerroImportWizardProps {
   open: boolean;
@@ -57,6 +77,66 @@ function rtkErrorMessage(err: unknown): string {
     return "No tienes permiso para importar (se requiere product.create).";
   if (st === 404) return "Negocio o categoría no encontrada en El Yerro.";
   return "No se pudo completar la operación.";
+}
+
+function extractElYerroImportedRow(
+  raw: unknown,
+): { id: number; name: string } | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  let idRaw: unknown =
+    o.id ??
+    o.Id ??
+    o.productId ??
+    o.ProductId ??
+    o.productoId ??
+    o.ProductoId;
+  let name = String(
+    o.name ?? o.Name ?? o.nombre ?? o.Nombre ?? "",
+  ).trim();
+  if (idRaw == null || idRaw === "") {
+    const nested =
+      o.product ??
+      o.Product ??
+      o.producto ??
+      o.Producto ??
+      o.item ??
+      o.Item;
+    if (nested && typeof nested === "object") {
+      const n = nested as Record<string, unknown>;
+      idRaw = n.id ?? n.Id ?? n.productId ?? n.ProductId ?? n.productoId ?? n.ProductoId;
+      if (!name) {
+        name = String(
+          n.name ?? n.Name ?? n.nombre ?? n.Nombre ?? "",
+        ).trim();
+      }
+    }
+  }
+  const id =
+    typeof idRaw === "string" ? Number(idRaw.trim()) : Number(idRaw);
+  if (!Number.isFinite(id) || id <= 0) return null;
+  return { id, name: name || `Producto #${id}` };
+}
+
+function parseElYerroImportedProducts(
+  items: unknown[],
+): { id: number; name: string }[] {
+  const out: { id: number; name: string }[] = [];
+  const seen = new Set<number>();
+  for (const raw of items) {
+    const row = extractElYerroImportedRow(raw);
+    if (!row || seen.has(row.id)) continue;
+    seen.add(row.id);
+    out.push(row);
+  }
+  return out;
+}
+
+function parseStockQtyInput(raw: string | undefined): number | null {
+  if (raw == null || String(raw).trim() === "") return null;
+  const n = Number(String(raw).trim().replace(",", "."));
+  if (!Number.isFinite(n) || n < 0) return null;
+  return n;
 }
 
 function slugFromCategoryUrl(url: string): string {
@@ -113,7 +193,7 @@ export function ElYerroImportWizard({
   onClose,
 }: ElYerroImportWizardProps) {
   const router = useRouter();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [businessUrl, setBusinessUrl] = useState("");
   /** Filtro opcional del paso 1: categorías añadidas una a una. */
   const [categoriasFiltroItems, setCategoriasFiltroItems] = useState<string[]>(
@@ -129,11 +209,66 @@ export function ElYerroImportWizard({
   const [importResult, setImportResult] = useState<ElYerroImportResult | null>(
     null,
   );
+  const [elyerroImportedProducts, setElyerroImportedProducts] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [tipoAssign, setTipoAssign] = useState<
+    Record<number, ProductTipo | "">
+  >({});
+  const [stockQtyAssign, setStockQtyAssign] = useState<Record<number, string>>(
+    {},
+  );
+  const [stockLocationId, setStockLocationId] = useState<number | null>(null);
+  const [postImportBusy, setPostImportBusy] = useState(false);
 
   const [previewMutation, { isLoading: previewLoading }] =
     usePreviewElYerroMutation();
   const [importMutation, { isLoading: importLoading }] =
     useImportElYerroMutation();
+  const [fetchProductsPage] = useLazyGetProductsQuery();
+  const [updateProduct] = useUpdateProductMutation();
+  const [createMovement] = useCreateMovementMutation();
+
+  const { data: movementCtx } = useGetMovementFormContextQuery(undefined, {
+    skip: !open || step < 4,
+  });
+  const { data: locationsResult } = useGetLocationsQuery(
+    { page: 1, perPage: 200 },
+    { skip: !open || step < 4 },
+  );
+
+  const defaultStockLocationId = useMemo(() => {
+    if (movementCtx?.locationId != null) return movementCtx.locationId;
+    const first = locationsResult?.data?.[0]?.id;
+    return first != null ? Number(first) : null;
+  }, [movementCtx?.locationId, locationsResult?.data]);
+
+  const stockLocationOptions = useMemo(
+    () =>
+      (locationsResult?.data ?? []).map((loc) => ({
+        id: Number(loc.id),
+        name: String(loc.name ?? `ID ${loc.id}`),
+      })),
+    [locationsResult?.data],
+  );
+
+  const stockLocationLabel = useMemo(() => {
+    if (stockLocationId == null) return null;
+    const found = stockLocationOptions.find((l) => l.id === stockLocationId);
+    if (found) return found.name;
+    if (
+      movementCtx?.locationId === stockLocationId &&
+      movementCtx?.locationName
+    ) {
+      return movementCtx.locationName;
+    }
+    return `ID ${stockLocationId}`;
+  }, [
+    stockLocationId,
+    stockLocationOptions,
+    movementCtx?.locationId,
+    movementCtx?.locationName,
+  ]);
 
   const resetState = useCallback(() => {
     setStep(1);
@@ -145,11 +280,137 @@ export function ElYerroImportWizard({
     setImportarSoloDisponibles(true);
     setActualizarSiExiste(false);
     setImportResult(null);
+    setElyerroImportedProducts([]);
+    setTipoAssign({});
+    setStockQtyAssign({});
+    setStockLocationId(null);
+    setPostImportBusy(false);
   }, []);
 
   useEffect(() => {
     if (!open) resetState();
   }, [open, resetState]);
+
+  useEffect(() => {
+    if (!open || step !== 5) return;
+    if (stockLocationId != null) return;
+    if (defaultStockLocationId != null) {
+      setStockLocationId(defaultStockLocationId);
+    }
+  }, [open, step, stockLocationId, defaultStockLocationId]);
+
+  const allTipoSlotsFilled = useMemo(() => {
+    if (elyerroImportedProducts.length === 0) return true;
+    return elyerroImportedProducts.every((p) => {
+      const t = tipoAssign[p.id];
+      return t === "inventariable" || t === "elaborado";
+    });
+  }, [elyerroImportedProducts, tipoAssign]);
+
+  const persistTipos = async () => {
+    for (const p of elyerroImportedProducts) {
+      const tipo = tipoAssign[p.id];
+      if (tipo !== "inventariable" && tipo !== "elaborado") {
+        throw new Error("Tipo pendiente");
+      }
+      await updateProduct({
+        id: p.id,
+        body: { tipo },
+      }).unwrap();
+    }
+  };
+
+  const applyStockMovements = async (): Promise<{
+    ok: number;
+    fail: number;
+  }> => {
+    let ok = 0;
+    let fail = 0;
+    const locId = stockLocationId;
+    for (const p of elyerroImportedProducts) {
+      if (tipoAssign[p.id] !== "inventariable") continue;
+      const q = parseStockQtyInput(stockQtyAssign[p.id]);
+      if (q == null || q <= 0 || locId == null) continue;
+      try {
+        await createMovement({
+          productId: p.id,
+          locationId: locId,
+          type: 0,
+          quantity: q,
+          reason: IMPORT_ELYERRO_MOVEMENT_REASON,
+        }).unwrap();
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+    return { ok, fail };
+  };
+
+  const finishWithStock = async () => {
+    const needsInvQty = elyerroImportedProducts.some((p) => {
+      if (tipoAssign[p.id] !== "inventariable") return false;
+      const q = parseStockQtyInput(stockQtyAssign[p.id]);
+      return q != null && q > 0;
+    });
+    if (needsInvQty && stockLocationId == null) {
+      toast.error("Elige una ubicación para registrar el stock inicial.");
+      return;
+    }
+    setPostImportBusy(true);
+    beginSuppressMutationToasts();
+    toast.loading("Guardando tipos y stock…", { id: ELYERRO_FINISH_TOAST_ID });
+    try {
+      await persistTipos();
+      const { ok, fail } = await applyStockMovements();
+      const parts = ["Tipos de producto guardados."];
+      if (ok > 0) {
+        parts.push(
+          `Entradas de inventario: ${ok} registrada${ok === 1 ? "" : "s"}.`,
+        );
+      }
+      if (fail > 0) {
+        parts.push(
+          `${fail} movimiento${fail === 1 ? "" : "s"} no se pudieron registrar.`,
+        );
+      }
+      const msg = parts.join(" ");
+      if (fail > 0) {
+        toast.warning(msg, { id: ELYERRO_FINISH_TOAST_ID });
+      } else {
+        toast.success(msg, { id: ELYERRO_FINISH_TOAST_ID });
+      }
+      onClose();
+    } catch {
+      toast.error(
+        "No se pudo completar el paso final. Revisa tipos y vuelve a intentar.",
+        { id: ELYERRO_FINISH_TOAST_ID },
+      );
+    } finally {
+      endSuppressMutationToasts();
+      setPostImportBusy(false);
+    }
+  };
+
+  const finishWithoutStockMovements = async () => {
+    setPostImportBusy(true);
+    beginSuppressMutationToasts();
+    toast.loading("Guardando tipos…", { id: ELYERRO_FINISH_TOAST_ID });
+    try {
+      await persistTipos();
+      toast.success("Tipos de producto guardados.", {
+        id: ELYERRO_FINISH_TOAST_ID,
+      });
+      onClose();
+    } catch {
+      toast.error("No se pudieron guardar los tipos de producto.", {
+        id: ELYERRO_FINISH_TOAST_ID,
+      });
+    } finally {
+      endSuppressMutationToasts();
+      setPostImportBusy(false);
+    }
+  };
 
   const handleAuthError = useCallback(
     (err: unknown) => {
@@ -306,6 +567,32 @@ export function ElYerroImportWizard({
         importarSoloDisponibles,
         actualizarSiExiste,
       }).unwrap();
+      let parsed = parseElYerroImportedProducts(data.productosImportados);
+      if (parsed.length === 0 && data.totalImportados > 0) {
+        try {
+          const perPage = Math.min(Math.max(data.totalImportados, 1), 500);
+          const pageResult = await fetchProductsPage(
+            { page: 1, perPage, sortOrder: "desc" },
+            false,
+          ).unwrap();
+          parsed = pageResult.data.slice(0, data.totalImportados).map((p) => ({
+            id: p.id,
+            name: p.name?.trim() ? p.name : `Producto #${p.id}`,
+          }));
+        } catch {
+          parsed = [];
+        }
+      }
+      const nextTipo: Record<number, ProductTipo | ""> = {};
+      const nextStock: Record<number, string> = {};
+      for (const p of parsed) {
+        nextTipo[p.id] = "";
+        nextStock[p.id] = "";
+      }
+      setTipoAssign(nextTipo);
+      setStockQtyAssign(nextStock);
+      setStockLocationId(null);
+      setElyerroImportedProducts(parsed);
       setImportResult(data);
       setStep(3);
       toast.success(
@@ -318,22 +605,35 @@ export function ElYerroImportWizard({
   };
 
   const handleClose = () => {
-    if (previewLoading || importLoading) return;
+    if (previewLoading || importLoading || postImportBusy) return;
     onClose();
   };
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !previewLoading && !importLoading) onClose();
+      if (
+        e.key === "Escape" &&
+        !previewLoading &&
+        !importLoading &&
+        !postImportBusy
+      ) {
+        onClose();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, previewLoading, importLoading, onClose]);
+  }, [open, previewLoading, importLoading, postImportBusy, onClose]);
 
   if (!open) return null;
 
-  const wizardStepLabels = ["Origen", "Vista previa", "Resumen"] as const;
+  const wizardStepLabels = [
+    "Origen",
+    "Vista previa",
+    "Resumen",
+    "Tipo",
+    "Stock",
+  ] as const;
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: modal backdrop
@@ -343,7 +643,7 @@ export function ElYerroImportWizard({
       onClick={handleClose}
     >
       <div
-        className="product-import-wizard__shell"
+        className="product-import-wizard__shell product-import-wizard__shell--elyerro-wide"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
         role="dialog"
@@ -368,7 +668,7 @@ export function ElYerroImportWizard({
             className="product-import-wizard__close"
             onClick={handleClose}
             aria-label="Cerrar"
-            disabled={previewLoading || importLoading}
+            disabled={previewLoading || importLoading || postImportBusy}
           >
             <Icon name="close" />
           </button>
@@ -600,49 +900,49 @@ export function ElYerroImportWizard({
                 </div>
               ) : null}
 
-              <div className="product-import-wizard__table-scroll">
-                <table className="product-import-wizard__mapping-table">
-                  <thead>
-                    <tr>
-                      <th>Opción</th>
-                      <th>Valor</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>Solo productos disponibles</td>
-                      <td>
-                        <label className="product-import-wizard__elyerro-option-check">
-                          <input
-                            type="checkbox"
-                            checked={importarSoloDisponibles}
-                            onChange={(e) =>
-                              setImportarSoloDisponibles(e.target.checked)
-                            }
-                          />
-                          No importar ítems agotados o no disponibles en el menú
-                        </label>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Actualizar duplicados</td>
-                      <td>
-                        <label className="product-import-wizard__elyerro-option-check">
-                          <input
-                            type="checkbox"
-                            checked={actualizarSiExiste}
-                            onChange={(e) =>
-                              setActualizarSiExiste(e.target.checked)
-                            }
-                          />
-                          Si ya existe un producto con el mismo nombre en la
-                          misma categoría, actualizar sus datos en lugar de
-                          crear otro
-                        </label>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div className="product-import-wizard__stock-location-card product-import-wizard__stock-location-card--elyerro-inline">
+                <div className="product-import-wizard__stock-location-card-head">
+                  <span
+                    className="product-import-wizard__stock-location-card-icon"
+                    aria-hidden
+                  >
+                    <Icon name="tune" />
+                  </span>
+                  <div className="product-import-wizard__stock-location-card-text">
+                    <p className="product-import-wizard__stock-location-card-title">
+                      Opciones de importación
+                    </p>
+                    <p className="product-import-wizard__stock-location-card-desc">
+                      Mismo criterio que en la importación por Excel: solo
+                      disponibles y cómo tratar duplicados por nombre y categoría.
+                    </p>
+                  </div>
+                </div>
+                <div className="product-import-wizard__elyerro-options-stack">
+                  <label className="product-import-wizard__elyerro-option-check">
+                    <input
+                      type="checkbox"
+                      checked={importarSoloDisponibles}
+                      onChange={(e) =>
+                        setImportarSoloDisponibles(e.target.checked)
+                      }
+                    />
+                    <span>
+                      No importar ítems agotados o no disponibles en el menú
+                    </span>
+                  </label>
+                  <label className="product-import-wizard__elyerro-option-check">
+                    <input
+                      type="checkbox"
+                      checked={actualizarSiExiste}
+                      onChange={(e) => setActualizarSiExiste(e.target.checked)}
+                    />
+                    <span>
+                      Si ya existe un producto con el mismo nombre en la misma
+                      categoría, actualizar sus datos en lugar de crear otro
+                    </span>
+                  </label>
+                </div>
               </div>
 
               <p className="product-import-wizard__elyerro-preview-caption product-import-wizard__meta product-import-wizard__meta--block">
@@ -861,7 +1161,201 @@ export function ElYerroImportWizard({
                   </ul>
                 </div>
               ) : null}
+              {elyerroImportedProducts.length > 0 ? (
+                <p className="product-import-wizard__summary-pending">
+                  A continuación podrás elegir el <strong>tipo</strong> de cada
+                  producto y registrar <strong>stock inicial</strong> en la
+                  ubicación que indiques (como en la importación por Excel).
+                </p>
+              ) : importResult.totalImportados > 0 ? (
+                <p className="product-import-wizard__meta-warn product-import-wizard__meta--block">
+                  No se pudo obtener la lista de productos recién importados (ni en
+                  la respuesta del servidor ni desde el catálogo). Usa «Ir al
+                  listado de productos» para asignar tipo y stock allí.
+                </p>
+              ) : null}
             </div>
+          )}
+
+          {step === 4 && elyerroImportedProducts.length > 0 && (
+            <>
+              <p className="product-import-wizard__meta product-import-wizard__meta--block">
+                Elige el <strong>tipo de producto</strong> para cada ítem
+                importado. Los <strong>inventariables</strong> podrán recibir
+                stock en el siguiente paso.
+              </p>
+              <div className="product-import-wizard__table-scroll">
+                <table className="product-import-wizard__mapping-table">
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Tipo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {elyerroImportedProducts.map((p) => (
+                      <tr key={p.id}>
+                        <td>{p.name || `ID ${p.id}`}</td>
+                        <td>
+                          <select
+                            value={
+                              tipoAssign[p.id] === undefined
+                                ? ""
+                                : String(tipoAssign[p.id])
+                            }
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setTipoAssign((prev) => ({
+                                ...prev,
+                                [p.id]:
+                                  v === "inventariable" || v === "elaborado"
+                                    ? v
+                                    : "",
+                              }));
+                            }}
+                            aria-label={`Tipo para ${p.name}`}
+                          >
+                            <option value="">— Elegir —</option>
+                            <option value="inventariable">Inventariable</option>
+                            <option value="elaborado">Elaborado</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {!allTipoSlotsFilled ? (
+                <p className="product-import-wizard__error">
+                  Selecciona un tipo en cada fila para continuar.
+                </p>
+              ) : null}
+            </>
+          )}
+
+          {step === 5 && elyerroImportedProducts.length > 0 && (
+            <>
+              <p className="product-import-wizard__meta product-import-wizard__meta--block">
+                Registra una <strong>entrada de inventario</strong> como stock
+                inicial para los productos inventariables. Deja en blanco o 0 si
+                no quieres movimiento para esa fila.
+              </p>
+              <div className="product-import-wizard__stock-location-card">
+                <div className="product-import-wizard__stock-location-card-head">
+                  <span
+                    className="product-import-wizard__stock-location-card-icon"
+                    aria-hidden
+                  >
+                    <Icon name="place" />
+                  </span>
+                  <div className="product-import-wizard__stock-location-card-text">
+                    <p className="product-import-wizard__stock-location-card-title">
+                      Ubicación de la entrada
+                    </p>
+                    <p className="product-import-wizard__stock-location-card-desc">
+                      Razón: «
+                      {MOVEMENT_REASON_LABEL[IMPORT_ELYERRO_MOVEMENT_REASON] ??
+                        IMPORT_ELYERRO_MOVEMENT_REASON}
+                      ». Solo aplica a filas inventariables con cantidad mayor
+                      que cero.
+                    </p>
+                  </div>
+                </div>
+                {stockLocationOptions.length > 0 ? (
+                  <div className="product-import-wizard__stock-location-field">
+                    <label
+                      className="product-import-wizard__stock-location-label"
+                      htmlFor="elyerro-stock-location-select"
+                    >
+                      Ubicación
+                    </label>
+                    <select
+                      id="elyerro-stock-location-select"
+                      className="product-import-wizard__location-select"
+                      value={
+                        stockLocationId == null ? "" : String(stockLocationId)
+                      }
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setStockLocationId(v === "" ? null : Number(v));
+                      }}
+                      aria-label="Ubicación para stock inicial"
+                    >
+                      <option value="">— Elegir ubicación —</option>
+                      {stockLocationOptions.map((loc) => (
+                        <option key={loc.id} value={loc.id}>
+                          {loc.name}
+                        </option>
+                      ))}
+                    </select>
+                    {stockLocationId != null ? (
+                      <p className="product-import-wizard__stock-location-hint">
+                        Se usará «{stockLocationLabel}».
+                      </p>
+                    ) : (
+                      <p className="product-import-wizard__stock-location-warn product-import-wizard__stock-location-warn--inline">
+                        Obligatoria si indicas cantidades de stock.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="product-import-wizard__stock-location-warn">
+                    No hay ubicaciones: no se pueden registrar entradas hasta
+                    configurar al menos una.
+                  </p>
+                )}
+              </div>
+              <div className="product-import-wizard__table-scroll">
+                <table className="product-import-wizard__mapping-table">
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Tipo</th>
+                      <th>Cantidad inicial</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {elyerroImportedProducts.map((p) => {
+                      const inv = tipoAssign[p.id] === "inventariable";
+                      return (
+                        <tr key={p.id}>
+                          <td>{p.name || `ID ${p.id}`}</td>
+                          <td>
+                            {tipoAssign[p.id] === "inventariable"
+                              ? "Inventariable"
+                              : tipoAssign[p.id] === "elaborado"
+                                ? "Elaborado"
+                                : "—"}
+                          </td>
+                          <td>
+                            {inv ? (
+                              <input
+                                className="product-import-wizard__stock-qty-input"
+                                type="text"
+                                inputMode="decimal"
+                                placeholder="0"
+                                value={stockQtyAssign[p.id] ?? ""}
+                                onChange={(e) =>
+                                  setStockQtyAssign((prev) => ({
+                                    ...prev,
+                                    [p.id]: e.target.value,
+                                  }))
+                                }
+                                aria-label={`Cantidad inicial para ${p.name}`}
+                              />
+                            ) : (
+                              <span className="product-import-wizard__meta">
+                                —
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
 
@@ -915,13 +1409,102 @@ export function ElYerroImportWizard({
             </>
           )}
           {step === 3 && (
-            <button
-              type="button"
-              className="product-import-wizard__btn product-import-wizard__btn--primary"
-              onClick={handleClose}
-            >
-              Cerrar
-            </button>
+            <>
+              {elyerroImportedProducts.length > 0 ? (
+                <>
+                  <button
+                    type="button"
+                    className="product-import-wizard__btn product-import-wizard__btn--ghost"
+                    onClick={handleClose}
+                  >
+                    Cerrar
+                  </button>
+                  <button
+                    type="button"
+                    className="product-import-wizard__btn product-import-wizard__btn--primary"
+                    onClick={() => setStep(4)}
+                  >
+                    Continuar: tipo y stock
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="product-import-wizard__btn product-import-wizard__btn--ghost"
+                    onClick={handleClose}
+                  >
+                    Cerrar
+                  </button>
+                  <button
+                    type="button"
+                    className="product-import-wizard__btn product-import-wizard__btn--primary"
+                    onClick={() => {
+                      onClose();
+                      router.push("/dashboard/products");
+                    }}
+                  >
+                    Ir al listado de productos
+                  </button>
+                </>
+              )}
+            </>
+          )}
+          {step === 4 && (
+            <>
+              <button
+                type="button"
+                className="product-import-wizard__btn product-import-wizard__btn--ghost"
+                onClick={() => setStep(3)}
+                disabled={postImportBusy}
+              >
+                Atrás
+              </button>
+              <button
+                type="button"
+                className="product-import-wizard__btn product-import-wizard__btn--ghost"
+                onClick={handleClose}
+                disabled={postImportBusy}
+              >
+                Omitir
+              </button>
+              <button
+                type="button"
+                className="product-import-wizard__btn product-import-wizard__btn--primary"
+                onClick={() => setStep(5)}
+                disabled={!allTipoSlotsFilled || postImportBusy}
+              >
+                Siguiente: stock inicial
+              </button>
+            </>
+          )}
+          {step === 5 && (
+            <>
+              <button
+                type="button"
+                className="product-import-wizard__btn product-import-wizard__btn--ghost"
+                onClick={() => setStep(4)}
+                disabled={postImportBusy}
+              >
+                Atrás
+              </button>
+              <button
+                type="button"
+                className="product-import-wizard__btn product-import-wizard__btn--ghost"
+                onClick={() => void finishWithoutStockMovements()}
+                disabled={postImportBusy}
+              >
+                {postImportBusy ? "Guardando…" : "Solo guardar tipos"}
+              </button>
+              <button
+                type="button"
+                className="product-import-wizard__btn product-import-wizard__btn--primary"
+                onClick={() => void finishWithStock()}
+                disabled={postImportBusy}
+              >
+                {postImportBusy ? "Procesando…" : "Guardar tipos y stock"}
+              </button>
+            </>
           )}
         </div>
       </div>

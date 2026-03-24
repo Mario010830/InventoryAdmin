@@ -110,8 +110,12 @@ function parseImportResult(raw: unknown): ElYerroImportResult | null {
   >;
   if (!payload || typeof payload !== "object") return null;
   const errs = payload.errores ?? payload.Errores;
-  const imported =
-    payload.productosImportados ?? payload.ProductosImportados ?? [];
+  let imported: unknown =
+    payload.productosImportados ?? payload.ProductosImportados;
+  if (!Array.isArray(imported) || imported.length === 0) {
+    const alt = payload.productos ?? payload.Productos;
+    if (Array.isArray(alt)) imported = alt;
+  }
   return {
     nombreNegocio: pickStr(payload, "nombreNegocio", "NombreNegocio"),
     totalImportados: pickNum(payload, "totalImportados", "TotalImportados"),

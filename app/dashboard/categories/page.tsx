@@ -3,10 +3,10 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
-  usePrefetchAllPagesWhileSearching,
+  useLoadAllRemainingPages,
   SEARCH_TABLE_CHUNK_PAGE_SIZE,
   TABLE_SEARCH_DEBOUNCE_MS,
-} from "@/lib/usePrefetchAllPagesWhileSearching";
+} from "@/lib/useLoadAllRemainingPages";
 import type { ProductCategoryResponse } from "@/lib/dashboard-types";
 import { DataTable } from "@/components/DataTable";
 import type { DataTableColumn } from "@/components/DataTable";
@@ -23,6 +23,8 @@ import { FormModal } from "@/components/FormModal";
 import { GridFilterBar } from "@/components/dashboard";
 import "../products/products-modal.css";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
+import { toast } from "sonner";
+import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
 
 const COLUMNS: DataTableColumn<ProductCategoryResponse>[] = [
   { key: "name", label: "Nombre" },
@@ -65,8 +67,7 @@ export default function CategoriesPage() {
   const [pageSize, setPageSize] = useState(10);
   const [filterText, setFilterText] = useState("");
   const debouncedFilterText = useDebouncedValue(filterText, TABLE_SEARCH_DEBOUNCE_MS);
-  const shouldPrefetchAll = debouncedFilterText.trim().length > 0;
-  const perPage = shouldPrefetchAll ? Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE) : pageSize;
+  const perPage = Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
   const loadNextPage = useCallback(() => setPage((p) => p + 1), []);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ProductCategoryResponse | null>(null);
@@ -76,7 +77,6 @@ export default function CategoriesPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState<ProductCategoryResponse | null>(null);
   const [deleteError, setDeleteError] = useState("");
-  const isLoadingMore = useRef(false);
   const filtersChanged = useRef(false);
 
   // ─── Permissions ──────────────────────────────────────────────────────────
@@ -112,19 +112,11 @@ export default function CategoriesPage() {
     });
   }, [result?.data, page]);
 
-  usePrefetchAllPagesWhileSearching({
-    isSearchActive: shouldPrefetchAll,
+  useLoadAllRemainingPages({
     isFetching,
     pagination: result?.pagination,
     loadNextPage,
   });
-
-  // Reset guard cuando termina el fetch
-  useEffect(() => {
-    if (!isFetching) {
-      isLoadingMore.current = false;
-    }
-  }, [isFetching]);
 
   // Reset al cambiar búsqueda
   useEffect(() => {
@@ -146,16 +138,9 @@ export default function CategoriesPage() {
 
   const gridFiltersActive = filterText.trim() !== "";
 
-  const hasMore =
-    !shouldPrefetchAll && result?.pagination
-      ? page < result.pagination.totalPages
-      : false;
-
-  const handleLoadMore = () => {
-    if (isLoadingMore.current || !hasMore) return;
-    isLoadingMore.current = true;
-    setPage((p) => p + 1);
-  };
+  const allPagesLoaded =
+    result?.pagination != null &&
+    page >= (result.pagination.totalPages ?? 1);
 
   const openCreate = () => {
     setEditing(null);
@@ -240,10 +225,18 @@ export default function CategoriesPage() {
   };
 
   const handleBulkDeleteCategories = async (ids: number[]) => {
-    for (const id of ids) {
-      await deleteCategory(id).unwrap();
+    const tid = toast.loading(`Eliminando ${ids.length} categoría(s)…`);
+    try {
+      await withSuppressedMutationToasts(async () => {
+        for (const id of ids) {
+          await deleteCategory(id).unwrap();
+        }
+      });
+      toast.success(`${ids.length} categoría(s) eliminada(s).`, { id: tid });
+      setAllRows((prev) => prev.filter((r) => !ids.includes(r.id)));
+    } catch {
+      toast.error("No se pudieron eliminar todas las categorías.", { id: tid });
     }
-    setAllRows((prev) => prev.filter((r) => !ids.includes(r.id)));
   };
 
   return (
@@ -296,9 +289,8 @@ export default function CategoriesPage() {
           showEditButton: () => canEditCategory,
         }}
         infiniteScroll
-        onLoadMore={handleLoadMore}
-        hasMore={hasMore}
-        loadingMore={isFetching && page > 1}
+        hasMore={!allPagesLoaded}
+        loadingMore={isFetching && !allPagesLoaded}
         emptyIcon="category"
         emptyTitle="Sin registros"
         emptyDesc={

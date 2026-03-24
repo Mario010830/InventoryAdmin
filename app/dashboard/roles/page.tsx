@@ -3,10 +3,10 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
-  usePrefetchAllPagesWhileSearching,
+  useLoadAllRemainingPages,
   SEARCH_TABLE_CHUNK_PAGE_SIZE,
   TABLE_SEARCH_DEBOUNCE_MS,
-} from "@/lib/usePrefetchAllPagesWhileSearching";
+} from "@/lib/useLoadAllRemainingPages";
 import type { RoleResponse } from "@/lib/dashboard-types";
 import { DataTable } from "@/components/DataTable";
 import type { DataTableColumn } from "@/components/DataTable";
@@ -32,6 +32,8 @@ import {
 import "../products/products-modal.css";
 import "./roles-modal.css";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
+import { toast } from "sonner";
+import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
 import { GridFilterBar } from "@/components/dashboard";
 
 const COLUMNS: DataTableColumn<RoleResponse>[] = [
@@ -57,8 +59,7 @@ export default function RolesPage() {
   const [pageSize, setPageSize] = useState(10);
   const [filterText, setFilterText] = useState("");
   const debouncedFilterText = useDebouncedValue(filterText, TABLE_SEARCH_DEBOUNCE_MS);
-  const shouldPrefetchAll = debouncedFilterText.trim().length > 0;
-  const perPage = shouldPrefetchAll ? Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE) : pageSize;
+  const perPage = Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
   const loadNextPage = useCallback(() => setPage((p) => p + 1), []);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<RoleResponse | null>(null);
@@ -68,7 +69,6 @@ export default function RolesPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState<RoleResponse | null>(null);
   const [deleteError, setDeleteError] = useState("");
-  const isLoadingMore = useRef(false);
   const filtersChanged = useRef(false);
 
   // ─── Permissions ──────────────────────────────────────────────────────────
@@ -136,18 +136,11 @@ export default function RolesPage() {
     });
   }, [result?.data, page]);
 
-  usePrefetchAllPagesWhileSearching({
-    isSearchActive: shouldPrefetchAll,
+  useLoadAllRemainingPages({
     isFetching,
     pagination: result?.pagination,
     loadNextPage,
   });
-
-  useEffect(() => {
-    if (!isFetching) {
-      isLoadingMore.current = false;
-    }
-  }, [isFetching]);
 
   useEffect(() => {
     if (!filtersChanged.current) { filtersChanged.current = true; return; }
@@ -168,16 +161,9 @@ export default function RolesPage() {
 
   const gridFiltersActive = filterText.trim() !== "";
 
-  const hasMore =
-    !shouldPrefetchAll && result?.pagination
-      ? page < result.pagination.totalPages
-      : false;
-
-  const handleLoadMore = () => {
-    if (isLoadingMore.current || !hasMore) return;
-    isLoadingMore.current = true;
-    setPage((p) => p + 1);
-  };
+  const allPagesLoaded =
+    result?.pagination != null &&
+    page >= (result.pagination.totalPages ?? 1);
 
   const openCreate = () => {
     setEditing(null);
@@ -254,12 +240,22 @@ export default function RolesPage() {
   };
 
   const handleBulkDeleteRoles = async (ids: number[]) => {
-    for (const id of ids) {
-      const row = allRows.find((r) => r.id === id);
-      if (row?.isSystem) continue;
-      await deleteRole(id).unwrap();
+    const tid = toast.loading("Eliminando roles…");
+    try {
+      await withSuppressedMutationToasts(async () => {
+        for (const id of ids) {
+          const row = allRows.find((r) => r.id === id);
+          if (row?.isSystem) continue;
+          await deleteRole(id).unwrap();
+        }
+      });
+      toast.success("Roles eliminados.", { id: tid });
+      setAllRows((prev) =>
+        prev.filter((r) => !(ids.includes(r.id) && !r.isSystem)),
+      );
+    } catch {
+      toast.error("No se pudieron eliminar todos los roles.", { id: tid });
     }
-    setAllRows((prev) => prev.filter((r) => !(ids.includes(r.id) && !r.isSystem)));
   };
 
   const allPermissionIds = useMemo(
@@ -361,9 +357,8 @@ export default function RolesPage() {
           showEditButton: (row) => !row.isSystem && canEditRole,
         }}
         infiniteScroll
-        onLoadMore={handleLoadMore}
-        hasMore={hasMore}
-        loadingMore={isFetching && page > 1}
+        hasMore={!allPagesLoaded}
+        loadingMore={isFetching && !allPagesLoaded}
         emptyIcon="admin_panel_settings"
         emptyTitle="Sin registros"
         emptyDesc="Aun no hay roles"

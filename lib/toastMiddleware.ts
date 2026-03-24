@@ -1,5 +1,6 @@
 import { type Middleware } from "@reduxjs/toolkit";
 import { toast } from "sonner";
+import { areMutationToastsSuppressed } from "@/lib/mutationToastControl";
 
 /**
  * Mutaciones que no deben mostrar toast (renovación de token en segundo plano, etc.).
@@ -94,12 +95,15 @@ export const toastMiddleware: Middleware = () => (next) => (action) => {
   if (!endpointName || SILENT_MUTATIONS.has(endpointName)) return result;
 
   if (type.endsWith("/fulfilled")) {
-    const message = SUCCESS_MESSAGES[endpointName];
-    if (message) toast.success(message);
+    if (!areMutationToastsSuppressed()) {
+      const message = SUCCESS_MESSAGES[endpointName];
+      if (message) toast.success(message);
+    }
     return result;
   }
 
   if (type.endsWith("/rejected")) {
+    if (areMutationToastsSuppressed()) return result;
     const payload = (action as { payload?: Record<string, unknown> }).payload;
     const serverMessage =
       (payload?.data as { message?: string } | undefined)?.message ??
