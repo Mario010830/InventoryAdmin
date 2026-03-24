@@ -69,4 +69,5 @@ export const PERMISSIONS = [
   { id: 1056, code: "currency.create", name: "Crear Moneda" },
   { id: 1057, code: "currency.update", name: "Editar Moneda" },
   { id: 1058, code: "currency.delete", name: "Eliminar Moneda" },
+  
 ];
