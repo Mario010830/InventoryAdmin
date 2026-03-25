@@ -1,17 +1,23 @@
-import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME } from "@/app/login/_service/sessionCookie";
 
 const protectedPrefix = "/dashboard";
+const reportesPrefix = "/reportes";
 const publicPaths = ["/login", "/forgot-password"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isPublic = publicPaths.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  const isPublic = publicPaths.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
   if (isPublic) return NextResponse.next();
 
-  if (pathname.startsWith(protectedPrefix)) {
+  if (
+    pathname.startsWith(protectedPrefix) ||
+    pathname.startsWith(reportesPrefix)
+  ) {
     const token = request.cookies.get(AUTH_COOKIE_NAME);
     if (!token?.value) {
       const loginUrl = new URL("/login", request.url);
@@ -23,5 +29,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard", "/dashboard/:path*"],
+  matcher: ["/dashboard", "/dashboard/:path*", "/reportes", "/reportes/:path*"],
 };
