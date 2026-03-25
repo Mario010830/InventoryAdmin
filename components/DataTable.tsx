@@ -1,6 +1,14 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback, useMemo } from "react";
+import {
+  useRef,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useSyncExternalStore,
+  type CSSProperties,
+} from "react";
 import { Icon } from "@/components/ui/Icon";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 import type { FormatCupFn } from "@/lib/dataTableExport";
@@ -21,6 +29,20 @@ import {
 import { loadHiddenColumnKeys, saveHiddenColumnKeys } from "@/lib/dataTableColumnStorage";
 import { DefaultBulkToolbar } from "@/components/DataTableBulkToolbar";
 import "./data-table.css";
+
+const DT_LAYOUT_MOBILE_MAX_PX = 768;
+
+function useMatchMaxWidth(maxWidthPx: number) {
+  return useSyncExternalStore(
+    (onChange) => {
+      const mq = window.matchMedia(`(max-width: ${maxWidthPx}px)`);
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(`(max-width: ${maxWidthPx}px)`).matches,
+    () => false,
+  );
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -347,6 +369,23 @@ export function DataTable<T extends { id: string | number }>({
     }
     return colWidths.map((w) => (w / sum) * 100);
   }, [colWidths]);
+  const isMobileLayout = useMatchMaxWidth(DT_LAYOUT_MOBILE_MAX_PX);
+
+  const getColStyle = useCallback(
+    (physicalIdx: number): CSSProperties => {
+      if (isMobileLayout) {
+        const w = Math.max(MIN_COL, colWidths[physicalIdx] ?? MIN_COL);
+        return { width: w, minWidth: w, maxWidth: "none" };
+      }
+      return {
+        width: `${colWidthPct[physicalIdx] ?? 0}%`,
+        minWidth: 0,
+        maxWidth: "none",
+      };
+    },
+    [isMobileLayout, colWidths, colWidthPct],
+  );
+
   const [guide, setGuide] = useState<{ left: number; top: number; height: number } | null>(null);
 
   const primaryColumnKey = gridConfig?.primaryColumnKey ?? "";
@@ -882,17 +921,21 @@ export function DataTable<T extends { id: string | number }>({
                 aria-hidden
               />
             ) : null}
-            <table ref={tableRef} className="dt-table">
+            <table
+              ref={tableRef}
+              className={`dt-table${isMobileLayout ? " dt-table--mobile" : ""}`}
+              style={
+                isMobileLayout
+                  ? { width: "max-content", minWidth: "100%" }
+                  : undefined
+              }
+            >
               <thead>
                 <tr>
                   {hasCheckbox ? (
                     <th
                       className="dt-th dt-th-checkbox"
-                      style={{
-                        width: `${colWidthPct[0] ?? 0}%`,
-                        minWidth: 0,
-                        maxWidth: "none",
-                      }}
+                      style={getColStyle(0)}
                     >
                       <input
                         ref={headerSelectRef}
@@ -915,11 +958,7 @@ export function DataTable<T extends { id: string | number }>({
                       <th
                         key={colKey}
                         className={`dt-th${hidden ? " dt-col-hidden" : ""}`}
-                        style={{
-                          width: `${colWidthPct[physicalIdx] ?? 0}%`,
-                          minWidth: 0,
-                          maxWidth: "none",
-                        }}
+                        style={getColStyle(physicalIdx)}
                       >
                         <div className="dt-th-inner">
                           <button
@@ -974,11 +1013,9 @@ export function DataTable<T extends { id: string | number }>({
                   {hasActions && (
                     <th
                       className="dt-th dt-th-actions"
-                      style={{
-                        width: `${colWidthPct[columns.length + (hasCheckbox ? 1 : 0)] ?? 0}%`,
-                        minWidth: 0,
-                        maxWidth: "none",
-                      }}
+                      style={getColStyle(
+                        columns.length + (hasCheckbox ? 1 : 0),
+                      )}
                     >
                       <span className="dt-th-label">Acciones</span>
                       <span
@@ -1007,10 +1044,7 @@ export function DataTable<T extends { id: string | number }>({
                       <td
                         className="dt-td-checkbox"
                         onClick={(e) => e.stopPropagation()}
-                        style={{
-                          width: `${colWidthPct[0] ?? 0}%`,
-                          minWidth: 0,
-                        }}
+                        style={getColStyle(0)}
                       >
                         <input
                           type="checkbox"
@@ -1029,10 +1063,7 @@ export function DataTable<T extends { id: string | number }>({
                         <td
                           key={colKey}
                           className={hidden ? "dt-col-hidden" : undefined}
-                          style={{
-                            width: `${colWidthPct[physicalIdx] ?? 0}%`,
-                            minWidth: 0,
-                          }}
+                          style={getColStyle(physicalIdx)}
                         >
                           <Cell col={col} row={row} formatCup={formatCup} />
                         </td>
@@ -1041,10 +1072,9 @@ export function DataTable<T extends { id: string | number }>({
                     {hasActions && (
                       <td
                         className="dt-td-actions"
-                        style={{
-                          width: `${colWidthPct[columns.length + (hasCheckbox ? 1 : 0)] ?? 0}%`,
-                          minWidth: 0,
-                        }}
+                        style={getColStyle(
+                          columns.length + (hasCheckbox ? 1 : 0),
+                        )}
                         onClick={(e) => e.stopPropagation()}
                       >
                         {mergedActions!.map((action, actionIdx) => {

@@ -417,6 +417,15 @@
   overflow-x: hidden;
   max-width: 100%;
 }
+
+/* Mismo comportamiento que components/data-table.css: en móvil el scroll horizontal debe vivir en .dt-wrap */
+@media (max-width: 768px) {
+  .products-page-wrap .dt-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+}
 .products-page-wrap .dt-table .product-grid-desc {
   display: -webkit-box;
   -webkit-line-clamp: 2;

@@ -141,6 +141,42 @@
   table-layout: fixed;
   min-width: 0;
 }
+
+/* Móvil: anchos en px desde JS + scroll en .dt-wrap (no repartir % sobre viewport) */
+.dt-table--mobile {
+  table-layout: fixed;
+  width: max-content;
+  min-width: 100%;
+}
+
+.dt-table--mobile thead th,
+.dt-table--mobile tbody td {
+  box-sizing: border-box;
+}
+
+.dt-table--mobile .dt-th-label {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.dt-table--mobile .dt-resize-handle {
+  display: none;
+}
+
+.dt-table--mobile .dt-cell-clamp {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: unset;
+}
+
+.dt-table--mobile tbody td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .dt-table thead tr {
   background: #f5f5f5;
   border-top: none;
@@ -978,5 +1014,58 @@
 
   .dt-bulk-bar__actions {
     justify-content: center;
+  }
+
+  /* Columnas / Exportar: el padre solo envuelve el botón; con position:absolute+right:0
+     el panel se va fuera por la izquierda en móvil. Centramos en el viewport. */
+  .dt-column-picker {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    right: auto;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+    width: min(360px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+    max-height: min(75vh, 560px);
+    overflow-y: auto;
+    z-index: 12600;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dt-column-picker--wide {
+    width: min(420px, calc(100vw - 24px));
+  }
+
+  .dt-column-picker__grid--two {
+    grid-template-columns: 1fr;
+  }
+
+  .dt-dropdown-panel {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    right: auto;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+    width: min(280px, calc(100vw - 24px));
+    min-width: 0;
+    max-height: min(70vh, 400px);
+    z-index: 12600;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dt-bulk-dropdown-panel {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    right: auto;
+    transform: translate(-50%, -50%);
+    width: min(260px, calc(100vw - 24px));
+    min-width: 0;
+    max-height: min(60vh, 320px);
+    z-index: 12600;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
