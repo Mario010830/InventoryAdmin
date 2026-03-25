@@ -1969,3 +1969,116 @@
   box-shadow: 0 6px 24px rgba(83, 74, 183, 0.4);
   transform: translateY(-2px);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Landing — móvil (reordenado: logo, hero denso, sin solapes)
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 640px) {
+  .navbar__logo-img {
+    height: 36px;
+    width: auto;
+  }
+
+  .navbar {
+    padding: 10px 0;
+  }
+
+  .navbar.scrolled {
+    padding: 8px 0;
+  }
+
+  .hero {
+    min-height: auto;
+    padding-top: 56px;
+    padding-bottom: 28px;
+  }
+
+  .hero__container {
+    gap: 20px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .hero__content {
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero__badge {
+    margin-bottom: 16px;
+    font-size: 0.72rem;
+    padding: 5px 12px 5px 5px;
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .hero__title {
+    font-size: clamp(1.55rem, 8.5vw, 2.15rem);
+    margin-bottom: 14px;
+    line-height: 1.12;
+  }
+
+  .hero__title-rotating {
+    width: min(4.15em, 42vw);
+  }
+
+  .hero__subtitle {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    margin-bottom: 20px;
+    max-width: none;
+  }
+
+  .hero__actions {
+    margin-bottom: 18px;
+    gap: 10px;
+  }
+
+  .hero__actions .btn-primary,
+  .hero__actions .btn-outline,
+  .hero__actions .btn-hero {
+    padding: 12px 18px;
+    font-size: 0.88rem;
+    min-height: 44px;
+    width: 100%;
+    max-width: 320px;
+    justify-content: center;
+  }
+
+  .hero__trust {
+    margin-top: 4px;
+    gap: 8px;
+  }
+
+  .hero__trust-check {
+    font-size: 0.78rem;
+  }
+
+  .hero__visual {
+    margin: 0 auto;
+    max-width: 100%;
+    transform: scale(0.94);
+    transform-origin: center top;
+  }
+
+  .hero__float-card {
+    display: none;
+  }
+
+  .hero__tags {
+    padding: 16px 12px 20px;
+    gap: 8px;
+  }
+
+  .hero__tag {
+    font-size: 0.75rem;
+    padding: 5px 10px;
+  }
+
+  .catalog-section {
+    min-height: auto;
+    padding: 2rem 0 3rem;
+  }
+}

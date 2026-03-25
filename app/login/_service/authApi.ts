@@ -72,14 +72,13 @@ export const authApi = createApi({
       }),
     }),
 
+    /** POST {baseUrl}/account/logout — baseUrl incluye /api (p. ej. …/api/account/logout) */
     logout: builder.mutation<void, void>({
-      query: () => {
-        return {
-          url: '/account/logout',
-          method: 'POST',
-        };
-      },
-      invalidatesTags: ['User'],
+      query: () => ({
+        url: "/account/logout",
+        method: "POST",
+      }),
+      invalidatesTags: ["User"],
     }),
     resetPassword: builder.mutation<void, { email: string }>({
       query: (body) => ({

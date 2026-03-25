@@ -81,6 +81,16 @@
   position: relative;
 }
 
+@media (max-width: 768px) {
+  .container {
+    padding: 0 18px;
+  }
+
+  .section {
+    padding: 56px 0;
+  }
+}
+
 .section-label {
   display: inline-flex;
   align-items: center;

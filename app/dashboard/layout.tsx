@@ -164,8 +164,12 @@ export default function DashboardLayout({
     return pathname.startsWith(route);
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    try {
+      await logout().unwrap();
+    } catch {
+      /* La API puede fallar; igual limpiamos sesión local */
+    }
     dispatch(logoutSuccessfull());
     clearSession();
     removeAuthCookie();
@@ -282,10 +286,10 @@ export default function DashboardLayout({
           <button
             type="button"
             className="nav-item nav-item--danger"
-            onClick={handleLogout}
+            onClick={() => void handleLogout()}
           >
             <Icon name="logout" />
-            {showNavText && <span>Salir</span>}
+            {showNavText && <span>Cerrar sesión</span>}
           </button>
         </div>
       </aside>
