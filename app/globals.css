@@ -5,6 +5,11 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* Breakpoints (alinear con @media y matchMedia en dashboard) */
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+
   /* Auth / landing variables */
   --color-bg-primary: #ffffff;
   --color-bg-secondary: #f8fafc;

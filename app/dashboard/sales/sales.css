@@ -75,7 +75,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 12500;
   padding: 16px;
 }
 
@@ -327,4 +327,32 @@
   color: #475569;
   line-height: 1.55;
   border: 1px solid #e8ecf1;
+}
+
+@media (max-width: 768px) {
+  .order-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .order-modal__header,
+  .order-modal__body {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .order-modal__footer {
+    flex-wrap: wrap;
+    justify-content: stretch;
+    padding: 12px 16px;
+  }
+
+  .order-modal__footer .order-modal-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .order-modal__body {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }

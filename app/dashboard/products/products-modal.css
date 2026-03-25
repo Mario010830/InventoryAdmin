@@ -5,7 +5,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  /* Por encima del sidebar móvil (1100) y por debajo de GridDetailDrawer (12000) */
+  z-index: 12500;
   padding: 16px;
 }
 

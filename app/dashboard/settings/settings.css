@@ -110,6 +110,10 @@
 }
 
 @media (max-width: 640px) {
+  .settings-field-grid {
+    grid-template-columns: 1fr;
+  }
+
   .settings-field-grid--2 {
     grid-template-columns: 1fr;
   }
@@ -636,7 +640,7 @@
   position: fixed;
   bottom: 24px;
   right: 24px;
-  z-index: 50;
+  z-index: 1150;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -649,6 +653,16 @@
 
 .settings-global-save .settings-btn--primary {
   min-width: 140px;
+}
+
+@media (max-width: 640px) {
+  .settings-global-save {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
 .settings-loading {

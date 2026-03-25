@@ -5,6 +5,7 @@
   background: #1e293b;
 }
 
+/* Por debajo de .gd-drawer-root (12000); por encima del overlay del menú móvil */
 .sidebar {
   width: 250px;
   min-width: 250px;
@@ -16,10 +17,32 @@
   top: 0;
   left: 0;
   bottom: 0;
-  z-index: 100;
+  z-index: 1100;
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-    min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: rgba(15, 23, 42, 0.45);
+  cursor: pointer;
+  animation: sidebarOverlayIn 0.2s ease;
+}
+
+@keyframes sidebarOverlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .sidebar.collapsed {
@@ -291,6 +314,8 @@
   border-radius: 20px 0 0 20px;
   overflow: hidden;
   transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 1;
 }
 
 .dashboard.sidebar-collapsed .main-area {
@@ -306,6 +331,8 @@
   justify-content: space-between;
   padding: 0 28px;
   flex-shrink: 0;
+  position: relative;
+  z-index: 1060;
 }
 
 .topbar-left {
@@ -415,6 +442,22 @@
   box-sizing: border-box;
 }
 
+/* Home dashboard: una columna clara en móvil */
+.dashboard-flex-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .dashboard-flex-row > * {
+    flex: 1 1 100% !important;
+    max-width: 100%;
+    min-width: 0;
+  }
+}
+
 @media (max-width: 640px) {
   .page-content {
     padding: 16px;
@@ -423,15 +466,32 @@
 
 @media (max-width: 768px) {
   .sidebar {
+    width: min(280px, 85vw);
+    min-width: min(280px, 85vw);
     transform: translateX(-100%);
+    box-shadow: none;
+  }
+
+  .sidebar.sidebar--open {
+    transform: translateX(0);
+    box-shadow: 8px 0 32px rgba(15, 23, 42, 0.35);
   }
 
   .sidebar.collapsed {
-    transform: translateX(-100%);
+    width: min(280px, 85vw);
+    min-width: min(280px, 85vw);
   }
 
   .main-area {
     margin-left: 0 !important;
     border-radius: 0;
+  }
+
+  .topbar {
+    padding: 0 14px 0 12px;
+  }
+
+  .topbar-right {
+    gap: 4px;
   }
 }

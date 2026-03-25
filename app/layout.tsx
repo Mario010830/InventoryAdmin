@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ReduxProvider } from "../components/ReduxProvider";
 import { Toaster } from "@/components/ui/sonner"
@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   title: "Strova — Gestión de inventario simple y poderosa",
   description:
     "Controla productos, proveedores, ubicaciones y movimientos de stock desde una sola plataforma.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

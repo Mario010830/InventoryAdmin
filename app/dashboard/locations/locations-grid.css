@@ -16,3 +16,19 @@
   flex-shrink: 0;
   color: #4f46e5;
 }
+
+/* Leaflet: altura usable en móvil */
+.location-picker-map {
+  width: 100% !important;
+  height: 300px;
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 0;
+}
+
+@media (max-width: 768px) {
+  .location-picker-map {
+    height: min(240px, 42vh);
+    min-height: 200px;
+  }
+}

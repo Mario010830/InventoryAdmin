@@ -251,7 +251,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── KPIs de inventario ─────────────────────────────────────────────── */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 16, width: "100%" }}>
+      <div className="dashboard-flex-row">
         {kpis.map((kpi) => (
           <StatCard key={kpi.label} {...kpi} />
         ))}
@@ -262,14 +262,14 @@ export default function DashboardPage() {
         <h2 style={{ fontSize: "1rem", fontWeight: 600, color: theme.primaryText, marginBottom: 12 }}>
           Ventas · últimos 30 días
         </h2>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, width: "100%" }}>
+        <div className="dashboard-flex-row">
           {salesKpis.map((kpi) => (
             <StatCard key={kpi.label} {...kpi} />
           ))}
         </div>
       </div>
 
-      <section style={{ display: "flex", flexWrap: "wrap", gap: 16, width: "100%" }}>
+      <section className="dashboard-flex-row">
         <ListCard
           title="Órdenes de venta recientes"
           items={recentOrdersList}
@@ -279,12 +279,12 @@ export default function DashboardPage() {
         />
       </section>
 
-      <section style={{ display: "flex", flexWrap: "wrap", gap: 16, width: "100%" }}>
+      <section className="dashboard-flex-row">
         <LineChartCard title="Flujo de Inventario" subtitle="Entradas vs salidas (últimos 7 días)" data={flow} height={280} />
         <PieChartCard title="Categorías Populares" data={categoryPie} height={280} />
       </section>
 
-      <section style={{ display: "flex", flexWrap: "wrap", gap: 16, width: "100%" }}>
+      <section className="dashboard-flex-row">
         <LineChartCard
           title="Evolución del valor del inventario"
           subtitle={`Últimos 6 meses (miles ${selectedCurrency.code})`}
@@ -295,18 +295,18 @@ export default function DashboardPage() {
         <PieChartCard title="Estado del stock (En rango / Bajo / Crítico)" data={estadoStock} height={280} colors={[theme.success, "#F59E0B", theme.error]} />
       </section>
 
-      <section style={{ display: "flex", flexWrap: "wrap", gap: 16, width: "100%" }}>
+      <section className="dashboard-flex-row">
         <ListCard title="Productos con más movimientos" items={listTopMov} href="/dashboard/movements" icon="trending_up" maxItems={5} />
         <ListCard title="Productos con stock bajo" items={listLowStock} href="/dashboard/inventory" icon="warning" maxItems={5} />
         <ListCard title="Últimos movimientos" items={listLatestMov} href="/dashboard/movements" icon="swap_horiz" maxItems={5} />
       </section>
 
-      <section style={{ display: "flex", flexWrap: "wrap", gap: 16, width: "100%" }}>
+      <section className="dashboard-flex-row">
         <ComposedChartCard title="Entradas vs Salidas por día" subtitle="Barras: entradas · Línea: salidas" data={entradasSalidas} height={280} lineName="Salidas" barColor={theme.accent} lineColor={theme.error} />
         <ListCard title="Valor por ubicación" items={listValLoc} href="/dashboard/inventory" icon="location_on" maxItems={4} />
       </section>
 
-      <section style={{ display: "flex", flexWrap: "wrap", gap: 16, width: "100%" }}>
+      <section className="dashboard-flex-row">
         <ListCard title="Productos añadidos recientemente" items={listRecentProd} href="/dashboard/products" icon="inventory_2" maxItems={5} />
         <LineChartCard title="Alertas de stock bajo por día" subtitle="Última semana" data={alertas} height={280} color={theme.error} filled />
       </section>

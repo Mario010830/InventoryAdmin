@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import type { LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "./locations-grid.css";
 import L from "leaflet";
 import iconUrl from "leaflet/dist/images/marker-icon.png";
 import iconShadowUrl from "leaflet/dist/images/marker-shadow.png";
@@ -63,9 +64,9 @@ export default function LocationPickerMap({ center, value, onChange }: MapProps)
 
   return (
     <MapContainer
+      className="location-picker-map"
       center={initialCenter}
       zoom={zoom}
-      style={{ width: "100%", height: 300, borderRadius: 8, overflow: "hidden" }}
       scrollWheelZoom
     >
       <TileLayer

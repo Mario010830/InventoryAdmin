@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
@@ -15,6 +15,28 @@ import { useLogoutMutation } from "../login/_service/authApi";
 import { logoutSuccessfull } from "../login/_slices/authSlice";
 import { SETTINGS_SECTIONS } from "./settings/settingsNav";
 import { TopbarCurrencySelector } from "@/components/TopbarCurrencySelector";
+
+const MOBILE_NAV_MAX_PX = 768;
+
+function subscribeMobileNav(mq: MediaQueryList, onChange: () => void) {
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+function useIsMobileNav(maxWidth = MOBILE_NAV_MAX_PX) {
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      const mq =
+        typeof window !== "undefined"
+          ? window.matchMedia(`(max-width: ${maxWidth}px)`)
+          : null;
+      if (!mq) return () => {};
+      return subscribeMobileNav(mq, onStoreChange);
+    },
+    () => window.matchMedia(`(max-width: ${maxWidth}px)`).matches,
+    () => false,
+  );
+}
 
 interface NavItem {
   icon: string;
@@ -113,7 +135,9 @@ export default function DashboardLayout({
 }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const isMobileNav = useIsMobileNav();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const user = useAppSelector((state) => state.auth) || null;
   const { has: hasPermission } = useUserPermissionCodes();
 
@@ -150,15 +174,56 @@ export default function DashboardLayout({
 
   const initial = user ? user.fullName.charAt(0).toUpperCase() : "?";
 
+  const showNavText = isMobileNav || !collapsed;
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isMobileNav || !mobileNavOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isMobileNav, mobileNavOpen]);
+
+  useEffect(() => {
+    if (!isMobileNav || !mobileNavOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileNavOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isMobileNav, mobileNavOpen]);
+
+  const toggleSidebar = () => {
+    if (isMobileNav) setMobileNavOpen((o) => !o);
+    else setCollapsed((c) => !c);
+  };
+
   return (
-    <div className={`dashboard ${collapsed ? "sidebar-collapsed" : ""}`}>
-      <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
+    <div
+      className={`dashboard ${!isMobileNav && collapsed ? "sidebar-collapsed" : ""} ${isMobileNav && mobileNavOpen ? "dashboard--nav-open" : ""}`}
+    >
+      {isMobileNav && mobileNavOpen && (
+        <button
+          type="button"
+          className="sidebar-overlay"
+          aria-label="Cerrar menú"
+          onClick={() => setMobileNavOpen(false)}
+        />
+      )}
+      <aside
+        className={`sidebar ${!isMobileNav && collapsed ? "collapsed" : ""} ${isMobileNav && mobileNavOpen ? "sidebar--open" : ""}`}
+      >
         <div className="sidebar-brand">
           <Link href="/dashboard" className="brand">
             <div className="brand-icon">
               <BrandIcon />
             </div>
-            {!collapsed && (
+            {showNavText && (
               <span className="brand-text">
                 Strova
               </span>
@@ -168,7 +233,7 @@ export default function DashboardLayout({
 
         <nav className="sidebar-nav">
           <div className="nav-group">
-            {!collapsed && <div className="nav-group-label">MENÚ</div>}
+            {showNavText && <div className="nav-group-label">MENÚ</div>}
             {visibleNavItems.map((item) => (
               <Link
                 key={item.route}
@@ -176,17 +241,17 @@ export default function DashboardLayout({
                 className={`nav-item ${isActive(item.route) ? "active" : ""}`}
               >
                 <SidebarNavIcon item={item} />
-                {!collapsed && <span>{item.label}</span>}
+                {showNavText && <span>{item.label}</span>}
               </Link>
             ))}
           </div>
           <div className="nav-group">
-            {!collapsed && visibleAdminItems.length > 0 && <div className="nav-group-label">ADMIN</div>}
+            {showNavText && visibleAdminItems.length > 0 && <div className="nav-group-label">ADMIN</div>}
             {visibleAdminItems.map((item) =>
               item.route === "/dashboard/settings" ? (
                 <DashboardSettingsNavItem
                   key={item.route}
-                  collapsed={collapsed}
+                  collapsed={!showNavText}
                   label={item.label}
                   icon={item.icon}
                 />
@@ -197,7 +262,7 @@ export default function DashboardLayout({
                   className={`nav-item ${isActive(item.route) ? "active" : ""}`}
                 >
                   <SidebarNavIcon item={item} />
-                  {!collapsed && <span>{item.label}</span>}
+                  {showNavText && <span>{item.label}</span>}
                 </Link>
               )
             )}
@@ -205,7 +270,7 @@ export default function DashboardLayout({
         </nav>
 
         <div className="sidebar-bottom">
-          {!collapsed && (
+          {showNavText && (
             <div className="sidebar-user">
               <div className="sidebar-user-avatar">{initial}</div>
               <div className="sidebar-user-info">
@@ -220,7 +285,7 @@ export default function DashboardLayout({
             onClick={handleLogout}
           >
             <Icon name="logout" />
-            {!collapsed && <span>Salir</span>}
+            {showNavText && <span>Salir</span>}
           </button>
         </div>
       </aside>
@@ -231,10 +296,29 @@ export default function DashboardLayout({
             <button
               type="button"
               className="topbar-toggle"
-              onClick={() => setCollapsed((c) => !c)}
-              aria-label={collapsed ? "Abrir menú" : "Cerrar menú"}
+              onClick={toggleSidebar}
+              aria-expanded={isMobileNav ? mobileNavOpen : !collapsed}
+              aria-label={
+                isMobileNav
+                  ? mobileNavOpen
+                    ? "Cerrar menú"
+                    : "Abrir menú"
+                  : collapsed
+                    ? "Expandir barra lateral"
+                    : "Contraer barra lateral"
+              }
             >
-              <Icon name={collapsed ? "menu_open" : "menu"} />
+              <Icon
+                name={
+                  isMobileNav
+                    ? mobileNavOpen
+                      ? "close"
+                      : "menu"
+                    : collapsed
+                      ? "menu_open"
+                      : "menu"
+                }
+              />
             </button>
           </div>
           <div className="topbar-right">

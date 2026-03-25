@@ -923,7 +923,60 @@
 
 /* ─── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .dt-toolbar__search { min-width: 100%; max-width: 100%; }
-  .dt-footer__left, .dt-footer__right { display: none; }
-  .dt-footer__center { width: 100%; justify-content: center; }
+  .dt-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  .dt-card-head {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px 16px 12px;
+    gap: 12px;
+  }
+
+  .dt-card-head__actions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .dt-header__title {
+    font-size: 1.05rem;
+  }
+
+  .dt-toolbar {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .dt-toolbar__search {
+    min-width: 100%;
+    max-width: 100%;
+  }
+
+  .dt-footer__left,
+  .dt-footer__right {
+    display: none;
+  }
+
+  .dt-footer__center {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .dt-bulk-bar {
+    padding: 10px 12px;
+  }
+
+  .dt-bulk-bar__inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dt-bulk-bar__actions {
+    justify-content: center;
+  }
 }
