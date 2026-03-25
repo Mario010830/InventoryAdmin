@@ -32,6 +32,21 @@ import "./data-table.css";
 
 const DT_LAYOUT_MOBILE_MAX_PX = 768;
 
+/** Factor para achicar anchos en px en móvil (más columnas visibles sin scroll excesivo). */
+const MOBILE_COL_SHRINK = 0.82;
+
+const DEFAULT_MOBILE_TABLE_ZOOM = 0.78;
+const MIN_MOBILE_TABLE_ZOOM = 0.55;
+const MAX_MOBILE_TABLE_ZOOM = 1.15;
+const MOBILE_TABLE_ZOOM_STEP = 0.05;
+
+function clampMobileZoom(n: number) {
+  return Math.min(
+    MAX_MOBILE_TABLE_ZOOM,
+    Math.max(MIN_MOBILE_TABLE_ZOOM, Math.round(n * 100) / 100),
+  );
+}
+
 function useMatchMaxWidth(maxWidthPx: number) {
   return useSyncExternalStore(
     (onChange) => {
@@ -297,7 +312,6 @@ export function DataTable<T extends { id: string | number }>({
   const { formatCup } = useDisplayCurrency();
   const gridEnabled = Boolean(gridConfig);
   const hasCheckbox = gridEnabled;
-  const storageKey = gridConfig?.storageKey ?? columnWidthsStorageKey ?? "";
 
   const [detailIndex, setDetailIndex] = useState<number | null>(null);
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
@@ -371,10 +385,43 @@ export function DataTable<T extends { id: string | number }>({
   }, [colWidths]);
   const isMobileLayout = useMatchMaxWidth(DT_LAYOUT_MOBILE_MAX_PX);
 
+  const widthStorageKey = columnWidthsStorageKey ?? gridConfig?.storageKey;
+
+  const [mobileTableZoom, setMobileTableZoom] = useState(DEFAULT_MOBILE_TABLE_ZOOM);
+
+  useEffect(() => {
+    if (!widthStorageKey || typeof window === "undefined") return;
+    try {
+      const raw = sessionStorage.getItem(`dt-mobile-zoom:${widthStorageKey}`);
+      if (raw) {
+        const n = Number.parseFloat(raw);
+        if (!Number.isNaN(n)) setMobileTableZoom(clampMobileZoom(n));
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [widthStorageKey]);
+
+  useEffect(() => {
+    if (!widthStorageKey || typeof window === "undefined") return;
+    try {
+      sessionStorage.setItem(
+        `dt-mobile-zoom:${widthStorageKey}`,
+        String(mobileTableZoom),
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [widthStorageKey, mobileTableZoom]);
+
   const getColStyle = useCallback(
     (physicalIdx: number): CSSProperties => {
       if (isMobileLayout) {
-        const w = Math.max(MIN_COL, colWidths[physicalIdx] ?? MIN_COL);
+        const base = colWidths[physicalIdx] ?? MIN_COL;
+        const w = Math.max(
+          MIN_COL,
+          Math.round(base * MOBILE_COL_SHRINK),
+        );
         return { width: w, minWidth: w, maxWidth: "none" };
       }
       return {
@@ -544,8 +591,6 @@ export function DataTable<T extends { id: string | number }>({
     });
     return () => cancelAnimationFrame(id);
   }, [detailIndex]);
-
-  const widthStorageKey = columnWidthsStorageKey ?? gridConfig?.storageKey;
 
   useEffect(() => {
     if (detailIndex == null || sortedData.length === 0) return;
@@ -921,6 +966,61 @@ export function DataTable<T extends { id: string | number }>({
                 aria-hidden
               />
             ) : null}
+            {isMobileLayout ? (
+              <div
+                className="dt-mobile-zoom-bar"
+                role="toolbar"
+                aria-label="Zoom de la tabla"
+              >
+                <span className="dt-mobile-zoom-bar__label">Tabla</span>
+                <button
+                  type="button"
+                  className="dt-mobile-zoom-btn"
+                  aria-label="Alejar tabla"
+                  onClick={() =>
+                    setMobileTableZoom((z) =>
+                      clampMobileZoom(z - MOBILE_TABLE_ZOOM_STEP),
+                    )
+                  }
+                >
+                  −
+                </button>
+                <span className="dt-mobile-zoom-bar__value" aria-live="polite">
+                  {Math.round(mobileTableZoom * 100)}%
+                </span>
+                <button
+                  type="button"
+                  className="dt-mobile-zoom-btn"
+                  aria-label="Acercar tabla"
+                  onClick={() =>
+                    setMobileTableZoom((z) =>
+                      clampMobileZoom(z + MOBILE_TABLE_ZOOM_STEP),
+                    )
+                  }
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  className="dt-mobile-zoom-btn dt-mobile-zoom-btn--reset"
+                  title="Tamaño predeterminado (más filas visibles)"
+                  aria-label="Restablecer zoom de la tabla"
+                  onClick={() =>
+                    setMobileTableZoom(DEFAULT_MOBILE_TABLE_ZOOM)
+                  }
+                >
+                  Predet.
+                </button>
+              </div>
+            ) : null}
+            <div
+              className={isMobileLayout ? "dt-mobile-zoom-inner" : undefined}
+              style={
+                isMobileLayout
+                  ? ({ zoom: mobileTableZoom } as CSSProperties)
+                  : undefined
+              }
+            >
             <table
               ref={tableRef}
               className={`dt-table${isMobileLayout ? " dt-table--mobile" : ""}`}
@@ -1100,6 +1200,7 @@ export function DataTable<T extends { id: string | number }>({
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
 
           {infiniteScroll ? (
