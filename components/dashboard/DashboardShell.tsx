@@ -96,6 +96,12 @@ const navItems: NavItem[] = [
     route: "/dashboard/sales",
     permission: "sale.read",
   },
+  {
+    icon: "local_offer",
+    label: "Promociones",
+    route: "/dashboard/promotions",
+    permission: "product.read",
+  },
 ];
 
 const adminItems: NavItem[] = [

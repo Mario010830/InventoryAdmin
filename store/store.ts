@@ -26,6 +26,7 @@ import { currencyApi } from "@/app/dashboard/settings/_service/currencyApi";
 import { dashboardApi } from "@/app/dashboard/_service/dashboardApi";
 import { catalogApi } from "@/app/catalog/_service/catalogApi";
 import { salesApi } from "@/app/dashboard/sales/_service/salesApi";
+import { promotionApi } from "@/app/dashboard/promotions/_service/promotionApi";
 import { cartSlice } from "./cartSlice";
 import { toastMiddleware } from "@/lib/toastMiddleware";
 
@@ -56,6 +57,7 @@ const combinedReducer = combineReducers({
   [dashboardApi.reducerPath]: dashboardApi.reducer,
   [catalogApi.reducerPath]: catalogApi.reducer,
   [salesApi.reducerPath]: salesApi.reducer,
+  [promotionApi.reducerPath]: promotionApi.reducer,
 });
 
 type CombinedState = ReturnType<typeof combinedReducer>;
@@ -95,6 +97,7 @@ const apiMiddleware = [
   dashboardApi.middleware,
   catalogApi.middleware,
   salesApi.middleware,
+  promotionApi.middleware,
 ];
 
 export const store = configureStore({
