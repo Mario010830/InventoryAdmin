@@ -72,15 +72,17 @@ const SUCCESS_MESSAGES: Record<string, string> = {
   updateOrder: "Pedido actualizado correctamente",
   confirmOrder: "Pedido confirmado",
   cancelOrder: "Pedido cancelado",
+
+  createPromotion: "Promoción creada correctamente",
+  updatePromotion: "Promoción actualizada correctamente",
+  setPromotionActive: "Estado de la promoción actualizado",
+  deletePromotion: "Promoción eliminada correctamente",
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
   login: "Credenciales incorrectas",
   deleteProduct: "No se pudo eliminar el producto",
-
-  createPromotion: "Promoción creada correctamente",
-  updatePromotion: "Promoción actualizada correctamente",
-  setPromotionActive: "Estado de la promoción actualizado",
+  deletePromotion: "No se pudo eliminar la promoción",
 };
 
 export const toastMiddleware: Middleware = () => (next) => (action) => {

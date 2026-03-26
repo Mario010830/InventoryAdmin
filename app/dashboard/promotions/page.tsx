@@ -14,10 +14,12 @@ import {
   useCreatePromotionMutation,
   useUpdatePromotionMutation,
   useSetPromotionActiveMutation,
+  useDeletePromotionMutation,
   type PromotionResponse,
   type PromotionType,
 } from "./_service/promotionApi";
 import { FormModal } from "@/components/FormModal";
+import { DeleteModal } from "@/components/DeleteModal";
 import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
 import Switch from "@/components/Switch";
 import "../products/products-modal.css";
@@ -73,6 +75,20 @@ function applyEstadoClient(rows: PromotionResponse[], estado: EstadoFiltro): Pro
     return rows.filter((r) => !r.isActive);
   }
   return rows;
+}
+
+function deletePromotionErrorMessage(err: unknown): string {
+  if (err && typeof err === "object" && "data" in err) {
+    const data = (err as { data?: unknown }).data;
+    if (typeof data === "string" && data.trim()) return data.trim();
+    if (data && typeof data === "object") {
+      const o = data as Record<string, unknown>;
+      const m = o.message ?? o.Message ?? o.title ?? o.Title;
+      if (typeof m === "string" && m.trim()) return m.trim();
+    }
+  }
+  if (err instanceof Error && err.message) return err.message;
+  return "No se pudo eliminar. Intenta de nuevo.";
 }
 
 function promotionStatusBadge(row: PromotionResponse) {
@@ -143,9 +159,12 @@ export default function PromotionsPage() {
   const [createPromotion] = useCreatePromotionMutation();
   const [updatePromotion] = useUpdatePromotionMutation();
   const [setPromotionActive] = useSetPromotionActiveMutation();
+  const [deletePromotion] = useDeletePromotionMutation();
 
   const { has: hasPermission } = useUserPermissionCodes();
   const canManage = hasPermission("product.update");
+  /** Misma regla que editar/crear; el API valida permisos reales. */
+  const canDeletePromotion = canManage;
 
   const [productPage, setProductPage] = useState(1);
   const loadNextProductPage = useCallback(() => setProductPage((p) => p + 1), []);
@@ -303,6 +322,9 @@ export default function PromotionsPage() {
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState<Row | null>(null);
+  const [deleteError, setDeleteError] = useState("");
 
   const selectedProduct = form.productId > 0 ? productById.get(form.productId) : undefined;
 
@@ -421,6 +443,29 @@ export default function PromotionsPage() {
     }
   };
 
+  const openDelete = (item: Row) => {
+    setDeleting(item);
+    setDeleteError("");
+    setConfirmOpen(true);
+  };
+
+  const closeConfirm = () => {
+    setConfirmOpen(false);
+    setDeleting(null);
+    setDeleteError("");
+  };
+
+  const handleDelete = async () => {
+    if (!deleting) return;
+    try {
+      await deletePromotion(deleting.id).unwrap();
+      setAllPromoRows((prev) => prev.filter((r) => r.id !== deleting.id));
+      closeConfirm();
+    } catch (e) {
+      setDeleteError(deletePromotionErrorMessage(e));
+    }
+  };
+
   return (
     <>
       <DataTable<Row>
@@ -513,6 +558,13 @@ export default function PromotionsPage() {
             onClick: (r) => void handleToggleActive(r, false),
             hidden: (r) => !r.isActive,
             disabled: () => !canManage || togglingId != null,
+          },
+          {
+            icon: "delete_outline",
+            label: "Eliminar",
+            onClick: openDelete,
+            variant: "danger",
+            disabled: () => !canDeletePromotion,
           },
         ]}
         detailDrawer={{
@@ -668,6 +720,17 @@ export default function PromotionsPage() {
             <span>Promoción activa</span>
           </div>
         </FormModal>
+      )}
+
+      {confirmOpen && deleting && (
+        <DeleteModal
+          open={confirmOpen && !!deleting}
+          onClose={closeConfirm}
+          onConfirm={handleDelete}
+          title="¿Eliminar promoción?"
+          description={`Se eliminará la promoción de «${deleting._displayProduct}» de forma permanente. Si ya fue usada en alguna venta, el servidor rechazará la operación.`}
+          error={deleteError}
+        />
       )}
     </>
   );

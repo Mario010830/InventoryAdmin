@@ -189,6 +189,17 @@ export const promotionApi = createApi({
         { type: "Promotion", id: "LIST" },
       ],
     }),
+
+    deletePromotion: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `/promotion?id=${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_r, _e, id) => [
+        { type: "Promotion", id },
+        { type: "Promotion", id: "LIST" },
+      ],
+    }),
   }),
 });
 
@@ -197,4 +208,5 @@ export const {
   useCreatePromotionMutation,
   useUpdatePromotionMutation,
   useSetPromotionActiveMutation,
+  useDeletePromotionMutation,
 } = promotionApi;
