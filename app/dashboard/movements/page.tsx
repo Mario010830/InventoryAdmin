@@ -30,6 +30,7 @@ import {
   MOVEMENT_REASON_LABEL,
 } from "@/lib/inventoryMovementUi";
 import { MovementDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
+import { useDefaultLocation } from "@/lib/useDefaultLocation";
 
 function movementTypeTone(type: unknown): "in" | "out" | "neutral" {
   const key = String(type ?? "").toLowerCase();
@@ -270,6 +271,15 @@ export default function MovementsPage() {
   const categories = categoriesResult?.data ?? [];
   const isLocationLocked = formContext?.isLocationLocked === true;
   const [allRows, setAllRows] = useState<InventoryMovementResponse[]>([]);
+
+  const defaultLoc = useDefaultLocation(locationsForGridFilter);
+
+  useEffect(() => {
+    if (filterLocationId !== "") return;
+    if (defaultLoc.locationId != null) {
+      setFilterLocationId(String(defaultLoc.locationId));
+    }
+  }, [defaultLoc.locationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Permissions ──────────────────────────────────────────────────────────
 

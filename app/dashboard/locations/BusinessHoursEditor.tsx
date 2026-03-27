@@ -95,38 +95,13 @@ export function BusinessHoursEditor({ value, onChange }: Props) {
 
   return (
     <div className="modal-field field-full">
-      <div
-        style={{
-          border: "1px solid #e2e8f0",
-          borderRadius: 8,
-          padding: 10,
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-        }}
-      >
-        {DAY_LABELS.map(({ key, label }, index) => {
+      <div className="bh-editor">
+        {DAY_LABELS.map(({ key, label }) => {
           const day = value[key];
           const isMonday = key === "monday";
           return (
-            <div
-              key={key}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "4px 0",
-                borderTop: index === 0 ? "none" : "1px solid #f1f5f9",
-              }}
-            >
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  minWidth: 120,
-                }}
-              >
+            <div key={key} className="bh-editor__row">
+              <label className="bh-editor__label">
                 <input
                   type="checkbox"
                   checked={day.isOpen}
@@ -134,74 +109,37 @@ export function BusinessHoursEditor({ value, onChange }: Props) {
                     update(key, { isOpen: e.target.checked })
                   }
                 />
-                <span style={{ fontSize: "0.82rem", fontWeight: 500 }}>
-                  {label}
-                </span>
+                <span>{label}</span>
               </label>
 
               {day.isOpen ? (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    flex: 1,
-                    flexWrap: "wrap",
-                  }}
-                >
+                <div className="bh-editor__time-wrap">
                   <input
                     type="time"
+                    className="bh-editor__time"
                     value={day.open}
                     onChange={(e) => update(key, { open: e.target.value })}
-                    style={{
-                      padding: "4px 6px",
-                      borderRadius: 6,
-                      border: "1px solid #e2e8f0",
-                      fontSize: "0.8rem",
-                    }}
                   />
-                  <span style={{ fontSize: "0.8rem", color: "#64748b" }}>
-                    a
-                  </span>
+                  <span className="bh-editor__separator">a</span>
                   <input
                     type="time"
+                    className="bh-editor__time"
                     value={day.close}
                     onChange={(e) => update(key, { close: e.target.value })}
-                    style={{
-                      padding: "4px 6px",
-                      borderRadius: 6,
-                      border: "1px solid #e2e8f0",
-                      fontSize: "0.8rem",
-                    }}
                   />
 
                   {isMonday && day.open && day.close && (
                     <button
                       type="button"
+                      className="bh-editor__copy-btn"
                       onClick={copyWeekdaysFromMonday}
-                      style={{
-                        marginLeft: "auto",
-                        fontSize: "0.75rem",
-                        color: "#3b82f6",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        textDecoration: "underline",
-                      }}
                     >
                       Copiar al resto de días laborables
                     </button>
                   )}
                 </div>
               ) : (
-                <span
-                  style={{
-                    fontSize: "0.8rem",
-                    color: "#9ca3af",
-                  }}
-                >
-                  Cerrado
-                </span>
+                <span className="bh-editor__closed">Cerrado</span>
               )}
             </div>
           );

@@ -2,8 +2,10 @@
 
 import type { LocationResponse, UserResponse } from "@/lib/auth-types";
 import type {
+  ContactResponse,
   InventoryMovementResponse,
   InventoryResponse,
+  LeadResponse,
   LogResponse,
   ProductCategoryResponse,
   ProductResponse,
@@ -27,9 +29,12 @@ function marginPercent(row: ProductResponse): string {
 export function ProductDetailBody({
   row,
   categoryName,
+  locations = [],
 }: {
   row: ProductResponse;
   categoryName: string;
+  /** Para resolver nombres de tiendas en productos elaborados (`offerLocationIds`). */
+  locations?: { id: number; name: string }[];
 }) {
   const { formatCup } = useDisplayCurrency();
   const stock = row.totalStock;
@@ -85,8 +90,35 @@ export function ProductDetailBody({
             label="Stock actual"
             value={stock != null && Number.isFinite(Number(stock)) ? String(stock) : "—"}
           />
+          <DetailField
+            label="Tipo"
+            value={
+              row.tipo === "elaborado"
+                ? "Elaborado"
+                : row.tipo === "inventariable"
+                  ? "Inventariable"
+                  : displayDash(null)
+            }
+          />
         </div>
       </DetailSection>
+      {row.tipo === "elaborado" && (
+        <DetailSection title="Disponibilidad por tienda (elaborado)">
+          <DetailField
+            label="Tiendas donde se ofrece"
+            value={
+              row.offerLocationIds == null || row.offerLocationIds.length === 0
+                ? "Ninguna (no visible en tiendas hasta asignar)"
+                : row.offerLocationIds
+                    .map(
+                      (id) =>
+                        locations.find((l) => l.id === id)?.name?.trim() || `Tienda #${id}`,
+                    )
+                    .join(", ")
+            }
+          />
+        </DetailSection>
+      )}
       <DetailSection title="Fechas">
         <div className="gd-detail-section__grid gd-detail-section__grid--two">
           <DetailField label="Creado" value={formatDetailDate(row.createdAt)} />
@@ -121,6 +153,103 @@ export function CategoryDetailBody({
       />
       <DetailField label="Creado" value={formatDetailDate(row.createdAt)} />
       <DetailField label="Última actualización" value={formatDetailDate(row.modifiedAt)} />
+    </>
+  );
+}
+
+export function ContactDetailBody({
+  row,
+  assignedUserName,
+}: {
+  row: ContactResponse;
+  assignedUserName?: string | null;
+}) {
+  return (
+    <>
+      <DetailSection title="General">
+        <div className="gd-detail-section__grid gd-detail-section__grid--two">
+          <DetailField label="Nombre" value={displayDash(row.name)} />
+          <DetailField label="Empresa" value={displayDash(row.company)} />
+          <DetailField label="Persona de contacto" value={displayDash(row.contactPerson)} />
+          <DetailField label="Email" value={displayDash(row.email)} />
+          <DetailField label="Teléfono" value={displayDash(row.phone)} />
+          <DetailField label="Origen" value={displayDash(row.origin)} />
+          <DetailField label="Dirección" value={displayDash(row.address)} />
+          <DetailField
+            label="Asignado a"
+            value={displayDash(assignedUserName ?? (row.assignedUserId != null ? `Usuario #${row.assignedUserId}` : null))}
+          />
+        </div>
+      </DetailSection>
+      {row.notes?.trim() ? (
+        <DetailSection title="Notas">
+          <DetailField label="" value={row.notes} />
+        </DetailSection>
+      ) : null}
+      <DetailSection title="Estado">
+        <DetailField
+          label="Activo"
+          value={<BoolBadge value={row.isActive} trueLabel="Sí" falseLabel="No" />}
+        />
+      </DetailSection>
+      <DetailSection title="Fechas">
+        <div className="gd-detail-section__grid gd-detail-section__grid--two">
+          <DetailField label="Creado" value={formatDetailDate(row.createdAt)} />
+          <DetailField label="Última actualización" value={formatDetailDate(row.modifiedAt)} />
+        </div>
+      </DetailSection>
+    </>
+  );
+}
+
+export function LeadDetailBody({
+  row,
+  assignedUserName,
+}: {
+  row: LeadResponse;
+  assignedUserName?: string | null;
+}) {
+  const converted = row.convertedToContactId != null;
+  return (
+    <>
+      <DetailSection title="General">
+        <div className="gd-detail-section__grid gd-detail-section__grid--two">
+          <DetailField label="Nombre" value={displayDash(row.name)} />
+          <DetailField label="Empresa" value={displayDash(row.company)} />
+          <DetailField label="Persona de contacto" value={displayDash(row.contactPerson)} />
+          <DetailField label="Email" value={displayDash(row.email)} />
+          <DetailField label="Teléfono" value={displayDash(row.phone)} />
+          <DetailField label="Origen" value={displayDash(row.origin)} />
+          <DetailField label="Estado" value={displayDash(row.status)} />
+          <DetailField
+            label="Asignado a"
+            value={displayDash(assignedUserName ?? (row.assignedUserId != null ? `Usuario #${row.assignedUserId}` : null))}
+          />
+        </div>
+      </DetailSection>
+      {converted ? (
+        <DetailSection title="Conversión">
+          <DetailField
+            label="Contacto creado"
+            value={`ID ${row.convertedToContactId}`}
+          />
+          <DetailField
+            label="Fecha de conversión"
+            value={row.convertedAt ? formatDetailDateTime(row.convertedAt) : "—"}
+          />
+        </DetailSection>
+      ) : null}
+      {row.notes?.trim() ? (
+        <DetailSection title="Notas">
+          <DetailField label="" value={row.notes} />
+        </DetailSection>
+      ) : null}
+      <DetailSection title="Fechas">
+        <div className="gd-detail-section__grid gd-detail-section__grid--two">
+          <DetailField label="Creado" value={formatDetailDate(row.createdAt)} />
+          <DetailField label="Última actualización" value={formatDetailDate(row.modifiedAt)} />
+        </div>
+      </DetailSection>
     </>
   );
 }

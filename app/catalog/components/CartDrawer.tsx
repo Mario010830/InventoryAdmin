@@ -8,6 +8,11 @@ import { getApiUrl } from "@/lib/auth-api";
 import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import type { CreateSaleOrderRequest } from "@/lib/dashboard-types";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
+import {
+  catalogUiLocale,
+  parseApiErrorPayload,
+  userFacingBusinessErrorMessage,
+} from "@/lib/apiBusinessErrors";
 
 interface CustomerInfo {
   name: string;
@@ -222,9 +227,23 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
         body: JSON.stringify(body),
       });
 
-      if (!res.ok) throw new Error(`Error ${res.status}`);
+      const locale = catalogUiLocale();
+      let json: unknown = null;
+      try {
+        json = await res.json();
+      } catch {
+        /* cuerpo vacío o no JSON */
+      }
 
-      const data = (await res.json()) as { result?: { folio?: string; id?: number } };
+      if (!res.ok) {
+        const { customStatusCode, message } = parseApiErrorPayload(json);
+        setSubmitErr(
+          userFacingBusinessErrorMessage(customStatusCode, message, locale),
+        );
+        return;
+      }
+
+      const data = json as { result?: { folio?: string; id?: number } };
       const order = data.result ?? {};
       const folio = order.folio ?? (order.id ? `#${order.id}` : "nueva");
 

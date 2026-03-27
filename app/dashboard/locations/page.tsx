@@ -650,22 +650,13 @@ export default function LocationsPage() {
             )}
           </div>
 
-          {/* Sección avanzada: mapa + horario */}
-          <section
-            style={{
-              marginTop: 16,
-              paddingTop: 12,
-              borderTop: "1px solid #e5e7eb",
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-            }}
-          >
+          {/* Sección: mapa */}
+          <div className="modal-field field-full loc-modal-section">
             <div>
-              <h3 style={{ fontSize: "0.9rem", fontWeight: 600, margin: 0, color: "#0f172a" }}>
+              <h3 className="loc-modal-section__heading">
                 Ubicación en el mapa
               </h3>
-              <p style={{ fontSize: "0.78rem", color: "#6b7280", margin: "4px 0 0" }}>
+              <p className="loc-modal-section__desc">
                 Buscá la dirección de tu tienda para que los clientes puedan encontrarla fácilmente. Este campo es opcional.
               </p>
             </div>
@@ -683,26 +674,25 @@ export default function LocationsPage() {
                 }))
               }
             />
+          </div>
 
-            <div style={{ marginTop: 8 }}>
-              <h3 style={{ fontSize: "0.9rem", fontWeight: 600, margin: 0, color: "#0f172a" }}>
+          {/* Sección: horario */}
+          <div className="modal-field field-full loc-modal-section">
+            <div>
+              <h3 className="loc-modal-section__heading">
                 Horario de atención
               </h3>
-              <p style={{ fontSize: "0.78rem", color: "#6b7280", margin: "4px 0 0" }}>
+              <p className="loc-modal-section__desc">
                 Definí los horarios de apertura y cierre por día. Si no configuras nada, la tienda se considerará sin horario fijo.
               </p>
             </div>
             <BusinessHoursEditor value={businessHours} onChange={setBusinessHours} />
             {formErrors.businessHours && (
-              <p className="form-error" style={{ marginTop: 4 }}>
-                {formErrors.businessHours}
-              </p>
+              <p className="form-error">{formErrors.businessHours}</p>
             )}
-          </section>
+          </div>
           {formErrors.submit && (
-            <p className="form-error" style={{ marginTop: 12 }}>
-              {formErrors.submit}
-            </p>
+            <p className="form-error">{formErrors.submit}</p>
           )}
         </FormModal>
       )}

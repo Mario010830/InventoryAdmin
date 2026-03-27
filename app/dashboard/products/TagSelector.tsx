@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback, useEffect } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { useGetTagsQuery } from "./_service/productsApi";
 import type { Tag } from "@/lib/dashboard-types";
@@ -40,61 +40,16 @@ function buildGroupedTags(apiTags: Tag[]): GroupWithTags[] {
   return result.filter((g) => g.tags.length > 0);
 }
 
-function getDefaultExpandedGroups(
-  groups: GroupWithTags[],
-  selectedIds: number[],
-): Set<string> {
-  const set = new Set<string>();
-  for (const g of groups) {
-    const selectedInGroup = g.tags.some((t) => selectedIds.includes(t.id));
-    if (selectedInGroup) set.add(g.name);
-  }
-  return set;
-}
-
 export function TagSelector({ value, onChange }: TagSelectorProps) {
   const { data: tagsResult, isLoading } = useGetTagsQuery({ perPage: 200 });
   const apiTags = tagsResult?.data ?? [];
 
   const [search, setSearch] = useState("");
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const grouped = useMemo(
     () => buildGroupedTags(apiTags),
     [apiTags],
   );
-
-  useEffect(() => {
-    if (search.trim()) {
-      const q = search.toLowerCase().trim();
-      setExpandedGroups(
-        new Set(
-          grouped
-            .filter((g) =>
-              g.tags.some((t) => t.name.toLowerCase().includes(q)),
-            )
-            .map((g) => g.name),
-        ),
-      );
-    } else {
-      setExpandedGroups((prev) => {
-        const next = getDefaultExpandedGroups(grouped, value);
-        if (prev.size === next.size && [...next].every((name) => prev.has(name))) {
-          return prev;
-        }
-        return next;
-      });
-    }
-  }, [search, grouped, value]);
-
-  const toggleExpanded = useCallback((groupName: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(groupName)) next.delete(groupName);
-      else next.add(groupName);
-      return next;
-    });
-  }, []);
 
   const toggleTag = useCallback(
     (id: number) => {
@@ -153,42 +108,28 @@ export function TagSelector({ value, onChange }: TagSelectorProps) {
               : "No hay etiquetas disponibles"}
           </div>
         ) : (
-        filteredGroups.map((group) => {
-          const expanded = expandedGroups.has(group.name);
-          const selectedCount = group.tags.filter((t) =>
-            value.includes(t.id),
-          ).length;
+          filteredGroups.map((group) => {
+            const selectedCount = group.tags.filter((t) =>
+              value.includes(t.id),
+            ).length;
 
-          return (
-            <div
-              key={group.name}
-              className="tag-selector-v2__group"
-              data-expanded={expanded}
-            >
-              <button
-                type="button"
-                className="tag-selector-v2__group-header"
-                onClick={() => toggleExpanded(group.name)}
-                aria-expanded={expanded}
-              >
-                <span className="tag-selector-v2__group-arrow">
-                  {expanded ? "▼" : "▶"}
-                </span>
-                <span
-                  className="tag-selector-v2__group-dot"
-                  style={{ backgroundColor: group.color }}
-                />
-                <span className="tag-selector-v2__group-name">
-                  {group.name}
-                </span>
-                {selectedCount > 0 && (
-                  <span className="tag-selector-v2__group-badge">
-                    ({selectedCount})
+            return (
+              <div key={group.name} className="tag-selector-v2__group">
+                <div className="tag-selector-v2__group-header">
+                  <span
+                    className="tag-selector-v2__group-dot"
+                    style={{ backgroundColor: group.color }}
+                  />
+                  <span className="tag-selector-v2__group-name">
+                    {group.name}
                   </span>
-                )}
-              </button>
+                  {selectedCount > 0 && (
+                    <span className="tag-selector-v2__group-badge">
+                      ({selectedCount})
+                    </span>
+                  )}
+                </div>
 
-              {expanded && (
                 <div className="tag-selector-v2__pills">
                   {group.tags.map((tag) => {
                     const selected = value.includes(tag.id);
@@ -220,10 +161,9 @@ export function TagSelector({ value, onChange }: TagSelectorProps) {
                     );
                   })}
                 </div>
-              )}
-            </div>
-          );
-        })
+              </div>
+            );
+          })
         )}
       </div>
 

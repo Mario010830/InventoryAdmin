@@ -77,12 +77,23 @@ const SUCCESS_MESSAGES: Record<string, string> = {
   updatePromotion: "Promoción actualizada correctamente",
   setPromotionActive: "Estado de la promoción actualizado",
   deletePromotion: "Promoción eliminada correctamente",
+
+  // CRM
+  createContact: "Contacto creado correctamente",
+  updateContact: "Contacto actualizado correctamente",
+  deleteContact: "Contacto eliminado correctamente",
+  createLead: "Lead creado correctamente",
+  updateLead: "Lead actualizado correctamente",
+  deleteLead: "Lead eliminado correctamente",
+  convertLeadToContact: "Lead convertido a contacto",
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
   login: "Credenciales incorrectas",
   deleteProduct: "No se pudo eliminar el producto",
   deletePromotion: "No se pudo eliminar la promoción",
+  deleteContact: "No se pudo eliminar el contacto",
+  deleteLead: "No se pudo eliminar el lead",
 };
 
 export const toastMiddleware: Middleware = () => (next) => (action) => {
@@ -110,15 +121,22 @@ export const toastMiddleware: Middleware = () => (next) => (action) => {
 
   if (type.endsWith("/rejected")) {
     if (areMutationToastsSuppressed()) return result;
-    const payload = (action as { payload?: Record<string, unknown> }).payload;
-    const serverMessage =
-      (payload?.data as { message?: string } | undefined)?.message ??
-      (payload?.data as { error?: string } | undefined)?.error ??
-      (payload as { error?: string } | undefined)?.error ??
-      (payload as { message?: string } | undefined)?.message ??
-      null;
-    const message = serverMessage ?? ERROR_MESSAGES[endpointName] ?? "Ocurrió un error";
-    toast.error(typeof message === "string" ? message : "Ocurrió un error");
+
+    const fixedError = ERROR_MESSAGES[endpointName];
+    let message: string;
+    if (fixedError) {
+      message = fixedError;
+    } else {
+      const payload = (action as { payload?: Record<string, unknown> }).payload;
+      const serverMessage =
+        (payload?.data as { message?: string } | undefined)?.message ??
+        (payload?.data as { error?: string } | undefined)?.error ??
+        (payload as { error?: string } | undefined)?.error ??
+        (payload as { message?: string } | undefined)?.message ??
+        null;
+      message = (typeof serverMessage === "string" ? serverMessage : null) ?? "Ocurrió un error";
+    }
+    toast.error(message, { duration: 5000 });
   }
 
   return result;

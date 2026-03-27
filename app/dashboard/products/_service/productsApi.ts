@@ -69,6 +69,13 @@ export function extractImagenUrlFromUnknown(raw: unknown): string | null {
   return null;
 }
 
+function parseOfferLocationIds(row: Record<string, unknown>): number[] | undefined {
+  const raw = row.offerLocationIds ?? row.OfferLocationIds;
+  if (!Array.isArray(raw)) return undefined;
+  const ids = raw.map((x) => Number(x)).filter((n) => Number.isFinite(n));
+  return ids;
+}
+
 function parseProductOne(raw: unknown): ProductResponse | null {
   if (Array.isArray(raw)) {
     if (raw.length === 0) return null;
@@ -98,6 +105,7 @@ function parseProductOne(raw: unknown): ProductResponse | null {
     tagIds: Array.isArray(row.tagIds ?? row.TagIds)
       ? (row.tagIds as unknown[]).map((x) => Number(x))
       : undefined,
+    offerLocationIds: parseOfferLocationIds(row),
     createdAt: String(row.createdAt ?? row.CreatedAt ?? ""),
     modifiedAt: String(row.modifiedAt ?? row.ModifiedAt ?? ""),
     totalStock: row.totalStock != null ? Number(row.totalStock ?? row.TotalStock) : undefined,

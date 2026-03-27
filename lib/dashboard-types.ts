@@ -37,6 +37,8 @@ export interface ProductResponse {
   isForSale: boolean;
   tipo?: ProductTipo;
   tagIds?: number[];
+  /** Tiendas donde se ofrece un producto elaborado (ProductLocationOffers). */
+  offerLocationIds?: number[];
   createdAt: string;
   modifiedAt: string;
   /** Stock agregado (si el API lo envía en listados). */
@@ -57,6 +59,7 @@ export interface CreateProductRequest {
   isForSale: boolean;
   tipo?: ProductTipo;
   tagIds?: number[];
+  offerLocationIds?: number[];
 }
 
 export interface UpdateProductRequest {
@@ -71,6 +74,7 @@ export interface UpdateProductRequest {
   isForSale?: boolean;
   tipo?: ProductTipo;
   tagIds?: number[];
+  offerLocationIds?: number[];
 }
 
 /** El Yerro Menú — vista previa (scraping, sin persistencia). */
@@ -179,6 +183,93 @@ export interface UpdateSupplierRequest {
   address?: string;
   notes?: string;
   isActive?: boolean;
+}
+
+// ─── CRM: Contacto (cliente) ───────────────────────────────────────────────────
+
+export interface ContactResponse {
+  id: number;
+  name: string;
+  company?: string | null;
+  contactPerson?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  origin?: string | null;
+  isActive: boolean;
+  assignedUserId?: number | null;
+  createdAt: string;
+  modifiedAt: string;
+}
+
+export interface CreateContactRequest {
+  name: string;
+  company?: string;
+  contactPerson?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  notes?: string;
+  origin?: string;
+  isActive?: boolean;
+  assignedUserId?: number | null;
+}
+
+export interface UpdateContactRequest {
+  name?: string;
+  company?: string;
+  contactPerson?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  notes?: string;
+  origin?: string;
+  isActive?: boolean;
+  assignedUserId?: number | null;
+}
+
+// ─── CRM: Lead ────────────────────────────────────────────────────────────────
+
+export interface LeadResponse {
+  id: number;
+  name: string;
+  company?: string | null;
+  contactPerson?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  origin?: string | null;
+  status: string;
+  notes?: string | null;
+  assignedUserId?: number | null;
+  convertedToContactId?: number | null;
+  convertedAt?: string | null;
+  createdAt: string;
+  modifiedAt: string;
+}
+
+export interface CreateLeadRequest {
+  name: string;
+  company?: string;
+  contactPerson?: string;
+  phone?: string;
+  email?: string;
+  origin?: string;
+  status?: string;
+  notes?: string;
+  assignedUserId?: number | null;
+}
+
+export interface UpdateLeadRequest {
+  name?: string;
+  company?: string;
+  contactPerson?: string;
+  phone?: string;
+  email?: string;
+  origin?: string;
+  status?: string;
+  notes?: string;
+  assignedUserId?: number | null;
 }
 
 // ─── Ubicación (LocationResponse en auth-types) ───────────────────────────────

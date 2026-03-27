@@ -17,6 +17,7 @@ import { useAppSelector } from "@/store/store";
 import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
 import { DatePickerSimple } from "@/components/DatePickerSimple";
 import { InventoryDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
+import { useDefaultLocation } from "@/lib/useDefaultLocation";
 
 const COLUMNS: DataTableColumn<InventoryResponse>[] = [
   { key: "productName", label: "Producto", width: "180px" },
@@ -141,6 +142,14 @@ export default function InventoryPage() {
     dateTo !== "";
 
   const locationOptions = locationsLookup?.data ?? [];
+  const defaultLoc = useDefaultLocation(locationOptions);
+
+  useEffect(() => {
+    if (filterLocationId !== "") return;
+    if (defaultLoc.locationId != null) {
+      setFilterLocationId(String(defaultLoc.locationId));
+    }
+  }, [defaultLoc.locationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const inventoryCategoryName = useCallback(
     (row: InventoryResponse) => {

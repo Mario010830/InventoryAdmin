@@ -13,6 +13,7 @@ import { Icon } from "@/components/ui/Icon";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 import type {
   CreateProductRequest,
+  UpdateProductRequest,
   ProductTipo,
   ProductCategoryResponse,
 } from "@/lib/dashboard-types";
@@ -479,6 +480,7 @@ export function ProductImportWizard({
         else categoryUnknown = true;
       }
       const categoryMissing = catIx !== undefined && !categoryExcel;
+
       const missingRequired = !name || precio == null || precio < 0;
       let payload: CreateProductRequest | null = null;
       if (!missingRequired && precio != null) {
@@ -775,9 +777,13 @@ export function ProductImportWizard({
         for (const p of productsNeedingTipo) {
           const tipo = tipoAssign[p.id];
           if (tipo !== "inventariable" && tipo !== "elaborado") continue;
+          const body: UpdateProductRequest = { tipo };
+          if (tipo === "elaborado" && selectedLocationId != null) {
+            body.offerLocationIds = [selectedLocationId];
+          }
           await updateProduct({
             id: p.id,
-            body: { tipo },
+            body,
           }).unwrap();
         }
       });
@@ -994,80 +1000,77 @@ export function ProductImportWizard({
                     {columnLabels.length} columnas
                   </p>
 
-                  {mapping.quantityStock !== "" ? (
-                    <div className="product-import-wizard__stock-location-card">
-                      <div className="product-import-wizard__stock-location-card-head">
-                        <span
-                          className="product-import-wizard__stock-location-card-icon"
-                          aria-hidden
-                        >
-                          <Icon name="place" />
-                        </span>
-                        <div className="product-import-wizard__stock-location-card-text">
-                          <p className="product-import-wizard__stock-location-card-title">
-                            Entrada de inventario
-                          </p>
-                          <p className="product-import-wizard__stock-location-card-desc">
-                            Razón de movimiento: «
-                            {MOVEMENT_REASON_LABEL[
-                              IMPORT_EXCEL_MOVEMENT_REASON
-                            ] ?? IMPORT_EXCEL_MOVEMENT_REASON}
-                            ». Las cantidades del Excel se registrarán como
-                            entrada en la ubicación que elijas.
-                          </p>
-                        </div>
-                      </div>
-                      {locationOptions.length > 0 ? (
-                        <div className="product-import-wizard__stock-location-field">
-                          <label
-                            className="product-import-wizard__stock-location-label"
-                            htmlFor="import-excel-location-select"
-                          >
-                            Ubicación de entrada
-                          </label>
-                          <select
-                            id="import-excel-location-select"
-                            className="product-import-wizard__location-select"
-                            value={
-                              selectedLocationId == null
-                                ? ""
-                                : String(selectedLocationId)
-                            }
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setSelectedLocationId(
-                                v === "" ? null : Number(v),
-                              );
-                            }}
-                            aria-label="Ubicación para entrada de inventario"
-                          >
-                            <option value="">— Elegir ubicación —</option>
-                            {locationOptions.map((loc) => (
-                              <option key={loc.id} value={loc.id}>
-                                {loc.name}
-                              </option>
-                            ))}
-                          </select>
-                          {selectedLocationId != null ? (
-                            <p className="product-import-wizard__stock-location-hint">
-                              Se usará «{selectedLocationLabel}» al importar.
-                            </p>
-                          ) : (
-                            <p className="product-import-wizard__stock-location-warn product-import-wizard__stock-location-warn--inline">
-                              Elige una ubicación para registrar las entradas de
-                              stock.
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="product-import-wizard__stock-location-warn">
-                          No hay ubicaciones configuradas: no se registrarán
-                          entradas de stock hasta que exista al menos una
-                          ubicación en el sistema.
+                  <div className="product-import-wizard__stock-location-card">
+                    <div className="product-import-wizard__stock-location-card-head">
+                      <span
+                        className="product-import-wizard__stock-location-card-icon"
+                        aria-hidden
+                      >
+                        <Icon name="place" />
+                      </span>
+                      <div className="product-import-wizard__stock-location-card-text">
+                        <p className="product-import-wizard__stock-location-card-title">
+                          Tienda / ubicación de esta importación
                         </p>
-                      )}
+                        <p className="product-import-wizard__stock-location-card-desc">
+                          <strong>Inventariables:</strong> si mapeas cantidades en
+                          el Excel, las entradas de inventario usan esta ubicación
+                          (razón «
+                          {MOVEMENT_REASON_LABEL[IMPORT_EXCEL_MOVEMENT_REASON] ??
+                            IMPORT_EXCEL_MOVEMENT_REASON}
+                          »). <strong>Elaborados:</strong> al elegir tipo al final,
+                          el producto quedará ofrecido en catálogo solo en esta
+                          tienda.
+                        </p>
+                      </div>
                     </div>
-                  ) : null}
+                    {locationOptions.length > 0 ? (
+                      <div className="product-import-wizard__stock-location-field">
+                        <label
+                          className="product-import-wizard__stock-location-label"
+                          htmlFor="import-excel-location-select"
+                        >
+                          Ubicación
+                        </label>
+                        <select
+                          id="import-excel-location-select"
+                          className="product-import-wizard__location-select"
+                          value={
+                            selectedLocationId == null
+                              ? ""
+                              : String(selectedLocationId)
+                          }
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setSelectedLocationId(v === "" ? null : Number(v));
+                          }}
+                          aria-label="Ubicación para esta importación"
+                        >
+                          <option value="">— Elegir ubicación —</option>
+                          {locationOptions.map((loc) => (
+                            <option key={loc.id} value={loc.id}>
+                              {loc.name}
+                            </option>
+                          ))}
+                        </select>
+                        {selectedLocationId != null ? (
+                          <p className="product-import-wizard__stock-location-hint">
+                            Importación asociada a «{selectedLocationLabel}».
+                          </p>
+                        ) : (
+                          <p className="product-import-wizard__stock-location-warn product-import-wizard__stock-location-warn--inline">
+                            Elige una ubicación: sin ella no habrá entradas de
+                            stock ni oferta en catálogo para elaborados.
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="product-import-wizard__stock-location-warn">
+                        No hay ubicaciones configuradas. Crea al menos una en
+                        Ubicaciones antes de importar.
+                      </p>
+                    )}
+                  </div>
                   <div className="product-import-wizard__table-scroll">
                     <table className="product-import-wizard__mapping-table">
                       <thead>
@@ -1144,6 +1147,19 @@ export function ProductImportWizard({
                   </>
                 ) : null}{" "}
                 Sin categoría en Excel podrás asignarla después de importar.
+                {selectedLocationId != null ? (
+                  <>
+                    {" "}
+                    Los <strong>elaborados</strong> quedarán ofertados en la tienda
+                    elegida en el mapeo.
+                  </>
+                ) : (
+                  <>
+                    {" "}
+                    Sin ubicación elegida, los elaborados no recibirán oferta en
+                    catálogo hasta que edites el producto.
+                  </>
+                )}
               </p>
               <div className="product-import-wizard__preview-wrap">
                 <table className="product-import-wizard__preview-table">
@@ -1393,8 +1409,19 @@ export function ProductImportWizard({
           {step === 6 && (
             <>
               <p className="product-import-wizard__meta product-import-wizard__meta--block">
-                Elige el <strong>tipo de producto</strong> para cada fila.
-                Esto evita que entren todos como elaborados.
+                Elige el <strong>tipo de producto</strong> para cada fila. Los{" "}
+                <strong>elaborados</strong> se registrarán en catálogo en la
+                tienda que elegiste al mapear
+                {selectedLocationId != null && selectedLocationLabel ? (
+                  <>
+                    {" "}
+                    (<strong>{selectedLocationLabel}</strong>)
+                  </>
+                ) : (
+                  <> (necesitas haber elegido ubicación en el paso anterior)</>
+                )}
+                . Los <strong>inventariables</strong> siguen usando esa misma
+                ubicación para las entradas de stock del Excel.
               </p>
               <div className="product-import-wizard__table-scroll">
                 <table className="product-import-wizard__mapping-table">

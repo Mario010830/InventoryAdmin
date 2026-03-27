@@ -8,7 +8,16 @@ import {
   TABLE_SEARCH_DEBOUNCE_MS,
 } from "@/lib/useLoadAllRemainingPages";
 import { Icon } from "@/components/ui/Icon";
-import type { ProductResponse, CreateProductRequest, ProductTipo } from "@/lib/dashboard-types";
+import type {
+  ProductResponse,
+  CreateProductRequest,
+  UpdateProductRequest,
+  ProductTipo,
+} from "@/lib/dashboard-types";
+import {
+  extractRtkQueryErrorFields,
+  userFacingBusinessErrorMessage,
+} from "@/lib/apiBusinessErrors";
 import "./products-modal.css";
 import { DataTable } from "@/components/DataTable";
 import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
@@ -33,6 +42,8 @@ import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 import "./products-table.css";
 import { ProductDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
+import { useGetLocationsQuery } from "@/app/dashboard/locations/_service/locationsApi";
+import { useDefaultLocation } from "@/lib/useDefaultLocation";
 
 /** Máximo de productos a pedir en una sola página para que «seleccionar todo» cubra el catálogo sin depender del scroll. */
 const MAX_PRODUCTS_SINGLE_FETCH = 10_000;
@@ -168,6 +179,21 @@ function useProductColumns(): DataTableColumn<ProductResponse>[] {
         headerTooltip: MARGIN_COLUMN_HEADER_TOOLTIP,
       },
       { key: "totalStock", label: "Stock", type: "number", width: "80px" },
+      {
+        key: "offerLocationIds",
+        label: "Tiendas (elab.)",
+        width: "96px",
+        sortable: false,
+        render: (row) => {
+          if (row.tipo !== "elaborado") return "—";
+          const n = row.offerLocationIds?.length ?? 0;
+          return n === 0 ? "0" : String(n);
+        },
+        exportValue: (row) => {
+          if (row.tipo !== "elaborado") return "";
+          return (row.offerLocationIds ?? []).join(",");
+        },
+      },
       /* Anchos fijos: si no, en table-layout:fixed se estiran y “Activo” queda con un hueco enorme entre columnas */
       { key: "isAvailable", label: "Disponible", type: "boolean", width: "96px" },
       { key: "isForSale", label: "En Venta", type: "boolean", width: "96px" },
@@ -194,6 +220,7 @@ const initialForm = {
   isAvailable: true,
   isForSale: false,
   tagIds: [] as number[],
+  offerLocationIds: [] as number[],
 };
 
 // ─── Image Uploader ───────────────────────────────────────────────────────────
@@ -369,6 +396,7 @@ export default function ProductsPage() {
   const [filterCategoryId, setFilterCategoryId] = useState<string>("");
   const [filterAvailable, setFilterAvailable] = useState<string>("");
   const [filterForSale, setFilterForSale] = useState<string>("");
+  const [filterTipo, setFilterTipo] = useState<string>("");
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
   const [listPerPageOverride, setListPerPageOverride] = useState<number | null>(
@@ -389,6 +417,11 @@ export default function ProductsPage() {
   const [deleting, setDeleting] = useState<ProductResponse | null>(null);
   const [deleteError, setDeleteError] = useState("");
   const filtersChanged = useRef(false);
+  /**
+   * Edición: solo enviar `offerLocationIds` si el usuario modificó los checkboxes
+   * (evita sobrescribir en servidor al guardar otros campos).
+   */
+  const [offerLocationsSelectionTouched, setOfferLocationsSelectionTouched] = useState(false);
 
   const [confirmCostHigherOpen, setConfirmCostHigherOpen] = useState(false);
   const [importWizardOpen, setImportWizardOpen] = useState(false);
@@ -401,6 +434,11 @@ export default function ProductsPage() {
     perPage: effectivePerPage,
   });
   const { data: categoriesResult } = useGetProductCategoriesQuery({ perPage: 100 });
+  const { data: locationsResult } = useGetLocationsQuery({
+    page: 1,
+    perPage: 500,
+    sortOrder: "asc",
+  });
 
   const [createProduct] = useCreateProductMutation();
   const [updateProduct] = useUpdateProductMutation();
@@ -412,8 +450,17 @@ export default function ProductsPage() {
   const canDeleteProduct = hasPermission("product.delete");
 
   const categories = categoriesResult?.data ?? [];
+  const organizationLocations = locationsResult?.data ?? [];
+  const defaultLoc = useDefaultLocation(organizationLocations);
+  const locationsForDetail = useMemo(
+    () =>
+      organizationLocations.map((loc) => ({
+        id: Number(loc.id),
+        name: String(loc.name ?? `ID ${loc.id}`),
+      })),
+    [organizationLocations],
+  );
 
-  
   const loadedRows =
     page === 1 && allRows.length === 0
       ? (result?.data ?? [])
@@ -459,13 +506,22 @@ export default function ProductsPage() {
     if (!filtersChanged.current) { filtersChanged.current = true; return; }
     setPage(1);
     setAllRows([]);
-  }, [debouncedFilterText, filterCategoryId, filterAvailable, filterForSale, priceMin, priceMax]);
+  }, [
+    debouncedFilterText,
+    filterCategoryId,
+    filterAvailable,
+    filterForSale,
+    filterTipo,
+    priceMin,
+    priceMax,
+  ]);
 
   const clearGridFilters = () => {
     setFilterText("");
     setFilterCategoryId("");
     setFilterAvailable("");
     setFilterForSale("");
+    setFilterTipo("");
     setPriceMin("");
     setPriceMax("");
   };
@@ -489,6 +545,12 @@ export default function ProductsPage() {
     if (filterAvailable === "no") rows = rows.filter((r) => !r.isAvailable);
     if (filterForSale === "yes") rows = rows.filter((r) => r.isForSale);
     if (filterForSale === "no") rows = rows.filter((r) => !r.isForSale);
+    if (filterTipo === "inventariable") {
+      rows = rows.filter((r) => (r.tipo ?? "inventariable") === "inventariable");
+    }
+    if (filterTipo === "elaborado") {
+      rows = rows.filter((r) => r.tipo === "elaborado");
+    }
     const pMin = parseFloat(priceMin.replace(",", "."));
     if (!Number.isNaN(pMin)) rows = rows.filter((r) => r.precio >= pMin);
     const pMax = parseFloat(priceMax.replace(",", "."));
@@ -500,6 +562,7 @@ export default function ProductsPage() {
     filterCategoryId,
     filterAvailable,
     filterForSale,
+    filterTipo,
     priceMin,
     priceMax,
   ]);
@@ -509,6 +572,7 @@ export default function ProductsPage() {
     filterCategoryId !== "" ||
     filterAvailable !== "" ||
     filterForSale !== "" ||
+    filterTipo !== "" ||
     priceMin.trim() !== "" ||
     priceMax.trim() !== "";
 
@@ -551,13 +615,18 @@ export default function ProductsPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm(initialForm);
+    setOfferLocationsSelectionTouched(false);
+    setForm({
+      ...initialForm,
+      offerLocationIds: defaultLoc.locationId != null ? [defaultLoc.locationId] : [],
+    });
     setFormErrors({});
     setFormOpen(true);
   };
 
   const openEdit = (item: ProductResponse) => {
     setEditing(item);
+    setOfferLocationsSelectionTouched(false);
     setForm({
       tipo: item.tipo ?? "inventariable",
       code: item.code,
@@ -570,6 +639,7 @@ export default function ProductsPage() {
       isAvailable: item.isAvailable,
       isForSale: item.isForSale ?? false,
       tagIds: item.tagIds ?? [],
+      offerLocationIds: [...(item.offerLocationIds ?? [])],
     });
     setFormErrors({});
     setFormOpen(true);
@@ -593,7 +663,9 @@ export default function ProductsPage() {
   };
 
   const performSubmit = async () => {
-    const payload: CreateProductRequest = {
+    const sortedOfferIds = [...new Set(form.offerLocationIds)].sort((a, b) => a - b);
+
+    const shared = {
       tipo: form.tipo,
       code: form.code.trim(),
       name: form.name.trim(),
@@ -606,10 +678,19 @@ export default function ProductsPage() {
       isForSale: form.isForSale,
       tagIds: form.tagIds.length > 0 ? form.tagIds : undefined,
     };
+
     if (editing) {
-      await updateProduct({ id: editing.id, body: payload }).unwrap();
+      const body: UpdateProductRequest = { ...shared };
+      if (form.tipo === "elaborado" && offerLocationsSelectionTouched) {
+        body.offerLocationIds = sortedOfferIds;
+      }
+      await updateProduct({ id: editing.id, body }).unwrap();
     } else {
-      await createProduct(payload).unwrap();
+      const body: CreateProductRequest = { ...shared };
+      if (form.tipo === "elaborado") {
+        body.offerLocationIds = sortedOfferIds;
+      }
+      await createProduct(body).unwrap();
       setPage(1);
       setAllRows([]);
     }
@@ -629,7 +710,10 @@ export default function ProductsPage() {
     try {
       await performSubmit();
     } catch (err) {
-      setFormErrors({ submit: err instanceof Error ? err.message : "Error al guardar" });
+      const { customStatusCode, message } = extractRtkQueryErrorFields(err);
+      setFormErrors({
+        submit: userFacingBusinessErrorMessage(customStatusCode, message),
+      });
     } finally {
       setFormSubmitting(false);
     }
@@ -641,7 +725,10 @@ export default function ProductsPage() {
     try {
       await performSubmit();
     } catch (err) {
-      setFormErrors({ submit: err instanceof Error ? err.message : "Error al guardar" });
+      const { customStatusCode, message } = extractRtkQueryErrorFields(err);
+      setFormErrors({
+        submit: userFacingBusinessErrorMessage(customStatusCode, message),
+      });
       setFormOpen(true);
     } finally {
       setFormSubmitting(false);
@@ -787,6 +874,21 @@ export default function ProductsPage() {
               />
             </div>
             <div className="grid-filter-bar__field">
+              <span className="grid-filter-bar__label">Tipo</span>
+              <GridFilterSelect
+                aria-label="Tipo de producto"
+                value={filterTipo}
+                onChange={setFilterTipo}
+                active={filterTipo !== ""}
+                className="grid-filter-bar__control--medium"
+                options={[
+                  { value: "", label: "Todos" },
+                  { value: "inventariable", label: "Inventariable" },
+                  { value: "elaborado", label: "Elaborado" },
+                ]}
+              />
+            </div>
+            <div className="grid-filter-bar__field">
               <span className="grid-filter-bar__label">Disponible</span>
               <GridFilterSelect
                 aria-label="Disponible"
@@ -897,6 +999,7 @@ export default function ProductsPage() {
             <ProductDetailBody
               row={row}
               categoryName={categories.find((c) => c.id === row.categoryId)?.name ?? "—"}
+              locations={locationsForDetail}
             />
           ),
           onEdit: openEdit,
@@ -935,7 +1038,30 @@ export default function ProductsPage() {
           <select
             id="tipo"
             value={form.tipo}
-            onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value as ProductTipo }))}
+            onChange={(e) => {
+              const next = e.target.value as ProductTipo;
+              setOfferLocationsSelectionTouched(false);
+              setForm((f) => {
+                if (next === "elaborado" && f.tipo === "inventariable" && editing) {
+                  return {
+                    ...f,
+                    tipo: next,
+                    offerLocationIds: [...(editing.offerLocationIds ?? [])],
+                  };
+                }
+                if (next === "elaborado" && f.tipo === "inventariable" && !editing) {
+                  return {
+                    ...f,
+                    tipo: next,
+                    offerLocationIds: defaultLoc.locationId != null ? [defaultLoc.locationId] : [],
+                  };
+                }
+                if (next === "inventariable" && f.tipo === "elaborado") {
+                  return { ...f, tipo: next, offerLocationIds: [] };
+                }
+                return { ...f, tipo: next };
+              });
+            }}
           >
             {PRODUCT_TIPO_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -944,6 +1070,61 @@ export default function ProductsPage() {
             ))}
           </select>
         </div>
+
+        {form.tipo === "elaborado" && (
+          <div className="modal-field field-full">
+            <div className="product-offer-card" role="group" aria-label="Tiendas donde se ofrece el producto elaborado">
+              <div className="product-offer-card__head">
+                <span className="product-offer-card__title">
+                  <Icon name="storefront" />
+                  Tiendas en catálogo
+                </span>
+                <span className="product-offer-card__count">
+                  {form.offerLocationIds.length} de {organizationLocations.length || 0}
+                </span>
+              </div>
+              <p className="product-offer-card__hint">
+                Marca en qué ubicaciones verán este producto los clientes. Si editas un producto y no
+                cambias esta lista, no se actualizarán las tiendas al guardar.
+              </p>
+              <div className="product-offer-locs">
+                {organizationLocations.length === 0 ? (
+                  <p className="product-offer-locs__empty">
+                    No hay ubicaciones. Créalas en <strong>Ubicaciones</strong> del menú lateral.
+                  </p>
+                ) : (
+                  organizationLocations.map((loc) => {
+                    const id = Number(loc.id);
+                    const checked = form.offerLocationIds.includes(id);
+                    return (
+                      <label key={id} className="product-offer-locs__row">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            setOfferLocationsSelectionTouched(true);
+                            setForm((f) => ({
+                              ...f,
+                              offerLocationIds: checked
+                                ? f.offerLocationIds.filter((x) => x !== id)
+                                : [...f.offerLocationIds, id].sort((a, b) => a - b),
+                            }));
+                          }}
+                        />
+                        <span>{loc.name ?? `ID ${id}`}</span>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+              {editing && !offerLocationsSelectionTouched ? (
+                <p className="product-offer-card__hint product-offer-card__hint--muted">
+                  Sin cambios en la lista: al guardar no se reenvían tiendas al servidor.
+                </p>
+              ) : null}
+            </div>
+          </div>
+        )}
 
         <div className="modal-field">
           <label htmlFor="code">Código *</label>

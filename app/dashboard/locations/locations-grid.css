@@ -17,6 +17,255 @@
   color: #4f46e5;
 }
 
+/* ─── BusinessHoursEditor ─── */
+.bh-editor {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.bh-editor__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.bh-editor__row:last-child {
+  border-bottom: none;
+}
+
+.bh-editor__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #1e293b;
+  cursor: pointer;
+}
+
+.bh-editor__label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+.bh-editor__time-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.bh-editor__time {
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.82rem;
+  font-family: inherit;
+  color: #1e293b;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.bh-editor__time:focus {
+  border-color: #3b82f6;
+}
+
+.bh-editor__separator {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.bh-editor__closed {
+  font-size: 0.82rem;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.bh-editor__copy-btn {
+  margin-left: auto;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: inherit;
+  color: #3b82f6;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.bh-editor__copy-btn:hover {
+  background: #dbeafe;
+}
+
+/* ─── LocationPicker (tarjeta) ─── */
+.loc-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+
+.loc-picker__search-wrap {
+  position: relative;
+}
+
+.loc-picker__search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.loc-picker__search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.85rem;
+  font-family: inherit;
+  background: transparent;
+  color: #1e293b;
+}
+
+.loc-picker__search input::placeholder {
+  color: #94a3b8;
+}
+
+.loc-picker__search-loading {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.loc-picker__dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 40;
+}
+
+.loc-picker__dropdown-empty {
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+.loc-picker__dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  font-size: 0.8rem;
+  font-family: inherit;
+  color: #1e293b;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.loc-picker__dropdown-item:hover {
+  background: #f1f5f9;
+}
+
+.loc-picker__map {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.loc-picker__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.loc-picker__coords {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.loc-picker__action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 0.78rem;
+  font-family: inherit;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.loc-picker__action-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.loc-picker__action-btn .material-icons {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.loc-picker__action-btn--danger {
+  border: none;
+  background: none;
+  color: #ef4444;
+}
+
+.loc-picker__action-btn--danger:hover {
+  background: #fef2f2;
+}
+
+/* ─── Location modal sections ─── */
+.loc-modal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.loc-modal-section__heading {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0;
+  color: #0f172a;
+}
+
+.loc-modal-section__desc {
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin: 2px 0 0;
+}
+
 /* Leaflet: altura usable en móvil */
 .location-picker-map {
   width: 100% !important;

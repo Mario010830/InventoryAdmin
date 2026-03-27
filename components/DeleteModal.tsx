@@ -17,6 +17,10 @@ interface DeleteModalProps {
   cancelLabel?: string;
   /** Si true, solo se muestra el botón de confirmar (ej. "Entendido") y se oculta Cancelar. */
   singleAction?: boolean;
+  /** Icono Material (por defecto papelera). */
+  iconName?: string;
+  /** Estilo del botón de confirmación: peligro (rojo) o acción principal (azul). */
+  confirmVariant?: "danger" | "primary";
 }
 
 export function DeleteModal({
@@ -30,6 +34,8 @@ export function DeleteModal({
   confirmLabel = "Eliminar",
   cancelLabel = "Cancelar",
   singleAction = false,
+  iconName = "delete_outline",
+  confirmVariant = "danger",
 }: DeleteModalProps) {
   if (!open) return null;
 
@@ -46,7 +52,7 @@ export function DeleteModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="confirm-icon">
-          <Icon name="delete_outline" />
+          <Icon name={iconName} />
         </div>
         <div className="">
           <h3 className="confirm-title">{title}</h3>
@@ -71,7 +77,11 @@ export function DeleteModal({
           )}
           <button
             type="button"
-            className="confirm-btn confirm-btn--danger"
+            className={
+              confirmVariant === "primary"
+                ? "confirm-btn confirm-btn--primary"
+                : "confirm-btn confirm-btn--danger"
+            }
             onClick={onConfirm}
           >
             {confirmLabel}

@@ -97,6 +97,18 @@ const navItems: NavItem[] = [
     permission: "sale.read",
   },
   {
+    icon: "contacts",
+    label: "Contactos",
+    route: "/dashboard/contacts",
+    permission: "contact.read",
+  },
+  {
+    icon: "person_search",
+    label: "Leads",
+    route: "/dashboard/leads",
+    permission: "lead.read",
+  },
+  {
     icon: "local_offer",
     label: "Promociones",
     route: "/dashboard/promotions",

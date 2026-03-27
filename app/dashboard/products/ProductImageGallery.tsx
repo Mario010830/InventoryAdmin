@@ -251,155 +251,185 @@ export function ProductImageGallery({
 
   if (!pid) return null;
 
+  const mainImage = ordered.find((img) => urlsMatch(imagenUrl, img.url));
+  const secondaryImages = ordered.filter((img) => !urlsMatch(imagenUrl, img.url));
+
+  const heroSrc = mainImage
+    ? (getProxiedImageSrc(mainImage.url) ?? mainImage.url)
+    : showLegacyThumb
+      ? (getProxiedImageSrc(imagenUrl) ?? imagenUrl)
+      : null;
+
+  const heroDeleteTarget: number | "legacy" | null = mainImage
+    ? mainImage.id
+    : showLegacyThumb
+      ? "legacy"
+      : null;
+
   return (
     <div className="product-gallery">
       {titleRow}
 
-      <div className="product-gallery__track">
-        {showLegacyThumb && (
-          <div
-            className={`product-gallery__thumb-wrap${flashUrl && urlsMatch(flashUrl, imagenUrl) ? " product-gallery__thumb-wrap--flash" : ""}${deleteConfirm === "legacy" ? " product-gallery__thumb-wrap--open" : ""}`}
-          >
-            <div className="product-gallery__thumb product-gallery__thumb--filled">
-              <img src={getProxiedImageSrc(imagenUrl) ?? imagenUrl} alt="" />
-              <span className="product-gallery__badge">Principal</span>
-              <div className="product-gallery__overlay">
-                {deleteConfirm === "legacy" ? (
-                  <div className="product-gallery__confirm">
-                    <span>¿Eliminar esta imagen?</span>
-                    <div className="product-gallery__confirm-actions">
-                      <button type="button" className="modal-btn modal-btn--secondary" onClick={() => setDeleteConfirm(null)}>
-                        Cancelar
-                      </button>
-                      <button
-                        type="button"
-                        className="modal-btn"
-                        onClick={() => {
-                          onImagenUrlChange("");
-                          setDeleteConfirm(null);
-                        }}
-                      >
-                        Confirmar
-                      </button>
-                    </div>
-                  </div>
-                ) : (
+      {/* --- Hero: imagen principal destacada --- */}
+      {heroSrc ? (
+        <div className={`product-gallery__hero${flashUrl && heroSrc && urlsMatch(flashUrl, heroSrc) ? " product-gallery__hero--flash" : ""}`}>
+          <div className="product-gallery__hero-img">
+            <img src={heroSrc} alt="Imagen principal" />
+            <span className="product-gallery__badge">Principal</span>
+          </div>
+          <div className="product-gallery__hero-actions">
+            {deleteConfirm === heroDeleteTarget ? (
+              <div className="product-gallery__hero-confirm">
+                <span>¿Eliminar esta imagen?</span>
+                <div className="product-gallery__hero-confirm-row">
+                  <button type="button" className="modal-btn modal-btn--secondary" onClick={() => setDeleteConfirm(null)}>
+                    Cancelar
+                  </button>
                   <button
                     type="button"
-                    className="product-gallery__overlay-btn product-gallery__overlay-btn--danger"
-                    disabled={disabled}
-                    onClick={() => setDeleteConfirm("legacy")}
+                    className="modal-btn modal-btn--danger"
+                    onClick={() => {
+                      if (heroDeleteTarget === "legacy") {
+                        onImagenUrlChange("");
+                        setDeleteConfirm(null);
+                      } else if (typeof heroDeleteTarget === "number") {
+                        void handleDeleteApi(heroDeleteTarget);
+                      }
+                    }}
                   >
-                    Eliminar
+                    Confirmar
                   </button>
-                )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <button
+                type="button"
+                className="modal-btn modal-btn--secondary product-gallery__hero-delete"
+                disabled={disabled}
+                onClick={() => setDeleteConfirm(heroDeleteTarget)}
+              >
+                <Icon name="delete" />
+                Eliminar principal
+              </button>
+            )}
           </div>
-        )}
+        </div>
+      ) : (
+        <div className="product-gallery__hero product-gallery__hero--empty">
+          <div className="product-gallery__hero-img product-gallery__hero-img--empty">
+            <Icon name="image" />
+          </div>
+          <p className="product-gallery__hero-hint">
+            Sube una imagen para establecerla como principal.
+          </p>
+        </div>
+      )}
 
-        {ordered.map((img, index) => {
-          const isMain = urlsMatch(imagenUrl, img.url);
-          const flashing = Boolean(flashUrl && urlsMatch(flashUrl, img.url));
-          return (
-            <div
-              key={img.id}
-              className={`product-gallery__thumb-wrap${flashing ? " product-gallery__thumb-wrap--flash" : ""}${deleteConfirm === img.id ? " product-gallery__thumb-wrap--open" : ""}`}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (dragIndex === null || dragIndex === index) return;
-                void handleReorder(dragIndex, index);
-                setDragIndex(null);
-              }}
-            >
-              <div className="product-gallery__thumb product-gallery__thumb--filled">
-                <button
-                  type="button"
-                  className="product-gallery__drag"
-                  draggable={!disabled}
-                  onDragStart={(e) => {
-                    setDragIndex(index);
-                    e.dataTransfer.effectAllowed = "move";
-                    e.dataTransfer.setData("text/plain", String(index));
+      {/* --- Track: imágenes secundarias --- */}
+      {(secondaryImages.length > 0 || pending.length > 0 || emptySlots > 0) && (
+        <>
+          <span className="product-gallery__section-label">Más imágenes</span>
+          <div className="product-gallery__track">
+            {secondaryImages.map((img, index) => {
+              const flashing = Boolean(flashUrl && urlsMatch(flashUrl, img.url));
+              return (
+                <div
+                  key={img.id}
+                  className={`product-gallery__thumb-wrap${flashing ? " product-gallery__thumb-wrap--flash" : ""}${deleteConfirm === img.id ? " product-gallery__thumb-wrap--open" : ""}`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
                   }}
-                  onDragEnd={() => setDragIndex(null)}
-                  disabled={disabled}
-                  aria-label="Arrastrar para reordenar"
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (dragIndex === null || dragIndex === index) return;
+                    void handleReorder(dragIndex, index);
+                    setDragIndex(null);
+                  }}
                 >
-                  <Icon name="drag_indicator" />
-                </button>
-                <img src={getProxiedImageSrc(img.url) ?? img.url} alt="" />
-                {isMain && <span className="product-gallery__badge">Principal</span>}
-                <div className="product-gallery__overlay">
-                  {deleteConfirm === img.id ? (
-                    <div className="product-gallery__confirm">
-                      <span>¿Eliminar esta imagen?</span>
-                      <div className="product-gallery__confirm-actions">
-                        <button type="button" className="modal-btn modal-btn--secondary" onClick={() => setDeleteConfirm(null)}>
-                          Cancelar
-                        </button>
-                        <button type="button" className="modal-btn" onClick={() => void handleDeleteApi(img.id)}>
-                          Confirmar
-                        </button>
-                      </div>
+                  <div className="product-gallery__thumb product-gallery__thumb--filled">
+                    <button
+                      type="button"
+                      className="product-gallery__drag"
+                      draggable={!disabled}
+                      onDragStart={(e) => {
+                        setDragIndex(index);
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/plain", String(index));
+                      }}
+                      onDragEnd={() => setDragIndex(null)}
+                      disabled={disabled}
+                      aria-label="Arrastrar para reordenar"
+                    >
+                      <Icon name="drag_indicator" />
+                    </button>
+                    <img src={getProxiedImageSrc(img.url) ?? img.url} alt="" />
+                    <div className="product-gallery__overlay">
+                      {deleteConfirm === img.id ? (
+                        <div className="product-gallery__confirm">
+                          <span>¿Eliminar esta imagen?</span>
+                          <div className="product-gallery__confirm-actions">
+                            <button type="button" className="modal-btn modal-btn--secondary" onClick={() => setDeleteConfirm(null)}>
+                              Cancelar
+                            </button>
+                            <button type="button" className="modal-btn" onClick={() => void handleDeleteApi(img.id)}>
+                              Confirmar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="product-gallery__overlay-btn"
+                            disabled={disabled}
+                            onClick={() => void handleSetMain(img.id, img.url)}
+                          >
+                            Hacer principal
+                          </button>
+                          <button
+                            type="button"
+                            className="product-gallery__overlay-btn product-gallery__overlay-btn--danger"
+                            disabled={disabled}
+                            onClick={() => setDeleteConfirm(img.id)}
+                          >
+                            Eliminar
+                          </button>
+                        </>
+                      )}
                     </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {pending.map((p) => (
+              <div key={p.clientId} className="product-gallery__thumb-wrap">
+                <div className="product-gallery__thumb product-gallery__thumb--filled product-gallery__thumb--pending">
+                  {p.error ? (
+                    <span className="product-gallery__pending-error" title={p.error}>
+                      {p.error}
+                    </span>
                   ) : (
                     <>
-                      {!isMain && (
-                        <button
-                          type="button"
-                          className="product-gallery__overlay-btn"
-                          disabled={disabled}
-                          onClick={() => void handleSetMain(img.id, img.url)}
-                        >
-                          Establecer como principal
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="product-gallery__overlay-btn product-gallery__overlay-btn--danger"
-                        disabled={disabled}
-                        onClick={() => setDeleteConfirm(img.id)}
-                      >
-                        Eliminar
-                      </button>
+                      <div className="img-uploader__spinner" />
+                      <span className="product-gallery__pending-name">{p.name}</span>
                     </>
                   )}
                 </div>
               </div>
-            </div>
-          );
-        })}
+            ))}
 
-        {pending.map((p) => (
-          <div key={p.clientId} className="product-gallery__thumb-wrap">
-            <div className="product-gallery__thumb product-gallery__thumb--filled product-gallery__thumb--pending">
-              {p.error ? (
-                <span className="product-gallery__pending-error" title={p.error}>
-                  {p.error}
-                </span>
-              ) : (
-                <>
-                  <div className="img-uploader__spinner" />
-                  <span className="product-gallery__pending-name">{p.name}</span>
-                </>
-              )}
-            </div>
+            {Array.from({ length: emptySlots }).map((_, i) => (
+              <div key={`empty-${i}`} className="product-gallery__thumb-wrap product-gallery__thumb-wrap--empty">
+                <div className="product-gallery__thumb product-gallery__thumb--empty">
+                  <Icon name="add" />
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-
-        {Array.from({ length: emptySlots }).map((_, i) => (
-          <div key={`empty-${i}`} className="product-gallery__thumb-wrap product-gallery__thumb-wrap--empty">
-            <div className="product-gallery__thumb product-gallery__thumb--empty">
-              <Icon name="add" />
-            </div>
-          </div>
-        ))}
-      </div>
+        </>
+      )}
 
       <input
         ref={fileRef}

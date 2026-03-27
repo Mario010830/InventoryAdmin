@@ -318,6 +318,7 @@
 }
 .dt-tag--green { background: #ecfdf5; color: #059669; }
 .dt-tag--red   { background: #fef2f2; color: #dc2626; }
+.dt-tag--neutral { background: #f3f4f6; color: #6b7280; }
 
 /* ─── Row actions ────────────────────────────────────────────────────────── */
 .dt-td-actions { text-align: center; white-space: nowrap; }
