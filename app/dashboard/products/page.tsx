@@ -44,15 +44,11 @@ import "./products-table.css";
 import { ProductDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
 import { useGetLocationsQuery } from "@/app/dashboard/locations/_service/locationsApi";
 import { useDefaultLocation } from "@/lib/useDefaultLocation";
+import { ProductsBulkToolbar } from "@/components/DataTableBulkToolbar";
+import { ProductImportWizard } from "./ProductImportWizard";
 
 /** Máximo de productos a pedir en una sola página para que «seleccionar todo» cubra el catálogo sin depender del scroll. */
 const MAX_PRODUCTS_SINGLE_FETCH = 10_000;
-
-/** Reactivar el botón «Importar El Yerro» cuando proceda. */
-const ELYERRO_IMPORT_ENABLED = false;
-import { ProductsBulkToolbar } from "@/components/DataTableBulkToolbar";
-import { ProductImportWizard } from "./ProductImportWizard";
-import { ElYerroImportWizard } from "./ElYerroImportWizard";
 
 function ProductMarginCell({ row }: { row: ProductResponse }) {
   const { formatCup } = useDisplayCurrency();
@@ -425,7 +421,6 @@ export default function ProductsPage() {
 
   const [confirmCostHigherOpen, setConfirmCostHigherOpen] = useState(false);
   const [importWizardOpen, setImportWizardOpen] = useState(false);
-  const [elyerroWizardOpen, setElyerroWizardOpen] = useState(false);
 
   // ─── Queries ──────────────────────────────────────────────────────────────
 
@@ -964,22 +959,6 @@ export default function ProductsPage() {
                 <Icon name="upload_file" />
                 <span className="dt-btn-ghost__label">Importar Excel</span>
               </button>
-              <button
-                type="button"
-                className="dt-btn-ghost"
-                disabled={!ELYERRO_IMPORT_ENABLED}
-                title={
-                  !ELYERRO_IMPORT_ENABLED
-                    ? "Importación desde El Yerro deshabilitada temporalmente."
-                    : undefined
-                }
-                onClick={() =>
-                  ELYERRO_IMPORT_ENABLED && setElyerroWizardOpen(true)
-                }
-              >
-                <Icon name="restaurant_menu" />
-                <span className="dt-btn-ghost__label">Importar El Yerro</span>
-              </button>
             </>
           ) : undefined
         }
@@ -1258,10 +1237,6 @@ export default function ProductsPage() {
 
       {/* ── Confirmar costo mayor que precio ── */}
       <ProductImportWizard open={importWizardOpen} onClose={() => setImportWizardOpen(false)} />
-      <ElYerroImportWizard
-        open={elyerroWizardOpen}
-        onClose={() => setElyerroWizardOpen(false)}
-      />
 
       {confirmCostHigherOpen && (
         <div className="modal-overlay" onClick={() => setConfirmCostHigherOpen(false)}>
