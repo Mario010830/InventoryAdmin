@@ -8,7 +8,7 @@ import {
   TABLE_SEARCH_DEBOUNCE_MS,
 } from "@/lib/useLoadAllRemainingPages";
 import type { LocationResponse } from "@/lib/auth-types";
-import type { CreateLocationRequest, BusinessHoursDto } from "@/lib/dashboard-types";
+import type { CreateLocationRequest, UpdateLocationRequest } from "@/lib/dashboard-types";
 import { DataTable } from "@/components/DataTable";
 import type { DataTableColumn } from "@/components/DataTable";
 import {
@@ -34,18 +34,45 @@ import "./locations-grid.css";
 import { CUBA_PROVINCES, getMunicipalitiesByProvince } from "@/lib/cuba-locations";
 import {
   BusinessHoursEditor,
+  businessHoursCompareKey,
+  deliveryPickupHoursCompareKey,
   deserializeBusinessHoursDto,
   makeEmptyBusinessHoursState,
   serializeBusinessHoursState,
+  serializeOptionalBusinessHoursState,
+  serializeOptionalDeliveryPickupForPut,
+  validateBusinessHoursFormState,
   type BusinessHoursFormState,
 } from "./BusinessHoursEditor";
 import LocationPicker from "./LocationPicker";
+import Switch from "@/components/Switch";
+import { useGetPublicLocationsQuery } from "@/app/catalog/_service/catalogApi";
 import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import { LocationDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
 
 function formatAddress(loc: { street?: string | null; municipality?: string | null; province?: string | null }): string {
   const parts = [loc.street, loc.municipality, loc.province].filter(Boolean);
   return parts.length ? parts.join(", ") : "—";
+}
+
+/** Valores del GET usados para PUT parcial (solo se envían campos que cambiaron). */
+interface LocationEditSnapshot {
+  name: string;
+  code: string;
+  description: string;
+  whatsAppDigits: string;
+  photoUrl: string;
+  province: string;
+  municipality: string;
+  street: string;
+  latitude: number | null;
+  longitude: number | null;
+  businessCategoryId: number | null;
+  businessHoursKey: string;
+  offersDelivery: boolean;
+  offersPickup: boolean;
+  deliveryHoursKey: string;
+  pickupHoursKey: string;
 }
 
 const initialForm = {
@@ -82,9 +109,19 @@ export default function LocationsPage() {
   const [businessHours, setBusinessHours] = useState<BusinessHoursFormState>(
     makeEmptyBusinessHoursState(),
   );
+  const [offersDelivery, setOffersDelivery] = useState(true);
+  const [offersPickup, setOffersPickup] = useState(true);
+  const [deliveryHours, setDeliveryHours] = useState<BusinessHoursFormState>(
+    makeEmptyBusinessHoursState(),
+  );
+  const [pickupHours, setPickupHours] = useState<BusinessHoursFormState>(
+    makeEmptyBusinessHoursState(),
+  );
   const [formLoading, setFormLoading] = useState(false);
   const filtersChanged = useRef(false);
   const formLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Estado inicial al abrir «Editar» para PUT parcial (`null` en el servidor = no tocar). */
+  const editSnapshotRef = useRef<LocationEditSnapshot | null>(null);
 
   const user = useAppSelector((s) => s.auth);
   const organizationId = user?.organizationId ?? 0;
@@ -108,6 +145,15 @@ export default function LocationsPage() {
 
   const { data: businessCategories = [], isLoading: businessCategoriesLoading } =
     useGetBusinessCategoriesQuery();
+
+  const { data: publicLocations = [] } = useGetPublicLocationsQuery();
+  const publicExtrasById = useMemo(() => {
+    const m = new Map<number, { productCount?: number; hasPromo?: boolean }>();
+    for (const p of publicLocations) {
+      m.set(p.id, { productCount: p.productCount, hasPromo: p.hasPromo });
+    }
+    return m;
+  }, [publicLocations]);
 
   const categoryNameById = useMemo(() => {
     const m = new Map<number, string>();
@@ -166,9 +212,67 @@ export default function LocationsPage() {
           );
         },
       },
+      {
+        key: "productCount",
+        label: "Productos",
+        width: "100px",
+        sortable: false,
+        render: (row) => {
+          const n = publicExtrasById.get(row.id)?.productCount;
+          return n != null && Number.isFinite(n) ? String(n) : "—";
+        },
+      },
+      {
+        key: "hasPromo",
+        label: "Promo",
+        width: "72px",
+        sortable: false,
+        render: (row) => {
+          const hp = publicExtrasById.get(row.id)?.hasPromo;
+          if (hp === true) {
+            return (
+              <span className="dt-tag dt-tag--green" title="Hay promoción activa">
+                Sí
+              </span>
+            );
+          }
+          if (hp === false) {
+            return <span className="text-slate-400">—</span>;
+          }
+          return <span title="Sin datos del catálogo público">—</span>;
+        },
+      },
+      {
+        key: "offersDelivery",
+        label: "Domicilio",
+        width: "88px",
+        sortable: false,
+        render: (row) =>
+          row.offersDelivery !== false ? (
+            <span title="Ofrece domicilio" style={{ fontSize: 20, color: "#64748b" }}>
+              <Icon name="local_shipping" />
+            </span>
+          ) : (
+            <span className="text-slate-300">—</span>
+          ),
+      },
+      {
+        key: "offersPickup",
+        label: "Recogida",
+        width: "88px",
+        sortable: false,
+        render: (row) =>
+          row.offersPickup !== false ? (
+            <span title="Ofrece recogida en tienda" style={{ fontSize: 20, color: "#64748b" }}>
+              <Icon name="storefront" />
+            </span>
+          ) : (
+            <span className="text-slate-300">—</span>
+          ),
+      },
       { key: "createdAt", label: "Creado", type: "date" },
     ];
-  }, [categoryNameById]);
+  }, [categoryNameById, publicExtrasById]);
 
   const [allRows, setAllRows] = useState<LocationResponse[]>([]);
 
@@ -225,10 +329,15 @@ export default function LocationsPage() {
     page >= (result.pagination.totalPages ?? 1);
 
   const openCreate = () => {
+    editSnapshotRef.current = null;
     setEditing(null);
     setForm(initialForm);
     setFormErrors({});
     setBusinessHours(makeEmptyBusinessHoursState());
+    setOffersDelivery(true);
+    setOffersPickup(true);
+    setDeliveryHours(makeEmptyBusinessHoursState());
+    setPickupHours(makeEmptyBusinessHoursState());
     setFormOpen(true);
   };
 
@@ -239,6 +348,36 @@ export default function LocationsPage() {
     }
     const lat = item.latitude ?? item.coordinates?.lat ?? null;
     const lng = item.longitude ?? item.coordinates?.lng ?? null;
+    const bcid =
+      item.businessCategoryId != null && Number.isFinite(Number(item.businessCategoryId))
+        ? Number(item.businessCategoryId)
+        : null;
+    editSnapshotRef.current = {
+      name: item.name,
+      code: item.code,
+      description: (item.description ?? "").trim(),
+      whatsAppDigits: item.whatsAppContact?.replace(/\D/g, "").trim() ?? "",
+      photoUrl: item.photoUrl ?? "",
+      province: item.province ?? "",
+      municipality: item.municipality ?? "",
+      street: item.street ?? "",
+      latitude: lat,
+      longitude: lng,
+      businessCategoryId: bcid,
+      businessHoursKey: businessHoursCompareKey(
+        deserializeBusinessHoursDto(item.businessHours ?? null),
+      ),
+      offersDelivery: item.offersDelivery ?? true,
+      offersPickup: item.offersPickup ?? true,
+      deliveryHoursKey: deliveryPickupHoursCompareKey(
+        item.offersDelivery ?? true,
+        deserializeBusinessHoursDto(item.deliveryHours ?? null),
+      ),
+      pickupHoursKey: deliveryPickupHoursCompareKey(
+        item.offersPickup ?? true,
+        deserializeBusinessHoursDto(item.pickupHours ?? null),
+      ),
+    };
     setEditing(item);
     setForm({
       name: item.name,
@@ -251,14 +390,13 @@ export default function LocationsPage() {
       street: item.street ?? "",
       latitude: lat,
       longitude: lng,
-      businessCategoryId:
-        item.businessCategoryId != null && Number.isFinite(Number(item.businessCategoryId))
-          ? Number(item.businessCategoryId)
-          : null,
+      businessCategoryId: bcid,
     });
-    const dto = (item as LocationResponse & { businessHours?: BusinessHoursDto | null })
-      .businessHours;
-    setBusinessHours(deserializeBusinessHoursDto(dto ?? null));
+    setBusinessHours(deserializeBusinessHoursDto(item.businessHours ?? null));
+    setOffersDelivery(item.offersDelivery ?? true);
+    setOffersPickup(item.offersPickup ?? true);
+    setDeliveryHours(deserializeBusinessHoursDto(item.deliveryHours ?? null));
+    setPickupHours(deserializeBusinessHoursDto(item.pickupHours ?? null));
     setFormErrors({});
     setFormLoading(true);
     setFormOpen(true);
@@ -273,6 +411,7 @@ export default function LocationsPage() {
       clearTimeout(formLoadingTimeoutRef.current);
       formLoadingTimeoutRef.current = null;
     }
+    editSnapshotRef.current = null;
     setFormOpen(false);
     setEditing(null);
     setFormLoading(false);
@@ -283,42 +422,21 @@ export default function LocationsPage() {
     if (!form.name.trim()) err.name = "El nombre es requerido";
     if (!form.code.trim()) err.code = "El código es requerido";
 
-    const bhErrors: string[] = [];
-    const dayNames: Record<string, string> = {
-      monday: "Lunes",
-      tuesday: "Martes",
-      wednesday: "Miércoles",
-      thursday: "Jueves",
-      friday: "Viernes",
-      saturday: "Sábado",
-      sunday: "Domingo",
-    };
+    const bh = validateBusinessHoursFormState(businessHours);
+    if (bh.length > 0) err.businessHours = bh.join(" ");
 
-    const timeToMinutes = (t: string): number => {
-      if (!/^\d{2}:\d{2}$/.test(t)) return -1;
-      const [h, m] = t.split(":").map(Number);
-      return h * 60 + m;
-    };
+    if (!offersDelivery && !offersPickup) {
+      err.deliveryModes =
+        "La tienda debe ofrecer al menos una modalidad de entrega.";
+    }
 
-    (Object.entries(businessHours) as [keyof BusinessHoursFormState, BusinessHoursFormState[keyof BusinessHoursFormState]][]).forEach(
-      ([key, v]) => {
-        if (!v.isOpen) return;
-        if (!v.open || !v.close) {
-          bhErrors.push(`${dayNames[key]}: hora de apertura y cierre son requeridas.`);
-          return;
-        }
-        const start = timeToMinutes(v.open);
-        const end = timeToMinutes(v.close);
-        if (start < 0 || end < 0 || end <= start) {
-          bhErrors.push(
-            `${dayNames[key]}: la hora de cierre debe ser posterior a la de apertura.`,
-          );
-        }
-      },
-    );
-
-    if (bhErrors.length > 0) {
-      err.businessHours = bhErrors.join(" ");
+    if (offersDelivery) {
+      const dErr = validateBusinessHoursFormState(deliveryHours);
+      if (dErr.length > 0) err.deliveryHours = dErr.join(" ");
+    }
+    if (offersPickup) {
+      const pErr = validateBusinessHoursFormState(pickupHours);
+      if (pErr.length > 0) err.pickupHours = pErr.join(" ");
     }
 
     setFormErrors(err);
@@ -333,26 +451,97 @@ export default function LocationsPage() {
       const wa = form.whatsAppContact.replace(/\D/g, "").trim() || undefined;
       const hasCoords = form.latitude != null && form.longitude != null;
 
-      const common = {
-        name: form.name.trim(),
-        code: form.code.trim(),
-        description: form.description.trim() || undefined,
-        whatsAppContact: wa,
-        photoUrl: form.photoUrl.trim() || undefined,
-        province: form.province.trim() || undefined,
-        municipality: form.municipality.trim() || undefined,
-        street: form.street.trim() || undefined,
-        latitude: hasCoords ? form.latitude : null,
-        longitude: hasCoords ? form.longitude : null,
-        coordinates: hasCoords ? { lat: form.latitude!, lng: form.longitude! } : null,
-        businessHours: serializeBusinessHoursState(businessHours),
-        businessCategoryId: form.businessCategoryId ?? null,
-      };
-
       if (editing) {
-        await updateLocation({ id: editing.id, body: common }).unwrap();
+        const snap = editSnapshotRef.current;
+        if (!snap) {
+          toast.error("No se pudo cargar el estado inicial. Cierra el formulario y vuelve a editar.");
+          setFormSubmitting(false);
+          return;
+        }
+
+        const body: UpdateLocationRequest = {};
+        if (form.name.trim() !== snap.name) body.name = form.name.trim();
+        if (form.code.trim() !== snap.code) body.code = form.code.trim();
+        const desc = form.description.trim() || undefined;
+        const snapDesc = snap.description || undefined;
+        if (desc !== snapDesc) body.description = desc;
+        const waSnap = snap.whatsAppDigits ? snap.whatsAppDigits : undefined;
+        if (wa !== waSnap) body.whatsAppContact = wa;
+        const photo = form.photoUrl.trim() || undefined;
+        const snapPhoto = snap.photoUrl.trim() || undefined;
+        if (photo !== snapPhoto) body.photoUrl = photo;
+        const prov = form.province.trim() || undefined;
+        if (prov !== (snap.province || undefined)) body.province = prov;
+        const mun = form.municipality.trim() || undefined;
+        if (mun !== (snap.municipality || undefined)) body.municipality = mun;
+        const str = form.street.trim() || undefined;
+        if (str !== (snap.street || undefined)) body.street = str;
+
+        const lat = hasCoords ? form.latitude : null;
+        const lng = hasCoords ? form.longitude : null;
+        if (lat !== snap.latitude || lng !== snap.longitude) {
+          body.latitude = lat;
+          body.longitude = lng;
+          body.coordinates = hasCoords
+            ? { lat: form.latitude!, lng: form.longitude! }
+            : null;
+        }
+
+        const bcid = form.businessCategoryId ?? null;
+        if (bcid !== snap.businessCategoryId) body.businessCategoryId = bcid;
+
+        if (businessHoursCompareKey(businessHours) !== snap.businessHoursKey) {
+          body.businessHours = serializeBusinessHoursState(businessHours);
+        }
+        if (offersDelivery !== snap.offersDelivery) body.offersDelivery = offersDelivery;
+        if (offersPickup !== snap.offersPickup) body.offersPickup = offersPickup;
+
+        if (
+          deliveryPickupHoursCompareKey(offersDelivery, deliveryHours) !==
+          snap.deliveryHoursKey
+        ) {
+          const v = serializeOptionalDeliveryPickupForPut(deliveryHours, offersDelivery);
+          if (v !== undefined) body.deliveryHours = v;
+        }
+        if (
+          deliveryPickupHoursCompareKey(offersPickup, pickupHours) !== snap.pickupHoursKey
+        ) {
+          const v = serializeOptionalDeliveryPickupForPut(pickupHours, offersPickup);
+          if (v !== undefined) body.pickupHours = v;
+        }
+
+        if (Object.keys(body).length === 0) {
+          toast.info("No hay cambios para guardar.");
+          setFormSubmitting(false);
+          return;
+        }
+        await updateLocation({ id: editing.id, body }).unwrap();
       } else {
-        await createLocation({ organizationId, ...common }).unwrap();
+        const common: CreateLocationRequest = {
+          organizationId,
+          name: form.name.trim(),
+          code: form.code.trim(),
+          description: form.description.trim() || undefined,
+          whatsAppContact: wa,
+          photoUrl: form.photoUrl.trim() || undefined,
+          province: form.province.trim() || undefined,
+          municipality: form.municipality.trim() || undefined,
+          street: form.street.trim() || undefined,
+          latitude: hasCoords ? form.latitude : null,
+          longitude: hasCoords ? form.longitude : null,
+          coordinates: hasCoords ? { lat: form.latitude!, lng: form.longitude! } : null,
+          businessHours: serializeBusinessHoursState(businessHours),
+          businessCategoryId: form.businessCategoryId ?? null,
+          offersDelivery,
+          offersPickup,
+          deliveryHours: offersDelivery
+            ? serializeOptionalBusinessHoursState(deliveryHours)
+            : null,
+          pickupHours: offersPickup
+            ? serializeOptionalBusinessHoursState(pickupHours)
+            : null,
+        };
+        await createLocation(common).unwrap();
         setPage(1);
       }
       closeForm();
@@ -691,6 +880,81 @@ export default function LocationsPage() {
               <p className="form-error">{formErrors.businessHours}</p>
             )}
           </div>
+
+          {/* Modalidades de entrega */}
+          <div className="modal-field field-full loc-modal-section">
+            <div>
+              <h3 className="loc-modal-section__heading">Modalidades de entrega</h3>
+              <p className="loc-modal-section__desc">
+                Configurá si la tienda entrega a domicilio y/o permite recoger pedidos en el local. Esto define las etiquetas en el catálogo público.
+              </p>
+            </div>
+
+            <div className="loc-toggle-row">
+              <div className="loc-toggle-row__text">
+                <label htmlFor="loc-offers-delivery">Ofrece domicilio</label>
+                <p className="loc-modal-section__desc" style={{ marginTop: 4 }}>
+                  Si está activo, el catálogo muestra la opción de domicilio para esta tienda.
+                </p>
+              </div>
+              <Switch
+                id="loc-offers-delivery"
+                checked={offersDelivery}
+                onChange={setOffersDelivery}
+              />
+            </div>
+
+            {offersDelivery && (
+              <>
+                <p className="loc-modal-section__desc" style={{ marginTop: 12, marginBottom: 8 }}>
+                  Horario de domicilio <span style={{ fontWeight: 400, color: "#94a3b8" }}>(opcional)</span>
+                </p>
+                <BusinessHoursEditor value={deliveryHours} onChange={setDeliveryHours} />
+                <p className="loc-hint">
+                  Si no configurás un horario de domicilio, se usará el horario general del negocio.
+                </p>
+                {formErrors.deliveryHours && (
+                  <p className="form-error">{formErrors.deliveryHours}</p>
+                )}
+              </>
+            )}
+
+            <div className="loc-toggle-row" style={{ marginTop: 16 }}>
+              <div className="loc-toggle-row__text">
+                <label htmlFor="loc-offers-pickup">Ofrece recogida en tienda</label>
+                <p className="loc-modal-section__desc" style={{ marginTop: 4 }}>
+                  Si está activo, el catálogo muestra la opción de recogida en el local.
+                </p>
+              </div>
+              <Switch
+                id="loc-offers-pickup"
+                checked={offersPickup}
+                onChange={setOffersPickup}
+              />
+            </div>
+
+            {offersPickup && (
+              <>
+                <p className="loc-modal-section__desc" style={{ marginTop: 12, marginBottom: 8 }}>
+                  Horario de recogida <span style={{ fontWeight: 400, color: "#94a3b8" }}>(opcional)</span>
+                </p>
+                <BusinessHoursEditor value={pickupHours} onChange={setPickupHours} />
+                <p className="loc-hint">
+                  Si no configurás un horario de recogida, se usará el horario general del negocio.
+                </p>
+                {formErrors.pickupHours && (
+                  <p className="form-error">{formErrors.pickupHours}</p>
+                )}
+              </>
+            )}
+
+            {formErrors.deliveryModes && (
+              <p className="form-error" style={{ marginTop: 12 }}>
+                {formErrors.deliveryModes}
+              </p>
+            )}
+          </div>
+
           {formErrors.submit && (
             <p className="form-error">{formErrors.submit}</p>
           )}

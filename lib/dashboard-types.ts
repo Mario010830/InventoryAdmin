@@ -304,6 +304,11 @@ export interface CreateLocationRequest {
   coordinates?: { lat: number; lng: number } | null;
   businessHours?: BusinessHoursDto;
   businessCategoryId?: number | null;
+  offersDelivery?: boolean;
+  offersPickup?: boolean;
+  /** `null` = usar horario general del negocio para esa modalidad */
+  deliveryHours?: BusinessHoursDto | null;
+  pickupHours?: BusinessHoursDto | null;
 }
 
 export interface UpdateLocationRequest {
@@ -321,6 +326,11 @@ export interface UpdateLocationRequest {
   coordinates?: { lat: number; lng: number } | null;
   businessHours?: BusinessHoursDto;
   businessCategoryId?: number | null;
+  /** En PUT, `null` = no modificar (según contrato backend) */
+  offersDelivery?: boolean | null;
+  offersPickup?: boolean | null;
+  deliveryHours?: BusinessHoursDto | null;
+  pickupHours?: BusinessHoursDto | null;
 }
 
 // ─── Inventario ───────────────────────────────────────────────────────────────
@@ -607,6 +617,10 @@ export interface PublicLocation {
   /** Alias por compatibilidad con posibles nombres del backend */
   lat?: number | null;
   lng?: number | null;
+  productCount?: number;
+  hasPromo?: boolean;
+  offersDelivery?: boolean;
+  offersPickup?: boolean;
 }
 
 export interface PublicCatalogItem {

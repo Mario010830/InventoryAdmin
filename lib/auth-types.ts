@@ -1,3 +1,5 @@
+import type { BusinessHoursDto } from "./dashboard-types";
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -98,6 +100,12 @@ export interface LocationResponse {
   /** Categoría de negocio (GET /business-category); opcional */
   businessCategoryId?: number | null;
   businessCategoryName?: string | null;
+  /** Horario general (GET admin) */
+  businessHours?: BusinessHoursDto | null;
+  offersDelivery?: boolean;
+  offersPickup?: boolean;
+  deliveryHours?: BusinessHoursDto | null;
+  pickupHours?: BusinessHoursDto | null;
   createdAt: string;
   modifiedAt: string;
 }

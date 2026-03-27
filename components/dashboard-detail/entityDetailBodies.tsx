@@ -308,6 +308,26 @@ export function LocationDetailBody({ row }: { row: LocationResponse }) {
       )}
       <DetailField label="Nombre" value={displayDash(row.name)} />
       <DetailField label="Código" value={displayDash(row.code)} />
+      <DetailField
+        label="Domicilio"
+        value={
+          row.offersDelivery !== false ? (
+            <span className="dt-tag dt-tag--green">Sí</span>
+          ) : (
+            <span className="dt-tag dt-tag--neutral">No</span>
+          )
+        }
+      />
+      <DetailField
+        label="Recogida en tienda"
+        value={
+          row.offersPickup !== false ? (
+            <span className="dt-tag dt-tag--green">Sí</span>
+          ) : (
+            <span className="dt-tag dt-tag--neutral">No</span>
+          )
+        }
+      />
       <DetailField label="Tipo" value="—" />
       <DetailField label="Capacidad" value="—" />
       <DetailField
