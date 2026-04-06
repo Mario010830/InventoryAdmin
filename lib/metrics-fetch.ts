@@ -61,9 +61,20 @@ export async function fetchAllMetrics(
       try {
         const { ok, body } = await fetchJson(url);
         if (!ok) {
+          const sectionLabel =
+            section === "traffic"
+              ? "tráfico"
+              : section === "products"
+                ? "productos"
+                : section === "sales"
+                  ? "ventas"
+                  : "clientes";
           return {
             section,
-            error: parseErrorMessage(body, `Error loading ${section}`),
+            error: parseErrorMessage(
+              body,
+              `Error al cargar métricas de ${sectionLabel}`,
+            ),
             data: null as unknown,
           };
         }
@@ -72,7 +83,7 @@ export async function fetchAllMetrics(
       } catch (e) {
         return {
           section,
-          error: e instanceof Error ? e.message : "Network error",
+          error: e instanceof Error ? e.message : "Error de red",
           data: null,
         };
       }

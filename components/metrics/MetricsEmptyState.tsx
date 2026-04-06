@@ -17,9 +17,9 @@ export function MetricsEmptyState({
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           role="img"
-          aria-label="Abstract chart illustration"
+          aria-label="Ilustración de gráfico"
         >
-          <title>Abstract chart</title>
+          <title>Gráfico decorativo</title>
           <rect
             x="8"
             y="58"

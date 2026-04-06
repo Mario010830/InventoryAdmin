@@ -156,7 +156,7 @@ const REPORT_SECTIONS: { route: string; label: string }[] = [
   { route: "/reportes/productos", label: "Productos" },
   { route: "/reportes/crm", label: "CRM" },
   { route: "/reportes/operaciones", label: "Operaciones" },
-  { route: "/admin/reports/metrics", label: "Metrics" },
+  { route: "/admin/reports/metrics", label: "Métricas" },
 ];
 
 function SidebarNavIcon({ item }: { item: NavItem }) {

@@ -179,7 +179,7 @@ export function normalizeSalesMetrics(raw: unknown): SalesMetricsNormalized {
   if (Array.isArray(funnelRaw)) {
     funnel = funnelRaw.map((row, i) => {
       const r = firstRecord(row) ?? {};
-      const label = String(r.label ?? r.step ?? r.name ?? `Step ${i + 1}`);
+      const label = String(r.label ?? r.step ?? r.name ?? `Paso ${i + 1}`);
       const key = String(r.key ?? `step-${i}`);
       const count = num(r.count ?? r.value);
       const dropFromPreviousPct = numOrNull(
@@ -196,10 +196,10 @@ export function normalizeSalesMetrics(raw: unknown): SalesMetricsNormalized {
     const completed = num(pick("funnelCompleted", "completed", "orders"));
 
     const steps = [
-      { key: "visits", label: "Visits", count: visits },
-      { key: "views", label: "Product views", count: productViews },
-      { key: "cart", label: "Added to cart", count: addedToCart },
-      { key: "done", label: "Completed", count: completed },
+      { key: "visits", label: "Visitas", count: visits },
+      { key: "views", label: "Vistas de producto", count: productViews },
+      { key: "cart", label: "Añadidos al carrito", count: addedToCart },
+      { key: "done", label: "Completados", count: completed },
     ];
     let prev = 0;
     funnel = steps.map((s, i) => {

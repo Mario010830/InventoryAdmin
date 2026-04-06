@@ -34,21 +34,21 @@ import { MetricsEmptyState } from "./MetricsEmptyState";
 const PERIODS: MetricsPeriod[] = ["7d", "30d", "90d"];
 
 const TABS: { id: MetricsSection; label: string }[] = [
-  { id: "traffic", label: "Traffic" },
-  { id: "products", label: "Products" },
-  { id: "sales", label: "Sales" },
-  { id: "customers", label: "Customers" },
+  { id: "traffic", label: "Tráfico" },
+  { id: "products", label: "Productos" },
+  { id: "sales", label: "Ventas" },
+  { id: "customers", label: "Clientes" },
 ];
 
 function formatDurationSeconds(sec: number | null): string {
   if (sec == null || sec <= 0) return "—";
-  if (sec < 60) return `${Math.round(sec)}s`;
+  if (sec < 60) return `${Math.round(sec)} s`;
   const m = Math.floor(sec / 60);
   const s = Math.round(sec % 60);
-  if (m < 60) return `${m}m ${s}s`;
+  if (m < 60) return `${m} min ${s} s`;
   const h = Math.floor(m / 60);
   const rm = m % 60;
-  return `${h}h ${rm}m`;
+  return `${h} h ${rm} min`;
 }
 
 function changeTrend(
@@ -57,7 +57,7 @@ function changeTrend(
 ): { text: string; trendUp: boolean } | undefined {
   if (pct == null || Number.isNaN(pct)) return undefined;
   const sign = pct > 0 ? "+" : "";
-  const text = `${sign}${pct.toFixed(1)}% vs previous period`;
+  const text = `${sign}${pct.toFixed(1)}% vs. período anterior`;
   const rawUp = pct > 0;
   const trendUp = options?.goodWhenDown ? !rawUp : rawUp;
   return { text, trendUp };
@@ -78,11 +78,11 @@ function ConversionFunnel({ steps }: { steps: SalesFunnelStep[] }) {
   return (
     <div className="rounded-xl border border-[#eceff4] bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
       <h3 className="text-base font-semibold text-slate-900">
-        Conversion funnel
+        Embudo de conversión
       </h3>
       <p className="mt-0.5 text-sm text-slate-500">
-        Visits through completed orders — drop shows share lost from the prior
-        step.
+        De visitas a pedidos completados: la caída indica la proporción perdida
+        respecto al paso anterior.
       </p>
       <div className="mt-6 space-y-4">
         {steps.map((s, i) => (
@@ -95,7 +95,7 @@ function ConversionFunnel({ steps }: { steps: SalesFunnelStep[] }) {
                 s.dropFromPreviousPct != null &&
                 Number.isFinite(s.dropFromPreviousPct) ? (
                   <span className="ml-2 text-slate-400">
-                    ({s.dropFromPreviousPct.toFixed(1)}% drop)
+                    ({s.dropFromPreviousPct.toFixed(1)}% de caída)
                   </span>
                 ) : null}
               </span>
@@ -123,8 +123,8 @@ function RankedSearchList({
   if (empty) {
     return (
       <MetricsEmptyState
-        title="No search data yet"
-        description="When shoppers search your catalog, popular terms will appear here."
+        title="Sin datos de búsqueda"
+        description="Cuando los clientes busquen en tu catálogo, los términos más frecuentes aparecerán aquí."
       />
     );
   }
@@ -144,7 +144,7 @@ function RankedSearchList({
             </span>
           </span>
           <span className="shrink-0 tabular-nums text-sm text-slate-500">
-            {row.visits.toLocaleString()} visits
+            {row.visits.toLocaleString()} visitas
           </span>
         </li>
       ))}
@@ -270,10 +270,10 @@ export function MetricsPageClient() {
   const trafficSourcesChart = useMemo(() => {
     if (!traffic?.sources.length) {
       return [
-        { label: "Search marketplace", value: 0 },
-        { label: "Direct", value: 0 },
-        { label: "Social", value: 0 },
-        { label: "External", value: 0 },
+        { label: "Búsqueda en marketplace", value: 0 },
+        { label: "Directo", value: 0 },
+        { label: "Redes sociales", value: 0 },
+        { label: "Externo", value: 0 },
       ];
     }
     return traffic.sources.map((s) => ({ label: s.label, value: s.value }));
@@ -297,8 +297,8 @@ export function MetricsPageClient() {
     const n = customers?.buyersNew ?? customers?.newBuyers ?? 0;
     const r = customers?.buyersReturning ?? customers?.returningBuyers ?? 0;
     return [
-      { name: "New buyers", value: n },
-      { name: "Returning buyers", value: r },
+      { name: "Compradores nuevos", value: n },
+      { name: "Compradores recurrentes", value: r },
     ];
   }, [customers]);
 
@@ -311,15 +311,15 @@ export function MetricsPageClient() {
       <div className="w-full min-w-0">
         <header className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Metrics
+            Métricas
           </h1>
           <p className="mt-1 text-sm text-slate-600">
-            Analytics for your catalog
+            Analíticas de tu catálogo
           </p>
         </header>
         <MetricsEmptyState
-          title="No business context"
-          description="Your user is not linked to an organization. Metrics are available once your account is associated with a business."
+          title="Sin contexto de negocio"
+          description="Tu usuario no está vinculado a una organización. Las métricas estarán disponibles cuando tu cuenta esté asociada a un negocio."
         />
       </div>
     );
@@ -330,14 +330,14 @@ export function MetricsPageClient() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <header>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Metrics
+            Métricas
           </h1>
           <p className="mt-1 text-sm text-slate-600">
-            Analytics for your catalog
+            Analíticas de tu catálogo
           </p>
         </header>
         <fieldset className="m-0 shrink-0 rounded-full border border-[#eceff4] bg-slate-50/80 p-1">
-          <legend className="sr-only">Period</legend>
+          <legend className="sr-only">Período</legend>
           <div className="flex flex-wrap gap-2">
             {PERIODS.map((p) => (
               <button
@@ -351,7 +351,7 @@ export function MetricsPageClient() {
                     : "text-slate-600 hover:bg-white",
                 )}
               >
-                {p === "7d" ? "7d" : p === "30d" ? "30d" : "90d"}
+                {p === "7d" ? "7 días" : p === "30d" ? "30 días" : "90 días"}
               </button>
             ))}
           </div>
@@ -361,7 +361,7 @@ export function MetricsPageClient() {
       <div
         className="mb-6 flex flex-wrap gap-2"
         role="tablist"
-        aria-label="Metrics sections"
+        aria-label="Secciones de métricas"
       >
         {TABS.map((t) => (
           <button
@@ -395,7 +395,7 @@ export function MetricsPageClient() {
           ) : (
             <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard
-                label="Catalog visits"
+                label="Visitas al catálogo"
                 value={traffic?.catalogVisits.toLocaleString() ?? "0"}
                 icon="visibility"
                 trend={
@@ -407,7 +407,7 @@ export function MetricsPageClient() {
                 }
               />
               <StatCard
-                label="Unique visitors"
+                label="Visitantes únicos"
                 value={traffic?.uniqueVisitors.toLocaleString() ?? "0"}
                 icon="people"
                 trend={
@@ -419,7 +419,7 @@ export function MetricsPageClient() {
                 }
               />
               <StatCard
-                label="Bounce rate"
+                label="Tasa de rebote"
                 value={
                   traffic?.bounceRatePct != null
                     ? `${traffic.bounceRatePct.toFixed(1)}%`
@@ -438,7 +438,7 @@ export function MetricsPageClient() {
                 }
               />
               <StatCard
-                label="Avg time on catalog"
+                label="Tiempo medio en catálogo"
                 value={formatDurationSeconds(
                   traffic?.avgTimeOnCatalogSeconds ?? null,
                 )}
@@ -454,24 +454,24 @@ export function MetricsPageClient() {
             </div>
           ) : isTrafficEmpty(traffic) ? (
             <MetricsEmptyState
-              title="No traffic for this period"
-              description="Share your catalog link or run campaigns — visits and sources will show up here."
+              title="Sin tráfico en este período"
+              description="Comparte el enlace de tu catálogo o lanza campañas: las visitas y fuentes aparecerán aquí."
             />
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               <BarChartCard
-                title="Traffic source"
-                subtitle="Where shoppers arrive from"
+                title="Origen del tráfico"
+                subtitle="Desde dónde llegan los visitantes"
                 data={trafficSourcesChart}
                 horizontal
                 height={280}
               />
               <div className="rounded-xl border border-[#eceff4] bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
                 <h3 className="text-base font-semibold text-slate-900">
-                  Top searches
+                  Búsquedas principales
                 </h3>
                 <p className="mt-0.5 text-sm text-slate-500">
-                  Ranked by visit volume
+                  Ordenadas por volumen de visitas
                 </p>
                 <div className="mt-4">
                   <RankedSearchList
@@ -492,24 +492,24 @@ export function MetricsPageClient() {
           ) : (
             <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard
-                label="Active products"
+                label="Productos activos"
                 value={products?.activeProducts.toLocaleString() ?? "0"}
                 icon="inventory_2"
                 iconBg="#EEF2FF"
                 iconColor={theme.accent}
               />
               <StatCard
-                label="Total views"
+                label="Vistas totales"
                 value={products?.totalViews.toLocaleString() ?? "0"}
                 icon="visibility"
               />
               <StatCard
-                label="Products with no sales"
+                label="Productos sin ventas"
                 value={products?.productsWithNoSales.toLocaleString() ?? "0"}
                 icon="remove_shopping_cart"
               />
               <StatCard
-                label="Saved / favorited"
+                label="Guardados / favoritos"
                 value={products?.savedOrFavorited.toLocaleString() ?? "0"}
                 icon="favorite"
               />
@@ -523,8 +523,8 @@ export function MetricsPageClient() {
             </div>
           ) : isProductsEmpty(products) ? (
             <MetricsEmptyState
-              title="No product analytics yet"
-              description="Product views and engagement will appear after shoppers browse your catalog."
+              title="Sin analíticas de productos"
+              description="Las vistas y el engagement aparecerán cuando los clientes naveguen por tu catálogo."
             />
           ) : (
             <div className="space-y-4">
@@ -532,7 +532,7 @@ export function MetricsPageClient() {
                 <div className="mb-4 flex items-center gap-2">
                   <Package className="h-5 w-5 text-indigo-500" aria-hidden />
                   <h3 className="text-base font-semibold text-slate-900">
-                    Most viewed products
+                    Productos más vistos
                   </h3>
                 </div>
                 <RankedBarRows
@@ -541,8 +541,8 @@ export function MetricsPageClient() {
                     value: p.count,
                   }))}
                   formatValue={(n) => n.toLocaleString()}
-                  emptyTitle="No product views"
-                  emptyDescription="Views per product will rank here once data is available."
+                  emptyTitle="Sin vistas de productos"
+                  emptyDescription="Las vistas por producto se ordenarán aquí cuando haya datos."
                 />
               </div>
               <div className="rounded-xl border border-[#eceff4] bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
@@ -552,7 +552,7 @@ export function MetricsPageClient() {
                     aria-hidden
                   />
                   <h3 className="text-base font-semibold text-slate-900">
-                    View-to-cart rate
+                    Tasa vista → carrito
                   </h3>
                 </div>
                 <RankedBarRows
@@ -561,8 +561,8 @@ export function MetricsPageClient() {
                     value: p.ratePct,
                   }))}
                   formatValue={(n) => `${n.toFixed(1)}%`}
-                  emptyTitle="No view-to-cart data"
-                  emptyDescription="Add-to-cart rates by product will display when events are tracked."
+                  emptyTitle="Sin datos vista a carrito"
+                  emptyDescription="Las tasas por producto se mostrarán cuando se registren los eventos."
                 />
               </div>
             </div>
@@ -577,7 +577,7 @@ export function MetricsPageClient() {
           ) : (
             <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard
-                label="Revenue"
+                label="Ingresos"
                 value={formatCup(sales?.revenue ?? 0)}
                 icon="payments"
                 trend={changeTrend(sales?.revenueChangePct ?? null)?.text}
@@ -586,7 +586,7 @@ export function MetricsPageClient() {
                 }
               />
               <StatCard
-                label="Orders"
+                label="Pedidos"
                 value={sales?.orders.toLocaleString() ?? "0"}
                 icon="shopping_cart"
                 trend={changeTrend(sales?.ordersChangePct ?? null)?.text}
@@ -595,7 +595,7 @@ export function MetricsPageClient() {
                 }
               />
               <StatCard
-                label="Avg order value"
+                label="Ticket medio"
                 value={formatCup(sales?.avgOrderValue ?? 0)}
                 icon="account_balance_wallet"
                 trend={changeTrend(sales?.avgOrderValueChangePct ?? null)?.text}
@@ -605,7 +605,7 @@ export function MetricsPageClient() {
                 }
               />
               <StatCard
-                label="Cart abandonment rate"
+                label="Abandono de carrito"
                 value={
                   sales?.cartAbandonmentRatePct != null
                     ? `${sales.cartAbandonmentRatePct.toFixed(1)}%`
@@ -630,13 +630,13 @@ export function MetricsPageClient() {
             <div className="h-[400px] animate-pulse rounded-xl bg-slate-100" />
           ) : isSalesEmpty(sales) ? (
             <MetricsEmptyState
-              title="No sales funnel data"
-              description="Completed checkouts and funnel steps will populate when orders flow through your catalog."
+              title="Sin datos del embudo de ventas"
+              description="Los pasos del embudo se rellenarán cuando haya pedidos completados en tu catálogo."
             />
           ) : (sales?.funnel?.length ?? 0) === 0 ? (
             <MetricsEmptyState
-              title="No funnel breakdown"
-              description="Funnel steps will appear when visit and checkout events are available for this period."
+              title="Sin desglose del embudo"
+              description="Los pasos aparecerán cuando existan eventos de visita y pago en este período."
             />
           ) : (
             <ConversionFunnel steps={sales?.funnel ?? []} />
@@ -651,17 +651,17 @@ export function MetricsPageClient() {
           ) : (
             <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard
-                label="New buyers"
+                label="Compradores nuevos"
                 value={(customers?.newBuyers ?? 0).toLocaleString()}
                 icon="person_add"
               />
               <StatCard
-                label="Returning buyers"
+                label="Compradores recurrentes"
                 value={(customers?.returningBuyers ?? 0).toLocaleString()}
                 icon="groups"
               />
               <StatCard
-                label="Avg rating"
+                label="Valoración media"
                 value={
                   customers?.avgRating != null
                     ? customers.avgRating.toFixed(1)
@@ -670,7 +670,7 @@ export function MetricsPageClient() {
                 icon="star"
               />
               <StatCard
-                label="Reviews received"
+                label="Reseñas recibidas"
                 value={(customers?.reviewsReceived ?? 0).toLocaleString()}
                 icon="rate_review"
               />
@@ -684,8 +684,8 @@ export function MetricsPageClient() {
             </div>
           ) : isCustomersEmpty(customers) ? (
             <MetricsEmptyState
-              title="No customer insights yet"
-              description="Buyer mix, ratings, and review volume will show once customers engage."
+              title="Sin datos de clientes"
+              description="La mezcla de compradores, valoraciones y volumen de reseñas aparecerá cuando haya actividad."
             />
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
@@ -693,13 +693,13 @@ export function MetricsPageClient() {
                 <div className="mb-2 flex items-center gap-2">
                   <Users className="h-5 w-5 text-indigo-500" aria-hidden />
                   <h3 className="text-base font-semibold text-slate-900">
-                    New vs returning buyers
+                    Nuevos vs recurrentes
                   </h3>
                 </div>
                 {donutBuyers[0].value === 0 && donutBuyers[1].value === 0 ? (
                   <MetricsEmptyState
-                    title="No buyer split"
-                    description="New and returning buyer counts will display when purchase data exists."
+                    title="Sin reparto de compradores"
+                    description="Los conteos de nuevos y recurrentes aparecerán cuando haya datos de compra."
                   />
                 ) : (
                   <div style={{ width: "100%", height: 280, minHeight: 280 }}>
@@ -767,13 +767,13 @@ export function MetricsPageClient() {
                 <div className="mb-4 flex items-center gap-2">
                   <Star className="h-5 w-5 text-indigo-500" aria-hidden />
                   <h3 className="text-base font-semibold text-slate-900">
-                    Ratings distribution
+                    Distribución de valoraciones
                   </h3>
                 </div>
                 {ratingsBars.every((b) => b.value === 0) ? (
                   <MetricsEmptyState
-                    title="No ratings yet"
-                    description="Star ratings will aggregate here as customers leave reviews."
+                    title="Sin valoraciones"
+                    description="Las estrellas se acumularán aquí cuando los clientes dejen reseñas."
                   />
                 ) : (
                   <div style={{ width: "100%", height: 280, minHeight: 280 }}>
