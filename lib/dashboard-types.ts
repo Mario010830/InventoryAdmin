@@ -306,9 +306,6 @@ export interface CreateLocationRequest {
   businessCategoryId?: number | null;
   offersDelivery?: boolean;
   offersPickup?: boolean;
-  /** `null` = usar horario general del negocio para esa modalidad */
-  deliveryHours?: BusinessHoursDto | null;
-  pickupHours?: BusinessHoursDto | null;
 }
 
 export interface UpdateLocationRequest {
@@ -329,8 +326,6 @@ export interface UpdateLocationRequest {
   /** En PUT, `null` = no modificar (según contrato backend) */
   offersDelivery?: boolean | null;
   offersPickup?: boolean | null;
-  deliveryHours?: BusinessHoursDto | null;
-  pickupHours?: BusinessHoursDto | null;
 }
 
 // ─── Inventario ───────────────────────────────────────────────────────────────

@@ -78,22 +78,6 @@ const DAY_NAMES: Record<DayKey, string> = {
   sunday: "Domingo",
 };
 
-/** Devuelve `null` si no hay ningún día con horario (el backend usa el horario general). */
-export function serializeOptionalBusinessHoursState(
-  state: BusinessHoursFormState,
-): BusinessHoursDto | null {
-  const dto = serializeBusinessHoursState(state);
-  const hasAny = (Object.values(dto) as ({ open: string; close: string } | null | undefined)[]).some(
-    (v) => v != null && typeof v.open === "string" && typeof v.close === "string",
-  );
-  return hasAny ? dto : null;
-}
-
-/** DTO con cada día en `null` (sin horario custom). En PUT, usar esto para «volver al horario general», no `null` en la raíz (eso significa no tocar el campo). */
-export function emptyAllDaysBusinessHoursDto(): BusinessHoursDto {
-  return serializeBusinessHoursState(makeEmptyBusinessHoursState());
-}
-
 export function stableStringifyBusinessHoursDto(dto: BusinessHoursDto): string {
   const o: Record<string, unknown> = {};
   for (const { key } of DAY_LABELS) {
@@ -106,38 +90,6 @@ export function stableStringifyBusinessHoursDto(dto: BusinessHoursDto): string {
 /** Comparar si cambió el horario de atención del negocio. */
 export function businessHoursCompareKey(state: BusinessHoursFormState): string {
   return stableStringifyBusinessHoursDto(serializeBusinessHoursState(state));
-}
-
-/**
- * Comparar horarios opcionales de domicilio/recogida (depende de si la modalidad está activa).
- * Si la modalidad está off, solo comparamos el hecho de estar desactivada.
- */
-export function deliveryPickupHoursCompareKey(
-  modalityEnabled: boolean,
-  state: BusinessHoursFormState,
-): string {
-  if (!modalityEnabled) return "__modality_off__";
-  const opt = serializeOptionalBusinessHoursState(state);
-  if (opt === null) {
-    return `__use_general__${stableStringifyBusinessHoursDto(emptyAllDaysBusinessHoursDto())}`;
-  }
-  return `__custom__${stableStringifyBusinessHoursDto(opt)}`;
-}
-
-/**
- * PUT: en la raíz, `null` = no modificar ese campo.
- * - Modalidad desactivada: omitir la clave (no enviar `deliveryHours: null`).
- * - Modalidad activa y formulario en «horario general» (sin días): enviar DTO con todos los días en null.
- * - Modalidad activa con horario custom: enviar el DTO.
- */
-export function serializeOptionalDeliveryPickupForPut(
-  state: BusinessHoursFormState,
-  modalityEnabled: boolean,
-): BusinessHoursDto | undefined {
-  if (!modalityEnabled) return undefined;
-  const opt = serializeOptionalBusinessHoursState(state);
-  if (opt === null) return emptyAllDaysBusinessHoursDto();
-  return opt;
 }
 
 export function validateBusinessHoursFormState(

@@ -4,6 +4,7 @@ import { AUTH_COOKIE_NAME } from "@/app/login/_service/sessionCookie";
 
 const protectedPrefix = "/dashboard";
 const reportesPrefix = "/reportes";
+const adminPrefix = "/admin";
 const publicPaths = ["/login", "/forgot-password"];
 
 export function middleware(request: NextRequest) {
@@ -16,7 +17,8 @@ export function middleware(request: NextRequest) {
 
   if (
     pathname.startsWith(protectedPrefix) ||
-    pathname.startsWith(reportesPrefix)
+    pathname.startsWith(reportesPrefix) ||
+    pathname.startsWith(adminPrefix)
   ) {
     const token = request.cookies.get(AUTH_COOKIE_NAME);
     if (!token?.value) {
@@ -29,5 +31,12 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard", "/dashboard/:path*", "/reportes", "/reportes/:path*"],
+  matcher: [
+    "/dashboard",
+    "/dashboard/:path*",
+    "/reportes",
+    "/reportes/:path*",
+    "/admin",
+    "/admin/:path*",
+  ],
 };

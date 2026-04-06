@@ -35,12 +35,9 @@ import { CUBA_PROVINCES, getMunicipalitiesByProvince } from "@/lib/cuba-location
 import {
   BusinessHoursEditor,
   businessHoursCompareKey,
-  deliveryPickupHoursCompareKey,
   deserializeBusinessHoursDto,
   makeEmptyBusinessHoursState,
   serializeBusinessHoursState,
-  serializeOptionalBusinessHoursState,
-  serializeOptionalDeliveryPickupForPut,
   validateBusinessHoursFormState,
   type BusinessHoursFormState,
 } from "./BusinessHoursEditor";
@@ -71,8 +68,6 @@ interface LocationEditSnapshot {
   businessHoursKey: string;
   offersDelivery: boolean;
   offersPickup: boolean;
-  deliveryHoursKey: string;
-  pickupHoursKey: string;
 }
 
 const initialForm = {
@@ -111,12 +106,6 @@ export default function LocationsPage() {
   );
   const [offersDelivery, setOffersDelivery] = useState(true);
   const [offersPickup, setOffersPickup] = useState(true);
-  const [deliveryHours, setDeliveryHours] = useState<BusinessHoursFormState>(
-    makeEmptyBusinessHoursState(),
-  );
-  const [pickupHours, setPickupHours] = useState<BusinessHoursFormState>(
-    makeEmptyBusinessHoursState(),
-  );
   const [formLoading, setFormLoading] = useState(false);
   const filtersChanged = useRef(false);
   const formLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -336,8 +325,6 @@ export default function LocationsPage() {
     setBusinessHours(makeEmptyBusinessHoursState());
     setOffersDelivery(true);
     setOffersPickup(true);
-    setDeliveryHours(makeEmptyBusinessHoursState());
-    setPickupHours(makeEmptyBusinessHoursState());
     setFormOpen(true);
   };
 
@@ -369,14 +356,6 @@ export default function LocationsPage() {
       ),
       offersDelivery: item.offersDelivery ?? true,
       offersPickup: item.offersPickup ?? true,
-      deliveryHoursKey: deliveryPickupHoursCompareKey(
-        item.offersDelivery ?? true,
-        deserializeBusinessHoursDto(item.deliveryHours ?? null),
-      ),
-      pickupHoursKey: deliveryPickupHoursCompareKey(
-        item.offersPickup ?? true,
-        deserializeBusinessHoursDto(item.pickupHours ?? null),
-      ),
     };
     setEditing(item);
     setForm({
@@ -395,8 +374,6 @@ export default function LocationsPage() {
     setBusinessHours(deserializeBusinessHoursDto(item.businessHours ?? null));
     setOffersDelivery(item.offersDelivery ?? true);
     setOffersPickup(item.offersPickup ?? true);
-    setDeliveryHours(deserializeBusinessHoursDto(item.deliveryHours ?? null));
-    setPickupHours(deserializeBusinessHoursDto(item.pickupHours ?? null));
     setFormErrors({});
     setFormLoading(true);
     setFormOpen(true);
@@ -428,15 +405,6 @@ export default function LocationsPage() {
     if (!offersDelivery && !offersPickup) {
       err.deliveryModes =
         "La tienda debe ofrecer al menos una modalidad de entrega.";
-    }
-
-    if (offersDelivery) {
-      const dErr = validateBusinessHoursFormState(deliveryHours);
-      if (dErr.length > 0) err.deliveryHours = dErr.join(" ");
-    }
-    if (offersPickup) {
-      const pErr = validateBusinessHoursFormState(pickupHours);
-      if (pErr.length > 0) err.pickupHours = pErr.join(" ");
     }
 
     setFormErrors(err);
@@ -496,20 +464,6 @@ export default function LocationsPage() {
         if (offersDelivery !== snap.offersDelivery) body.offersDelivery = offersDelivery;
         if (offersPickup !== snap.offersPickup) body.offersPickup = offersPickup;
 
-        if (
-          deliveryPickupHoursCompareKey(offersDelivery, deliveryHours) !==
-          snap.deliveryHoursKey
-        ) {
-          const v = serializeOptionalDeliveryPickupForPut(deliveryHours, offersDelivery);
-          if (v !== undefined) body.deliveryHours = v;
-        }
-        if (
-          deliveryPickupHoursCompareKey(offersPickup, pickupHours) !== snap.pickupHoursKey
-        ) {
-          const v = serializeOptionalDeliveryPickupForPut(pickupHours, offersPickup);
-          if (v !== undefined) body.pickupHours = v;
-        }
-
         if (Object.keys(body).length === 0) {
           toast.info("No hay cambios para guardar.");
           setFormSubmitting(false);
@@ -534,12 +488,6 @@ export default function LocationsPage() {
           businessCategoryId: form.businessCategoryId ?? null,
           offersDelivery,
           offersPickup,
-          deliveryHours: offersDelivery
-            ? serializeOptionalBusinessHoursState(deliveryHours)
-            : null,
-          pickupHours: offersPickup
-            ? serializeOptionalBusinessHoursState(pickupHours)
-            : null,
         };
         await createLocation(common).unwrap();
         setPage(1);
@@ -881,12 +829,15 @@ export default function LocationsPage() {
             )}
           </div>
 
-          {/* Modalidades de entrega */}
+          {/* Modalidades de entrega (horario operativo = solo `businessHours` + flags) */}
           <div className="modal-field field-full loc-modal-section">
             <div>
               <h3 className="loc-modal-section__heading">Modalidades de entrega</h3>
               <p className="loc-modal-section__desc">
-                Configurá si la tienda entrega a domicilio y/o permite recoger pedidos en el local. Esto define las etiquetas en el catálogo público.
+                Indicá si la tienda ofrece domicilio y/o recogida en tienda. El horario de
+                apertura y si está abierta «ahora» en el catálogo público se toman del{" "}
+                <strong>horario de atención</strong> de arriba; estos interruptores solo activan
+                o desactivan cada modalidad.
               </p>
             </div>
 
@@ -894,7 +845,8 @@ export default function LocationsPage() {
               <div className="loc-toggle-row__text">
                 <label htmlFor="loc-offers-delivery">Ofrece domicilio</label>
                 <p className="loc-modal-section__desc" style={{ marginTop: 4 }}>
-                  Si está activo, el catálogo muestra la opción de domicilio para esta tienda.
+                  Si está activo, el catálogo puede mostrar la opción de domicilio (según
+                  horario y disponibilidad).
                 </p>
               </div>
               <Switch
@@ -904,26 +856,11 @@ export default function LocationsPage() {
               />
             </div>
 
-            {offersDelivery && (
-              <>
-                <p className="loc-modal-section__desc" style={{ marginTop: 12, marginBottom: 8 }}>
-                  Horario de domicilio <span style={{ fontWeight: 400, color: "#94a3b8" }}>(opcional)</span>
-                </p>
-                <BusinessHoursEditor value={deliveryHours} onChange={setDeliveryHours} />
-                <p className="loc-hint">
-                  Si no configurás un horario de domicilio, se usará el horario general del negocio.
-                </p>
-                {formErrors.deliveryHours && (
-                  <p className="form-error">{formErrors.deliveryHours}</p>
-                )}
-              </>
-            )}
-
             <div className="loc-toggle-row" style={{ marginTop: 16 }}>
               <div className="loc-toggle-row__text">
                 <label htmlFor="loc-offers-pickup">Ofrece recogida en tienda</label>
                 <p className="loc-modal-section__desc" style={{ marginTop: 4 }}>
-                  Si está activo, el catálogo muestra la opción de recogida en el local.
+                  Si está activo, el catálogo puede mostrar la opción de recogida en el local.
                 </p>
               </div>
               <Switch
@@ -932,21 +869,6 @@ export default function LocationsPage() {
                 onChange={setOffersPickup}
               />
             </div>
-
-            {offersPickup && (
-              <>
-                <p className="loc-modal-section__desc" style={{ marginTop: 12, marginBottom: 8 }}>
-                  Horario de recogida <span style={{ fontWeight: 400, color: "#94a3b8" }}>(opcional)</span>
-                </p>
-                <BusinessHoursEditor value={pickupHours} onChange={setPickupHours} />
-                <p className="loc-hint">
-                  Si no configurás un horario de recogida, se usará el horario general del negocio.
-                </p>
-                {formErrors.pickupHours && (
-                  <p className="form-error">{formErrors.pickupHours}</p>
-                )}
-              </>
-            )}
 
             {formErrors.deliveryModes && (
               <p className="form-error" style={{ marginTop: 12 }}>

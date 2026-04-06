@@ -104,8 +104,6 @@ export interface LocationResponse {
   businessHours?: BusinessHoursDto | null;
   offersDelivery?: boolean;
   offersPickup?: boolean;
-  deliveryHours?: BusinessHoursDto | null;
-  pickupHours?: BusinessHoursDto | null;
   createdAt: string;
   modifiedAt: string;
 }

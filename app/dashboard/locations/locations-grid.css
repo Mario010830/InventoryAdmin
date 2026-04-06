@@ -37,13 +37,6 @@
   cursor: default;
 }
 
-.loc-hint {
-  font-size: 0.74rem;
-  color: #64748b;
-  margin-top: 10px;
-  line-height: 1.45;
-}
-
 /* ─── BusinessHoursEditor ─── */
 .bh-editor {
   border: 1px solid #e2e8f0;

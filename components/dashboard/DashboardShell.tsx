@@ -156,6 +156,7 @@ const REPORT_SECTIONS: { route: string; label: string }[] = [
   { route: "/reportes/productos", label: "Productos" },
   { route: "/reportes/crm", label: "CRM" },
   { route: "/reportes/operaciones", label: "Operaciones" },
+  { route: "/admin/reports/metrics", label: "Metrics" },
 ];
 
 function SidebarNavIcon({ item }: { item: NavItem }) {
@@ -231,8 +232,10 @@ function DashboardSettingsNavItem({
 
 function ReportsNavItem({ collapsed }: { collapsed: boolean }) {
   const pathname = usePathname();
-  const expanded = pathname.startsWith("/reportes");
-  const parentActive = pathname.startsWith("/reportes");
+  const inReports =
+    pathname.startsWith("/reportes") || pathname.startsWith("/admin/reports");
+  const expanded = inReports;
+  const parentActive = inReports;
   return (
     <div className="nav-expandable">
       <Link
