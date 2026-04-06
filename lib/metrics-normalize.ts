@@ -42,14 +42,36 @@ export function normalizeTrafficMetrics(
   };
 
   const sourcesRaw = pick("sources", "trafficSources", "TrafficSources");
-  const searchesRaw = pick("topSearches", "TopSearches", "searches");
+  const searchesRaw = pick(
+    "topSearchTerms",
+    "TopSearchTerms",
+    "topSearches",
+    "TopSearches",
+    "searches",
+  );
+
+  const trafficSourceLabels: Record<string, string> = {
+    direct: "Directo",
+    search: "Búsqueda",
+    marketplace: "Marketplace",
+    social: "Redes sociales",
+    external: "Externo",
+    referral: "Referido",
+  };
 
   let sources: { label: string; value: number }[] = [];
   if (Array.isArray(sourcesRaw)) {
     sources = sourcesRaw.map((row) => {
       const r = firstRecord(row) ?? {};
-      const label = String(r.label ?? r.name ?? r.source ?? r.key ?? "—");
-      const value = num(r.value ?? r.count ?? r.visits);
+      const rawKey = String(
+        r.source ?? r.key ?? r.name ?? r.label ?? "—",
+      ).toLowerCase();
+      const label =
+        trafficSourceLabels[rawKey] ??
+        String(r.label ?? r.name ?? r.source ?? r.key ?? "—");
+      const value = num(
+        r.percent ?? r.value ?? r.count ?? r.visits ?? r.share,
+      );
       return { label, value };
     });
   }
@@ -66,7 +88,14 @@ export function normalizeTrafficMetrics(
 
   return {
     catalogVisits: num(
-      pick("catalogVisits", "CatalogVisits", "visits", "catalog_visits"),
+      pick(
+        "totalVisits",
+        "TotalVisits",
+        "catalogVisits",
+        "CatalogVisits",
+        "visits",
+        "catalog_visits",
+      ),
     ),
     catalogVisitsChangePct: numOrNull(
       pick(
@@ -87,7 +116,14 @@ export function normalizeTrafficMetrics(
       ),
     ),
     bounceRatePct: numOrNull(
-      pick("bounceRatePct", "bounceRate", "BounceRate", "bounce_rate_pct"),
+      pick(
+        "bounceRatePercent",
+        "BounceRatePercent",
+        "bounceRatePct",
+        "bounceRate",
+        "BounceRate",
+        "bounce_rate_pct",
+      ),
     ),
     bounceRateChangePct: numOrNull(
       pick("bounceRateChangePct", "bounceRateChange", "bounce_rate_change_pct"),
@@ -116,7 +152,13 @@ export function normalizeProductsMetrics(
     return undefined;
   };
 
-  const mvRaw = pick("mostViewed", "MostViewed", "most_viewed");
+  const mvRaw = pick(
+    "mostViewedProducts",
+    "MostViewedProducts",
+    "mostViewed",
+    "MostViewed",
+    "most_viewed",
+  );
   const vtcRaw = pick("viewToCartRate", "ViewToCartRate", "view_to_cart");
 
   let mostViewed: { name: string; count: number }[] = [];
@@ -124,7 +166,9 @@ export function normalizeProductsMetrics(
     mostViewed = mvRaw.map((row) => {
       const r = firstRecord(row) ?? {};
       const name = String(r.name ?? r.productName ?? r.title ?? "—");
-      const count = num(r.count ?? r.views ?? r.value);
+      const count = num(
+        r.viewCount ?? r.views ?? r.count ?? r.value ?? r.ViewCount,
+      );
       return { name, count };
     });
   }
@@ -134,32 +178,74 @@ export function normalizeProductsMetrics(
     viewToCartRate = vtcRaw.map((row) => {
       const r = firstRecord(row) ?? {};
       const name = String(r.name ?? r.productName ?? r.title ?? "—");
-      const ratePct = num(r.ratePct ?? r.rate ?? r.percent ?? r.value);
+      const ratePct = num(
+        r.viewToCartRatePercent ??
+          r.viewToCartRatePct ??
+          r.ratePct ??
+          r.rate ??
+          r.percent ??
+          r.value,
+      );
       return { name, ratePct };
     });
   }
 
+  const pwnsRaw = pick(
+    "productsWithNoSales",
+    "ProductsWithNoSales",
+    "products_with_no_sales",
+  );
+  const productsWithNoSalesCount = Array.isArray(pwnsRaw)
+    ? pwnsRaw.length
+    : num(pwnsRaw);
+
+  const favRaw = pick(
+    "topFavorited",
+    "TopFavorited",
+    "top_favorited",
+    "favoritedProducts",
+  );
+  let savedOrFavorited = num(
+    pick(
+      "savedOrFavorited",
+      "savedFavorited",
+      "SavedFavorited",
+      "favorites",
+      "saved_count",
+      "favoriteCount",
+    ),
+  );
+  if (Array.isArray(favRaw)) {
+    savedOrFavorited = favRaw.reduce((acc, row) => {
+      const r = firstRecord(row);
+      if (r && "count" in r) return acc + num(r.count);
+      return acc + 1;
+    }, 0);
+  }
+
+  const totalViewsRaw = pick(
+    "totalViews",
+    "TotalViews",
+    "total_views",
+    "totalProductViews",
+  );
+  const totalViews =
+    totalViewsRaw !== undefined
+      ? num(totalViewsRaw)
+      : mostViewed.reduce((s, m) => s + m.count, 0);
+
   return {
     activeProducts: num(
-      pick("activeProducts", "ActiveProducts", "active_products"),
-    ),
-    totalViews: num(pick("totalViews", "TotalViews", "total_views")),
-    productsWithNoSales: num(
       pick(
-        "productsWithNoSales",
-        "ProductsWithNoSales",
-        "products_with_no_sales",
+        "activeProducts",
+        "ActiveProducts",
+        "active_products",
+        "totalActiveProducts",
       ),
     ),
-    savedOrFavorited: num(
-      pick(
-        "savedOrFavorited",
-        "savedFavorited",
-        "SavedFavorited",
-        "favorites",
-        "saved_count",
-      ),
-    ),
+    totalViews,
+    productsWithNoSales: productsWithNoSalesCount,
+    savedOrFavorited,
     mostViewed,
     viewToCartRate,
   };
@@ -174,8 +260,37 @@ export function normalizeSalesMetrics(raw: unknown): SalesMetricsNormalized {
     return undefined;
   };
 
-  const funnelRaw = pick("funnel", "Funnel", "conversionFunnel");
+  const funnelRaw = pick(
+    "funnel",
+    "Funnel",
+    "conversionFunnel",
+    "ConversionFunnel",
+  );
   let funnel: SalesFunnelStep[] = [];
+
+  function buildFunnelFromCounts(
+    visits: number,
+    productViews: number,
+    addedToCart: number,
+    completed: number,
+  ): SalesFunnelStep[] {
+    const steps = [
+      { key: "visits", label: "Visitas", count: visits },
+      { key: "views", label: "Vistas de producto", count: productViews },
+      { key: "cart", label: "Añadidos al carrito", count: addedToCart },
+      { key: "done", label: "Completados", count: completed },
+    ];
+    let prev = 0;
+    return steps.map((s, i) => {
+      let dropFromPreviousPct: number | null = null;
+      if (i > 0 && prev > 0) {
+        dropFromPreviousPct = ((prev - s.count) / prev) * 100;
+      }
+      prev = s.count;
+      return { ...s, dropFromPreviousPct };
+    });
+  }
+
   if (Array.isArray(funnelRaw)) {
     funnel = funnelRaw.map((row, i) => {
       const r = firstRecord(row) ?? {};
@@ -187,6 +302,28 @@ export function normalizeSalesMetrics(raw: unknown): SalesMetricsNormalized {
       );
       return { key, label, count, dropFromPreviousPct };
     });
+  } else if (funnelRaw && typeof funnelRaw === "object") {
+    const cf = firstRecord(funnelRaw) ?? {};
+    const visits = num(cf.visits ?? cf.Visits);
+    const productViews = num(cf.productViews ?? cf.ProductViews);
+    const addedToCart = num(cf.addedToCart ?? cf.AddedToCart);
+    const completed = num(
+      cf.completed ?? cf.Completed ?? cf.orders ?? cf.Orders,
+    );
+    const hasAny =
+      visits > 0 ||
+      productViews > 0 ||
+      addedToCart > 0 ||
+      completed > 0 ||
+      Object.keys(cf).length > 0;
+    if (hasAny) {
+      funnel = buildFunnelFromCounts(
+        visits,
+        productViews,
+        addedToCart,
+        completed,
+      );
+    }
   }
 
   if (funnel.length === 0) {
@@ -194,35 +331,35 @@ export function normalizeSalesMetrics(raw: unknown): SalesMetricsNormalized {
     const productViews = num(pick("funnelProductViews", "productViews"));
     const addedToCart = num(pick("funnelAddedToCart", "addedToCart"));
     const completed = num(pick("funnelCompleted", "completed", "orders"));
-
-    const steps = [
-      { key: "visits", label: "Visitas", count: visits },
-      { key: "views", label: "Vistas de producto", count: productViews },
-      { key: "cart", label: "Añadidos al carrito", count: addedToCart },
-      { key: "done", label: "Completados", count: completed },
-    ];
-    let prev = 0;
-    funnel = steps.map((s, i) => {
-      let dropFromPreviousPct: number | null = null;
-      if (i > 0 && prev > 0) {
-        dropFromPreviousPct = ((prev - s.count) / prev) * 100;
-      }
-      prev = s.count;
-      return { ...s, dropFromPreviousPct };
-    });
+    funnel = buildFunnelFromCounts(
+      visits,
+      productViews,
+      addedToCart,
+      completed,
+    );
   }
 
   return {
-    revenue: num(pick("revenue", "Revenue", "totalRevenue")),
+    revenue: num(
+      pick("totalRevenue", "TotalRevenue", "revenue", "Revenue"),
+    ),
     revenueChangePct: numOrNull(
       pick("revenueChangePct", "revenueChange", "revenue_change_pct"),
     ),
-    orders: num(pick("orders", "Orders", "orderCount")),
+    orders: num(
+      pick("totalOrders", "TotalOrders", "orders", "Orders", "orderCount"),
+    ),
     ordersChangePct: numOrNull(
       pick("ordersChangePct", "ordersChange", "orders_change_pct"),
     ),
     avgOrderValue: num(
-      pick("avgOrderValue", "averageOrderValue", "aov", "AvgOrderValue"),
+      pick(
+        "avgOrderValue",
+        "averageOrderValue",
+        "aov",
+        "AvgOrderValue",
+        "AverageOrderValue",
+      ),
     ),
     avgOrderValueChangePct: numOrNull(
       pick(
@@ -232,7 +369,13 @@ export function normalizeSalesMetrics(raw: unknown): SalesMetricsNormalized {
       ),
     ),
     cartAbandonmentRatePct: numOrNull(
-      pick("cartAbandonmentRatePct", "cartAbandonmentRate", "abandonmentRate"),
+      pick(
+        "cartAbandonmentRatePercent",
+        "CartAbandonmentRatePercent",
+        "cartAbandonmentRatePct",
+        "cartAbandonmentRate",
+        "abandonmentRate",
+      ),
     ),
     cartAbandonmentChangePct: numOrNull(
       pick("cartAbandonmentChangePct", "abandonment_change_pct"),
@@ -280,13 +423,34 @@ export function normalizeCustomersMetrics(
     buyersReturning = retB;
   }
 
+  const reviewsRaw = pick("reviews", "Reviews", "recentReviews");
+  let reviewsReceived = num(
+    pick(
+      "reviewsReceived",
+      "ReviewsReceived",
+      "reviewCount",
+      "reviewsCount",
+      "totalReviews",
+    ),
+  );
+  if (Array.isArray(reviewsRaw)) {
+    reviewsReceived = reviewsRaw.length;
+  }
+
   return {
     newBuyers: newB,
     returningBuyers: retB,
-    avgRating: numOrNull(pick("avgRating", "averageRating", "AvgRating")),
-    reviewsReceived: num(
-      pick("reviewsReceived", "ReviewsReceived", "reviewCount"),
+    avgRating: numOrNull(
+      pick(
+        "ratingsAverage",
+        "RatingsAverage",
+        "avgRating",
+        "averageRating",
+        "AvgRating",
+        "AverageRating",
+      ),
     ),
+    reviewsReceived,
     buyersNew,
     buyersReturning,
     ratingsDistribution,
