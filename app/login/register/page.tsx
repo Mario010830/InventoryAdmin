@@ -9,7 +9,6 @@ import {
   useLoginMutation,
   useRegiterWithOrganizationMutation,
 } from "../_service/authApi";
-import Image from "next/image";
 import { DatePickerSimple } from "@/components/DatePickerSimple";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { RegistrationBillingCycle } from "@/lib/auth-types";
@@ -74,7 +73,6 @@ export default function RegisterPage() {
 
   const phoneDigitsOnly = phoneDigits.replace(/\D/g, "");
   const phoneValidByPrefix =
-    !phoneDigitsOnly ||
     (phonePrefix === "+53" && /^\d{7,8}$/.test(phoneDigitsOnly)) ||
     (phonePrefix === "+1" && /^\d{10}$/.test(phoneDigitsOnly));
   const phoneFull = phoneDigitsOnly ? `${phonePrefix}${phoneDigitsOnly}` : "";
@@ -85,6 +83,7 @@ export default function RegisterPage() {
     birthday &&
     passwordValid &&
     !passwordMismatch &&
+    !!phoneDigitsOnly &&
     phoneValidByPrefix;
 
   const orgValid = orgName.length >= 2 && orgCode.length >= 2;
@@ -115,7 +114,9 @@ export default function RegisterPage() {
       if (passwordMismatch) setErrorMessage("Las contraseñas no coinciden.");
       else if (password.length > 0 && !passwordValid)
         setErrorMessage("La contraseña requiere 6 caracteres, incluyendo al menos 1 letra en mayúsculas y 1 carácter especial.");
-      else if (phoneDigitsOnly && !phoneValidByPrefix)
+      else if (!phoneDigitsOnly)
+        setErrorMessage("El teléfono es requerido.");
+      else if (!phoneValidByPrefix)
         setErrorMessage(phonePrefix === "+53" ? "Teléfono Cuba: 7 u 8 dígitos." : "Teléfono EE.UU./Canadá: 10 dígitos.");
       return;
     }
@@ -207,12 +208,11 @@ export default function RegisterPage() {
 
       <header className="auth-header">
         <Link className="auth-header__logo" href="/">
-          <Image
+          <img
             src="/assets/elcuadre.png?v=2"
             alt="Tu Cuadre"
             className="auth-header__logo-img"
             height={32}
-            width={32}
           />
         </Link>
       </header>
@@ -311,7 +311,7 @@ export default function RegisterPage() {
                   </div>
 
                   <div className="form-group">
-                    <label>Teléfono <span className="optional">(opcional)</span></label>
+                    <label>Teléfono *</label>
                     <div className="input-wrapper input-wrapper--phone">
                       <Select
                         value={phonePrefix}
@@ -363,6 +363,9 @@ export default function RegisterPage() {
                         className="phone-number-input"
                       />
                     </div>
+                    {touchedPersonal.phone && !phoneDigitsOnly ? (
+                      <span className="form-error">El teléfono es requerido</span>
+                    ) : null}
                     {touchedPersonal.phone && phoneDigitsOnly && !phoneValidByPrefix ? (
                       <span className="form-error">
                         {phonePrefix === "+53" ? "Introduce 7 u 8 dígitos (ej. 51234567)." : "Introduce 10 dígitos (ej. 2345678901)."}
