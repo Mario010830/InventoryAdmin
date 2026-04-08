@@ -1,7 +1,7 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { BarChart2, LayoutGrid } from "lucide-react";
+import { BarChart2, LayoutGrid, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -19,6 +19,7 @@ import "@/app/dashboard/dashboard.css";
 import { SETTINGS_SECTIONS } from "@/app/dashboard/settings/settingsNav";
 import { useLogoutMutation } from "@/app/login/_service/authApi";
 import { logoutSuccessfull } from "@/app/login/_slices/authSlice";
+import { ChatWidget } from "@/components/ChatWidget";
 import { TopbarCurrencySelector } from "@/components/TopbarCurrencySelector";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 
@@ -274,6 +275,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const isMobileNav = useIsMobileNav();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [manualChatOpen, setManualChatOpen] = useState(false);
   const user = useAppSelector((state) => state.auth) || null;
   const { has: hasPermission } = useUserPermissionCodes();
 
@@ -475,6 +477,20 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             <button
               type="button"
               className="topbar-icon-btn"
+              aria-label="Asistente del manual"
+              aria-expanded={manualChatOpen}
+              aria-haspopup="dialog"
+              onClick={() => setManualChatOpen((o) => !o)}
+            >
+              <MessageCircle
+                className="size-[22px] shrink-0"
+                strokeWidth={1.75}
+                aria-hidden
+              />
+            </button>
+            <button
+              type="button"
+              className="topbar-icon-btn"
               aria-label="Notificaciones"
             >
               <Icon name="notifications_none" />
@@ -491,6 +507,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
         <main className="page-content">{children}</main>
       </div>
+
+      <ChatWidget
+        apiUrl={process.env.NEXT_PUBLIC_API_URL}
+        hideFab
+        open={manualChatOpen}
+        onOpenChange={setManualChatOpen}
+      />
     </div>
   );
 }

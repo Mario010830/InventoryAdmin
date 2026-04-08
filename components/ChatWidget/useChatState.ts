@@ -56,6 +56,9 @@ function friendlyError(status: number, bodyText: string): string {
 
 export interface UseChatStateOptions {
   apiUrl?: string;
+  /** Modo controlado: panel abierto/cerrado desde el padre (p. ej. botón en el topbar). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function useChatState(options?: UseChatStateOptions) {
@@ -65,7 +68,23 @@ export function useChatState(options?: UseChatStateOptions) {
       : getApiUrl();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+
+  const openProp = options?.open;
+  const onOpenChangeProp = options?.onOpenChange;
+  const controlled =
+    typeof openProp === "boolean" && typeof onOpenChangeProp === "function";
+  const isOpen = controlled ? openProp : uncontrolledOpen;
+  const setIsOpen = useCallback(
+    (next: boolean) => {
+      if (controlled) {
+        onOpenChangeProp(next);
+      } else {
+        setUncontrolledOpen(next);
+      }
+    },
+    [controlled, onOpenChangeProp],
+  );
 
   const clearConversation = useCallback(() => {
     setMessages([]);
