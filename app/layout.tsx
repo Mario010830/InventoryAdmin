@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/sonner"
 
 
 export const metadata: Metadata = {
-  title: "Strova — Gestión de inventario simple y poderosa",
+  title: "Tu Cuadre — Gestión de inventario simple y poderosa",
   description:
     "Controla productos, proveedores, ubicaciones y movimientos de stock desde una sola plataforma.",
 };

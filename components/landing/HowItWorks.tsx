@@ -53,7 +53,7 @@ const AFTER_ITEMS = [
 
 const TESTIMONIALS = [
   {
-    text: "Antes manejábamos el inventario en Excel y siempre teníamos errores de conteo. Con Strova, ahora cada movimiento queda registrado y las alertas de stock mínimo nos han salvado más de una vez.",
+    text: "Antes manejábamos el inventario en Excel y siempre teníamos errores de conteo. Con Tu Cuadre, ahora cada movimiento queda registrado y las alertas de stock mínimo nos han salvado más de una vez.",
     name: "María Rodríguez",
     role: "Gerente de Operaciones, LogiTech Solutions",
     initials: "MR",
@@ -245,7 +245,7 @@ export function HowItWorks() {
               <span className="gradient-text" style={{ textTransform: "uppercase", letterSpacing: "2px" }}>control total</span>
             </h2>
             <p className="section-subtitle">
-              Así se ve el antes y el después de usar Strova.
+              Así se ve el antes y el después de usar Tu Cuadre.
             </p>
           </div>
 
@@ -253,7 +253,7 @@ export function HowItWorks() {
             <div className="before-after__col before-after__col--before">
               <div className="before-after__label">
                 <Icon name="close" />
-                Sin Strova
+                Sin Tu Cuadre
               </div>
               <ul className="before-after__list">
                 {BEFORE_ITEMS.map((item) => (
@@ -272,7 +272,7 @@ export function HowItWorks() {
             <div className="before-after__col before-after__col--after">
               <div className="before-after__label">
                 <Icon name="check" />
-                Con Strova
+                Con Tu Cuadre
               </div>
               <ul className="before-after__list">
                 {AFTER_ITEMS.map((item) => (

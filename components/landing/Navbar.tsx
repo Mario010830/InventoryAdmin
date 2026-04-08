@@ -29,8 +29,8 @@ export function Navbar() {
       <div className="navbar__container container">
         <Link href="/" className="navbar__logo">
           <img
-            src="/assets/strova-claro-nobg.png"
-            alt="Strova"
+            src="/assets/elcuadre.png?v=2"
+            alt="Tu Cuadre"
             className="navbar__logo-img"
             height={32}
           />
@@ -60,9 +60,6 @@ export function Navbar() {
         </ul>
 
         <div className="navbar__actions">
-          <Link href="/catalog" className="btn-ghost">
-            Catálogo
-          </Link>
           <Link href="/login" className="btn-ghost">
             Iniciar Sesión
           </Link>
@@ -96,12 +93,6 @@ export function Navbar() {
           <a onClick={() => handleNavClick("cta")} role="button">
             Precios
           </a>
-          <Link
-            href="/catalog"
-            onClick={() => setMobileOpen(false)}
-          >
-            Catálogo
-          </Link>
           <div className="navbar__mobile-actions">
             <Link
               href="/login"

@@ -34,7 +34,7 @@ export function CtaSection() {
             </h2>
             <p className="final-cta__desc">
               Únete a cientos de empresas que ya optimizaron sus operaciones con
-              Strova. Empieza gratis hoy, sin compromiso.
+              Tu Cuadre. Empieza gratis hoy, sin compromiso.
             </p>
             <div className="final-cta__actions">
               <Link href="/login/register" className="btn-primary btn-large">

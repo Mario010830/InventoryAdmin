@@ -77,6 +77,8 @@ interface Ray {
   noiseOffY: number;
 }
 
+const BRAND_HUES = [0.47, 0.11]; // teal, amber
+
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
@@ -96,7 +98,7 @@ function buildRays(w: number, h: number): Ray[] {
       len: 40 + Math.random() * maxLen,
       speed: 0.06 + Math.random() * 0.2,
       phase: Math.random() * Math.PI * 2,
-      hue: 0.57 + Math.random() * 0.1,
+      hue: BRAND_HUES[i % BRAND_HUES.length] + (Math.random() - 0.5) * 0.035,
       opacity: 0.03 + Math.random() * 0.1,
       noiseOffX: Math.random() * 100,
       noiseOffY: Math.random() * 100,

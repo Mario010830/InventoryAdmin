@@ -10,24 +10,24 @@ const FEATURES = [
     title: "Gestión de Productos",
     description:
       "Catálogo completo con categorías, precios, costos e imágenes. Organiza tu inventario por categorías con colores e iconos personalizados.",
-    color: "#3b82f6",
-    bgColor: "rgba(59, 130, 246, 0.08)",
+    color: "#0f766e",
+    bgColor: "rgba(15, 118, 110, 0.08)",
   },
   {
     icon: "swap_horiz",
     title: "Movimientos de Stock",
     description:
       "Registra entradas, salidas y ajustes en tiempo real. Cada movimiento guarda stock anterior, nuevo, costos y documentos de referencia.",
-    color: "#06b6d4",
-    bgColor: "rgba(6, 182, 212, 0.08)",
+    color: "#f59e0b",
+    bgColor: "rgba(245, 158, 11, 0.08)",
   },
   {
     icon: "warehouse",
     title: "Multi-almacén",
     description:
       "Gestiona múltiples ubicaciones por organización. Consulta stock por producto y ubicación, y realiza traspasos entre almacenes.",
-    color: "#2563eb",
-    bgColor: "rgba(37, 99, 235, 0.08)",
+    color: "#0d9488",
+    bgColor: "rgba(13, 148, 136, 0.08)",
   },
   {
     icon: "local_shipping",

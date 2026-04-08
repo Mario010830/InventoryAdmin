@@ -9,8 +9,8 @@ import { Icon } from "@/components/ui/Icon";
 import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 
 const LOW_STOCK_THRESHOLD = 10;
-const DEFAULT_ACCENT = "#534AB7";
-const DEFAULT_BG = "rgba(83,74,183,.12)";
+const DEFAULT_ACCENT = "#0F766E";
+const DEFAULT_BG = "rgba(15,118,110,.12)";
 
 function hexToRgba(hex: string, alpha: number): string {
   const h = hex.replace("#", "");
@@ -161,7 +161,7 @@ export function CatalogSection() {
     <section className="catalog-section">
       <div className="catalog-section__inner container">
         <header className="catalog-section__hdr">
-          <span className="catalog-section__tag">Compra en Strova</span>
+          <span className="catalog-section__tag">Compra en Tu Cuadre</span>
           <h2 className="catalog-section__ttl">
             Explora productos
             <br />

@@ -174,8 +174,8 @@ function BrandIcon() {
   return (
     // biome-ignore lint/performance/noImgElement: mismo patrón que el layout del dashboard (logo estático)
     <img
-      src="/assets/logo-claro-nobg.png"
-      alt="Strova Logo"
+      src="/assets/logocuadre.PNG?v=2"
+      alt="Tu Cuadre Logo"
       className="brand-logo"
       height={32}
     />
@@ -366,7 +366,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             <div className="brand-icon">
               <BrandIcon />
             </div>
-            {showNavText && <span className="brand-text">Strova</span>}
+            {showNavText && <span className="brand-text">Tu Cuadre</span>}
           </Link>
         </div>
 

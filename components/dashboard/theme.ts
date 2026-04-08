@@ -3,9 +3,9 @@
  * Sidebar permanece oscuro; área principal clara.
  */
 export const theme = {
-  primary: "#202B3D",
+  primary: "#0F766E",
   onPrimary: "#FFFFFF",
-  accent: "#4F46E5",
+  accent: "#F59E0B",
   background: "#F8FAFC",
   surface: "#FFFFFF",
   primaryText: "#1E293B",
@@ -15,5 +15,5 @@ export const theme = {
   success: "#22C55E",
   divider: "#E2E8F0",
   /** Colores adicionales para gráficos */
-  chart: ["#4F46E5", "#22C55E", "#F59E0B", "#06B6D4", "#EC4899", "#64748B"],
+  chart: ["#0F766E", "#F59E0B", "#14B8A6", "#F97316", "#0EA5E9", "#64748B"],
 } as const;

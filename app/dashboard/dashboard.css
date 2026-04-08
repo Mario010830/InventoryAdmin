@@ -65,7 +65,7 @@
   width: 34px;
   height: 34px;
   min-width: 34px;
-  background: #4f6ef7;
+  background: #0f766e;
   border-radius: 9px;
   display: grid;
   place-items: center;
@@ -85,7 +85,7 @@
 }
 
 .sidebar .brand-text span {
-  color: #a5b4fc;
+  color: #fcd34d;
 }
 
 .sidebar-nav {
@@ -158,7 +158,7 @@
 }
 
 .sidebar .nav-item.active .nav-item-lucide {
-  color: #818cf8;
+  color: #2dd4bf;
 }
 
 .sidebar .nav-item:hover {
@@ -171,13 +171,13 @@
 }
 
 .sidebar .nav-item.active {
-  background: rgba(79, 110, 247, 0.2);
-  color: #c7d2fe;
+  background: rgba(15, 118, 110, 0.25);
+  color: #ccfbf1;
   font-weight: 600;
 }
 
 .sidebar .nav-item.active .material-icons {
-  color: #818cf8;
+  color: #2dd4bf;
 }
 
 /* Configuración — subnavegación por anclas */
@@ -221,9 +221,9 @@
 }
 
 .nav-sub-item--active {
-  color: #c7d2fe;
+  color: #ccfbf1;
   font-weight: 600;
-  background: rgba(79, 110, 247, 0.12);
+  background: rgba(15, 118, 110, 0.16);
 }
 
 .nav-sub-dot {
@@ -276,7 +276,7 @@
   height: 34px;
   min-width: 34px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #38bdf8, #818cf8);
+  background: linear-gradient(135deg, #0f766e, #f59e0b);
   color: #fff;
   display: grid;
   place-items: center;
@@ -406,7 +406,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #38bdf8, #818cf8);
+  background: linear-gradient(135deg, #0f766e, #f59e0b);
   color: #fff;
   display: grid;
   place-items: center;

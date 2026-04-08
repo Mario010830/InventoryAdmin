@@ -35,22 +35,29 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched({ email: true, password: true });
-    if (!email || !password) return;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+    const emailNormalized = email.trim();
+    if (!emailNormalized || !password) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNormalized)) return;
 
     setIsLoading(true);
     setErrorMessage("");
     try {
-      const res = await login({ email, password })
-      if (res.data?.statusCode === 200) {
-        dispatch(loginSuccessfull(res.data?.result as AuthState))
-        // toast.success("¡Bienvenido de nuevo!");
-        router.push("/dashboard");
-        router.refresh();
+      const res = await login({ email: emailNormalized, password }).unwrap();
+      if (res.statusCode !== 200 || !res.result) {
+        throw new Error("No se pudo iniciar sesión. Intenta de nuevo.");
       }
+      dispatch(loginSuccessfull(res.result as AuthState));
+      router.push("/dashboard");
+      router.refresh();
     } catch (err) {
+      const fallback = "Ocurrió un error. Intenta de nuevo.";
+      const apiMsg =
+        err && typeof err === "object" && "data" in err
+          ? (err as { data?: { message?: string } }).data?.message
+          : undefined;
+      setErrorMessage(apiMsg ?? (err instanceof Error ? err.message : fallback));
+    } finally {
       setIsLoading(false);
-      setErrorMessage(err instanceof Error ? err.message : "Ocurrió un error. Intenta de nuevo.");
     }
   };
 
@@ -59,8 +66,8 @@ export default function LoginPage() {
       <header className="auth-header">
         <Link className="auth-header__logo" href="/">
           <img
-            src="/assets/strova-claro-nobg.png"
-            alt="Strova"
+            src="/assets/elcuadre.png?v=2"
+            alt="Tu Cuadre"
             className="auth-header__logo-img"
             height={32}
           />
@@ -148,7 +155,7 @@ export default function LoginPage() {
           </button>
         </form>
         <p className="auth-card__footer">
-          ¿Nuevo en Strova? <Link href="/login/register">Crear cuenta</Link>
+          ¿Nuevo en Tu Cuadre? <Link href="/login/register">Crear cuenta</Link>
         </p>
       </div>
     </div>

@@ -208,8 +208,8 @@ export default function RegisterPage() {
       <header className="auth-header">
         <Link className="auth-header__logo" href="/">
           <Image
-            src="/assets/strova-claro-nobg.png"
-            alt="Strova"
+            src="/assets/elcuadre.png?v=2"
+            alt="Tu Cuadre"
             className="auth-header__logo-img"
             height={32}
             width={32}
@@ -266,7 +266,7 @@ export default function RegisterPage() {
 
             {currentStep === 0 ? (
               <>
-                <h1 className="auth-card__title">Crea tu cuenta de Strova</h1>
+                <h1 className="auth-card__title">Crea tu cuenta de Tu Cuadre</h1>
                 <p className="auth-card__subtitle">Paso 1 de 3 — Tus datos de administrador</p>
 
                 <form className="auth-card__form" onSubmit={handleNextStep}>

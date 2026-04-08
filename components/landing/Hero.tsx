@@ -91,7 +91,7 @@ export function Hero() {
             </span>{" "}
             tu inventario
             <br />
-            con <span className="hero__title-gradient">Strova</span>
+            con <span className="hero__title-gradient">Tu Cuadre</span>
           </h1>
 
           <p className="hero__subtitle">
@@ -135,7 +135,7 @@ export function Hero() {
                 <span />
                 <span />
               </div>
-              <span className="dashboard-title">Strova — Dashboard</span>
+              <span className="dashboard-title">Tu Cuadre — Dashboard</span>
             </div>
             <div className="dashboard-body">
               <div className="dashboard-sidebar">

@@ -225,13 +225,13 @@
 }
 
 .auth-card__footer a {
-  color: #635bff;
+  color: #0f766e;
   font-weight: 600;
   transition: color 0.2s ease;
 }
 
 .auth-card__footer a:hover {
-  color: #4f46e5;
+  color: #0d9488;
 }
 
 /* Checkbox (Recordarme) */
@@ -266,8 +266,8 @@
 }
 
 .auth-checkbox input:checked + .auth-checkbox__box {
-  background: #635bff;
-  border-color: #635bff;
+  background: #0f766e;
+  border-color: #0f766e;
 }
 
 .auth-checkbox input:checked + .auth-checkbox__box::after {
@@ -339,12 +339,12 @@
 .form-link {
   font-size: 0.85rem;
   font-weight: 500;
-  color: #635bff;
+  color: #0f766e;
   cursor: pointer;
 }
 
 .form-link:hover {
-  color: #4f46e5;
+  color: #0d9488;
 }
 
 .input-wrapper {
@@ -360,8 +360,8 @@
 }
 
 .input-wrapper.focused {
-  border-color: #635bff;
-  box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.12);
+  border-color: #0f766e;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
 }
 
 .input-wrapper.error {
@@ -373,8 +373,8 @@
 }
 
 .input-wrapper:focus-within {
-  border-color: #635bff;
-  box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.12);
+  border-color: #0f766e;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
 }
 
 .input-wrapper .input-icon,
@@ -502,13 +502,13 @@
 
 .auth-btn:not(.auth-btn--google):not(.auth-btn--outline),
 .auth-btn--primary {
-  background: #635bff;
+  background: #0f766e;
 }
 
 .auth-btn:not(.auth-btn--google):not(.auth-btn--outline):hover:not(:disabled),
 .auth-btn--primary:hover:not(:disabled) {
-  background: #5851e6;
-  box-shadow: 0 4px 14px rgba(99, 91, 255, 0.35);
+  background: #0d9488;
+  box-shadow: 0 4px 14px rgba(15, 118, 110, 0.35);
 }
 
 .auth-btn:active:not(:disabled) {
@@ -618,14 +618,14 @@
 }
 
 .register-plan-card:hover {
-  border-color: #c7d2fe;
-  background: #fafbff;
+  border-color: #99f6e4;
+  background: #f0fdfa;
 }
 
 .register-plan-card--selected {
-  border-color: #635bff;
-  background: linear-gradient(160deg, #f5f3ff 0%, #eef2ff 100%);
-  box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.18);
+  border-color: #0f766e;
+  background: linear-gradient(160deg, #f0fdfa 0%, #fef3c7 100%);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.2);
 }
 
 .register-plan-card__name {
@@ -653,7 +653,7 @@
 }
 
 .register-plan-card--selected .register-plan-card__limits {
-  border-top-color: rgba(99, 91, 255, 0.25);
+  border-top-color: rgba(15, 118, 110, 0.3);
 }
 
 .register-billing-toggle {
@@ -685,9 +685,9 @@
 }
 
 .register-billing-toggle__btn--active {
-  border-color: #635bff;
-  background: #f5f3ff;
-  color: #4f46e5;
+  border-color: #0f766e;
+  background: #f0fdfa;
+  color: #0f766e;
 }
 
 .register-success-block {
@@ -763,7 +763,7 @@
   background: var(--gradient-primary);
   color: #fff;
   border-color: transparent;
-  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 12px rgba(15, 118, 110, 0.35);
 }
 
 .step-dot.done {
@@ -780,7 +780,7 @@
 }
 
 .step-line.active {
-  background: linear-gradient(90deg, #22c55e, #3b82f6);
+  background: linear-gradient(90deg, #0f766e, #f59e0b);
 }
 
 @keyframes spin {

@@ -61,8 +61,8 @@ export default function ForgotPasswordPage() {
       <header className="auth-header">
         <Link className="auth-header__logo" href="/">
           <img
-            src="/assets/strova-claro-nobg.png"
-            alt="Strova"
+            src="/assets/elcuadre.png?v=2"
+            alt="Tu Cuadre"
             className="auth-header__logo-img"
             height={32}
             width={32}

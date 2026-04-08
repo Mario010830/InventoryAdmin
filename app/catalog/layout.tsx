@@ -62,7 +62,7 @@ export default function CatalogLayout({ children }: { children: React.ReactNode 
       <div className="store-layout">
         <nav className="store-nav">
           <Link href="/" className="store-nav__brand">
-            <img src="/assets/strova-claro-nobg.png" alt="Strova" className="store-nav__logo" />
+            <img src="/assets/elcuadre.png?v=2" alt="Tu Cuadre" className="store-nav__logo" />
             <span className="store-nav__brand-label">Tienda</span>
           </Link>
 
