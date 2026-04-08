@@ -33,7 +33,7 @@ import { cupToDisplayAmount, roundPriceDecimals } from "@/lib/displayCurrencyFor
 function getFallbackKpis(formatCup: (n: number) => string) {
   return [
   { label: "Total Productos", value: "1,284", icon: "inventory_2" as const, trend: "+12% vs mes pasado", trendUp: true, iconBg: "#EEF2FF", iconColor: theme.accent },
-  { label: "Valor Inventario", value: formatCup(45200), icon: "payments" as const, trend: "+5.4% vs mes pasado", trendUp: true, iconBg: "#F0FDF4", iconColor: theme.success },
+  { label: "Valor Inventario", value: formatCup(45200), icon: "payments" as const, iconBg: "#F0FDF4", iconColor: theme.success },
   { label: "Stock Bajo", value: "18", icon: "warning" as const, trend: "-2 desde ayer", trendUp: false, iconBg: "#FEF2F2", iconColor: theme.error },
   { label: "Órdenes Semanales", value: "156", icon: "shopping_cart" as const, trend: "+22% vs mes pasado", trendUp: true, iconBg: "#EEF2FF", iconColor: theme.accent },
 ];
@@ -113,8 +113,6 @@ function buildKpisFromSummary(
       label: "Valor Inventario",
       value: k.inventoryValue != null ? formatCup(k.inventoryValue) : formatCup(45200),
       icon: "payments" as const,
-      trend: trendStr(k.inventoryValueTrend) + " vs mes pasado",
-      trendUp: (k.inventoryValueTrend ?? 0) >= 0,
       iconBg: "#F0FDF4",
       iconColor: theme.success,
     },
@@ -208,8 +206,6 @@ export default function DashboardPage() {
       label: "Total vendido",
       value: fmtMoney(ss?.totalRevenue ?? ss?.totalAmount),
       icon: "point_of_sale" as const,
-      trend: "Últimos 30 días",
-      trendUp: true,
       iconBg: "#F0FDF4",
       iconColor: theme.success,
     },
