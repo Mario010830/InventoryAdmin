@@ -5,19 +5,24 @@ import type { ReactNode } from "react";
 export function ReportPageLayout({
   title,
   description,
+  controls,
   children,
 }: {
   title: string;
   description: string;
+  controls?: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <div className="w-full min-w-0">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          {title}
-        </h1>
-        <p className="mt-1 text-sm text-slate-600">{description}</p>
+    <div className="dashboard-report-layout">
+      <header className="dashboard-report-layout__head">
+        <div className="dashboard-report-layout__title">
+          <h1>{title}</h1>
+          <p>{description}</p>
+        </div>
+        {controls ? (
+          <div className="dashboard-report-layout__controls">{controls}</div>
+        ) : null}
       </header>
       {children}
     </div>

@@ -215,7 +215,7 @@ export function ReportTable({
 
   if (loading) {
     return (
-      <div className="overflow-hidden rounded-xl border border-[#eceff4] bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
+      <div className="dashboard-card overflow-hidden">
         <div className="border-b border-[#eef2f6] px-4 py-3">
           <div className="h-4 w-40 animate-pulse rounded bg-slate-200" />
         </div>
@@ -238,8 +238,8 @@ export function ReportTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[#eceff4] bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eef2f6] px-4 py-3">
+    <div className="dashboard-card overflow-hidden">
+      <div className="report-table__top flex flex-wrap items-center justify-between gap-3 border-b border-[#eef2f6] px-4 py-3">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           {searchable ? (
             <input
@@ -291,7 +291,7 @@ export function ReportTable({
         ref={scrollRef}
         onScroll={onScroll}
         className={cn(
-          "overflow-auto",
+          "report-table__middle overflow-auto",
           !isServer && "max-h-[min(520px,70vh)]",
         )}
       >
@@ -347,7 +347,7 @@ export function ReportTable({
         </table>
       </div>
       {isServer && serverPagination ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#eef2f6] px-4 py-3 text-sm text-slate-600">
+        <div className="report-table__bottom flex flex-wrap items-center justify-between gap-3 border-t border-[#eef2f6] px-4 py-3 text-sm text-slate-600">
           <span>
             Página {serverPagination.page} de {totalPages} —{" "}
             {serverPagination.totalCount} registro

@@ -1,18 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  Bar,
-  BarChart,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import dynamic from "next/dynamic";
+import type { ApexOptions } from "apexcharts";
 import { ArrowDownCircle, ArrowUpCircle, SlidersHorizontal, Waypoints } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getApiUrl, getToken } from "@/lib/auth-api";
@@ -30,6 +20,7 @@ import type {
   OperationsReportResponse,
   ReportFilters as ReportFilterParams,
 } from "@/lib/types/reports";
+import { apexChartLocaleEs, apexNoDataEs, formatChartNumber } from "@/lib/apexcharts-es";
 
 const TYPE_LABEL: Record<string, string> = {
   entry: "Entrada",
@@ -46,6 +37,7 @@ const TYPE_TEXT_CLASS: Record<string, string> = {
   exit: "text-red-600",
   adjustment: "text-blue-600",
 };
+const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 const REASON_LABEL: Record<string, string> = {
   Venta: "Venta",
   Correccion: "Corrección",
@@ -178,6 +170,44 @@ export default function ReportesOperacionesPage() {
     [summaryRows],
   );
 
+  const byTypeOptions: ApexOptions = useMemo(
+    () => ({
+      noData: apexNoDataEs,
+      chart: { type: "bar", height: 320, toolbar: { show: false }, ...apexChartLocaleEs },
+      plotOptions: { bar: { borderRadius: 6, borderRadiusApplication: "end", columnWidth: "42%" } },
+      dataLabels: { enabled: false },
+      xaxis: { categories: byType.map((r) => TYPE_LABEL[r.type] ?? r.type) },
+      yaxis: { labels: { formatter: (v) => formatChartNumber(Number(v)) } },
+      legend: { show: true, position: "top", horizontalAlign: "left" },
+      colors: ["#64748b", "#334155"],
+      tooltip: { y: { formatter: (v) => formatChartNumber(Number(v)) } },
+      grid: { borderColor: "#e2e8f0", strokeDashArray: 3 },
+    }),
+    [byType],
+  );
+  const byTypeSeries = useMemo(
+    () => [
+      { name: "Movimientos", data: byType.map((r) => r.count) },
+      { name: "Unidades", data: byType.map((r) => r.quantitySum) },
+    ],
+    [byType],
+  );
+
+  const proportionOptions: ApexOptions = useMemo(
+    () => ({
+      noData: apexNoDataEs,
+      labels: pieRows.map((r) => TYPE_LABEL[r.type] ?? r.type),
+      colors: pieRows.map((r) => TYPE_COLOR[r.type] ?? "#94a3b8"),
+      chart: { type: "donut", ...apexChartLocaleEs },
+      legend: { position: "bottom" },
+      dataLabels: { enabled: false },
+      plotOptions: { pie: { donut: { size: "56%" } } },
+      tooltip: { y: { formatter: (v) => formatChartNumber(Number(v)) } },
+      stroke: { colors: ["#fff"], width: 2 },
+    }),
+    [pieRows],
+  );
+
   const exportSummaryPdf = () => {
     const rows = summaryRows.map((r) => ({
       tipo: r.label,
@@ -209,9 +239,8 @@ export default function ReportesOperacionesPage() {
     <ReportPageLayout
       title="Reporte de operaciones"
       description="Análisis de entradas, salidas y ajustes con detalle de movimientos."
+      controls={<ReportFilters onFilterChange={setFilters} />}
     >
-      <ReportFilters onFilterChange={setFilters} />
-
       {error ? (
         <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -249,22 +278,7 @@ export default function ReportesOperacionesPage() {
         <section className="rounded-xl border border-[#eceff4] bg-white p-4 shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
           <h3 className="mb-3 text-sm font-semibold text-slate-800">Movimientos por tipo</h3>
           <div className="h-[320px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={byType} margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
-                <XAxis dataKey="type" tickFormatter={(v) => TYPE_LABEL[v] ?? v} />
-                <YAxis />
-                <Tooltip
-                  labelFormatter={(label) => TYPE_LABEL[String(label)] ?? String(label)}
-                  formatter={(value: number | string | undefined, key: string | undefined) => [
-                    String(value ?? 0),
-                    key === "count" ? "Movimientos" : "Unidades",
-                  ]}
-                />
-                <Legend />
-                <Bar dataKey="count" name="Movimientos" fill="#64748b" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="quantitySum" name="Unidades" fill="#334155" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <ReactApexChart options={byTypeOptions} series={byTypeSeries} type="bar" height={320} />
           </div>
         </section>
 
@@ -272,22 +286,12 @@ export default function ReportesOperacionesPage() {
           <h3 className="mb-3 text-sm font-semibold text-slate-800">Proporción de movimientos</h3>
           {(data?.totalMovements ?? 0) > 0 ? (
             <div className="h-[320px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieRows} dataKey="count" nameKey="type" outerRadius={110} label>
-                    {pieRows.map((row) => (
-                      <Cell key={row.type} fill={TYPE_COLOR[row.type] ?? "#94a3b8"} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    labelFormatter={(label) => TYPE_LABEL[String(label)] ?? String(label)}
-                    formatter={(v: number | string | undefined) => [
-                      String(v ?? 0),
-                      "Movimientos",
-                    ]}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <ReactApexChart
+                options={proportionOptions}
+                series={pieRows.map((r) => r.count)}
+                type="donut"
+                height={320}
+              />
             </div>
           ) : (
             <p className="py-20 text-center text-sm text-slate-500">
@@ -297,18 +301,18 @@ export default function ReportesOperacionesPage() {
         </section>
       </div>
 
-      <div className="mb-4 flex gap-2">
+      <div className="dashboard-report-filters__periods mb-4">
         <button
           type="button"
           onClick={() => setActiveTab("detail")}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium ${activeTab === "detail" ? "bg-[#4f6ef7] text-white" : "bg-white text-slate-700 border border-slate-200"}`}
+          className={`dashboard-report-filters__period ${activeTab === "detail" ? "dashboard-report-filters__period--active" : ""}`}
         >
           Detalle de movimientos
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("summary")}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium ${activeTab === "summary" ? "bg-[#4f6ef7] text-white" : "bg-white text-slate-700 border border-slate-200"}`}
+          className={`dashboard-report-filters__period ${activeTab === "summary" ? "dashboard-report-filters__period--active" : ""}`}
         >
           Resumen por tipo
         </button>

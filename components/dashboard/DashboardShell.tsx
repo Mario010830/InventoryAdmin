@@ -1,7 +1,7 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { BarChart2, LayoutGrid, MessageCircle } from "lucide-react";
+import { BarChart2, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -129,19 +129,6 @@ const adminItems: NavItem[] = [
     label: "Roles",
     route: "/dashboard/roles",
     permission: "role.read",
-  },
-  {
-    icon: "receipt_long",
-    label: "Logs",
-    route: "/dashboard/logs",
-    permission: "log.read",
-  },
-  {
-    icon: "grid_view",
-    label: "Categorías de negocio",
-    route: "/dashboard/business-categories",
-    permission: "setting.read",
-    lucideIcon: LayoutGrid,
   },
   {
     icon: "settings",
@@ -274,6 +261,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const isMobileNav = useIsMobileNav();
   const [collapsed, setCollapsed] = useState(false);
+  const [hoverExpanded, setHoverExpanded] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [manualChatOpen, setManualChatOpen] = useState(false);
   const user = useAppSelector((state) => state.auth) || null;
@@ -316,7 +304,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   const initial = user ? user.fullName.charAt(0).toUpperCase() : "?";
 
-  const showNavText = isMobileNav || !collapsed;
+  const desktopExpanded = !collapsed || hoverExpanded;
+  const showNavText = isMobileNav || desktopExpanded;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: al navegar se cierra el menú móvil
   useEffect(() => {
@@ -343,12 +332,15 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   const toggleSidebar = () => {
     if (isMobileNav) setMobileNavOpen((o) => !o);
-    else setCollapsed((c) => !c);
+    else {
+      setCollapsed((c) => !c);
+      setHoverExpanded(false);
+    }
   };
 
   return (
     <div
-      className={`dashboard ${!isMobileNav && collapsed ? "sidebar-collapsed" : ""} ${isMobileNav && mobileNavOpen ? "dashboard--nav-open" : ""}`}
+      className={`dashboard ${!isMobileNav && collapsed && !hoverExpanded ? "sidebar-collapsed" : ""} ${isMobileNav && mobileNavOpen ? "dashboard--nav-open" : ""}`}
     >
       {isMobileNav && mobileNavOpen && (
         <button
@@ -359,7 +351,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         />
       )}
       <aside
-        className={`sidebar ${!isMobileNav && collapsed ? "collapsed" : ""} ${isMobileNav && mobileNavOpen ? "sidebar--open" : ""}`}
+        className={`sidebar ${!isMobileNav && collapsed && !hoverExpanded ? "collapsed" : ""} ${isMobileNav && mobileNavOpen ? "sidebar--open" : ""}`}
+        onMouseEnter={() => {
+          if (!isMobileNav && collapsed) setHoverExpanded(true);
+        }}
+        onMouseLeave={() => {
+          if (!isMobileNav) setHoverExpanded(false);
+        }}
       >
         <div className="sidebar-brand">
           <Link href="/dashboard" className="brand">
@@ -430,6 +428,16 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               </div>
             </div>
           )}
+          <a
+            href="https://wa.me/5358728126"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="nav-item"
+            aria-label="Contactar soporte por WhatsApp"
+          >
+            <Icon name="chat" />
+            {showNavText && <span>Contactar soporte</span>}
+          </a>
           <button
             type="button"
             className="nav-item nav-item--danger"

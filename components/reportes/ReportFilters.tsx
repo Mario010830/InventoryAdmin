@@ -157,31 +157,30 @@ export function ReportFilters({
   const showLocationSelect = !locationsFailed && locations.length > 1;
 
   return (
-    <div className="grid-filter-bar">
-      <div className="grid-filter-bar__row grid-filter-bar__row--expanded">
+    <div className="dashboard-report-filters">
+      <div className="dashboard-report-filters__periods" role="tablist" aria-label="Período del reporte">
+        {PERIOD_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            role="tab"
+            aria-selected={period === opt.value}
+            className={`dashboard-report-filters__period ${period === opt.value ? "dashboard-report-filters__period--active" : ""}`}
+            onClick={() => setPeriod(opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+      <div className="dashboard-report-filters__row">
         <div className="grid-filter-bar__filters flex flex-wrap items-end gap-3">
-          <div className="flex min-w-[200px] flex-col gap-1.5">
-            <span className="text-[0.65rem] font-bold uppercase tracking-wide text-[#64748b]">
-              Período
-            </span>
-            <GridFilterSelect
-              aria-label="Período"
-              value={period}
-              onChange={(v) => setPeriod((v || "month") as PeriodKey)}
-              options={PERIOD_OPTIONS.map((o) => ({
-                value: o.value,
-                label: o.label,
-              }))}
-              placeholder="Período"
-            />
-          </div>
           {period === "custom" && (
             <>
               <label
                 className="flex flex-col gap-1.5"
                 htmlFor="report-custom-start"
               >
-                <span className="text-[0.65rem] font-bold uppercase tracking-wide text-[#64748b]">
+                <span className="text-[0.7rem] font-semibold text-[#64748b]">
                   Desde
                 </span>
                 <input
@@ -196,7 +195,7 @@ export function ReportFilters({
                 className="flex flex-col gap-1.5"
                 htmlFor="report-custom-end"
               >
-                <span className="text-[0.65rem] font-bold uppercase tracking-wide text-[#64748b]">
+                <span className="text-[0.7rem] font-semibold text-[#64748b]">
                   Hasta
                 </span>
                 <input
@@ -211,7 +210,7 @@ export function ReportFilters({
           )}
           {showLocationSelect && (
             <div className="flex min-w-[220px] flex-col gap-1.5">
-              <span className="text-[0.65rem] font-bold uppercase tracking-wide text-[#64748b]">
+              <span className="text-[0.7rem] font-semibold text-[#64748b]">
                 Ubicación
               </span>
               <GridFilterSelect

@@ -17,40 +17,22 @@ export function StatCard({
   label,
   value,
   icon,
-  trend,
-  trendUp = true,
   iconBg = "#EEF2FF",
   iconColor = theme.accent,
 }: StatCardProps) {
   return (
     <div
-      className="stat-card"
+      className="dashboard-card dashboard-card--stat"
       style={{
         background: theme.surface,
-        borderRadius: 10,
-        padding: 16,
-        border: `1px solid ${theme.divider}`,
-        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-        flex: 1,
-        minWidth: 0,
       }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: theme.secondaryText }}>{label}</span>
-          <span style={{ fontSize: 24, fontWeight: 700, color: theme.primaryText }}>{value}</span>
-          {trend != null && (
-            <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: trendUp ? theme.success : theme.error }}>
-              <Icon name={trendUp ? "trending_up" : "trending_down"} />
-              {trend}
-            </span>
-          )}
-        </div>
+      <div className="dashboard-kpi__head">
         <div
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: 8,
+            width: 48,
+            height: 48,
+            borderRadius: 12,
             background: iconBg,
             color: iconColor,
             display: "grid",
@@ -60,6 +42,10 @@ export function StatCard({
         >
           <Icon name={icon} />
         </div>
+      </div>
+      <div className="dashboard-kpi__body">
+        <span className="dashboard-kpi__label">{label}</span>
+        <span className="dashboard-kpi__value">{value}</span>
       </div>
     </div>
   );

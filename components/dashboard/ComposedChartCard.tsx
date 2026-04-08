@@ -1,17 +1,19 @@
 "use client";
 
-import {
-  ComposedChart,
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
+import dynamic from "next/dynamic";
+import type { ApexAxisChartSeries, ApexOptions } from "apexcharts";
+import { ChartCardMenu } from "./ChartCardMenu";
 import { theme } from "./theme";
+import {
+  apexChartFontFamily,
+  apexChartLocaleEs,
+  apexNoDataEs,
+  formatChartNumber,
+} from "@/lib/apexcharts-es";
+
+const ReactApexChart = dynamic(() => import("react-apexcharts"), {
+  ssr: false,
+});
 
 export interface ComposedChartCardProps {
   title: string;
@@ -33,67 +35,118 @@ export function ComposedChartCard({
   lineName = "Acumulado",
   height = 280,
 }: ComposedChartCardProps) {
-  const chartData = data.map((d) => ({
-    name: d.label,
-    value: d.value,
-    ...(d.lineValue != null ? { lineValue: d.lineValue } : {}),
-  }));
+  const labels = data.map((d) => d.label);
+  const barSeriesName = "Por día";
+  const barValues = data.map((d) => d.value);
+  const hasLine = data.some((d) => d.lineValue != null);
+  const lineValues = data.map((d) => d.lineValue ?? 0);
 
-  const hasLine = chartData.some((d) => "lineValue" in d && d.lineValue != null);
+  const series: ApexAxisChartSeries = hasLine
+    ? [
+        { name: barSeriesName, type: "column", data: barValues },
+        { name: lineName, type: "line", data: lineValues },
+      ]
+    : [{ name: barSeriesName, type: "column", data: barValues }];
+
+  const options: ApexOptions = {
+    noData: apexNoDataEs,
+    chart: {
+      type: "line",
+      stacked: false,
+      height,
+      fontFamily: apexChartFontFamily,
+      toolbar: { show: false },
+      ...apexChartLocaleEs,
+    },
+    colors: hasLine ? [barColor, lineColor] : [barColor],
+    stroke: {
+      width: hasLine ? [4, 2.5] : [4],
+      curve: "smooth",
+      colors: hasLine ? ["transparent", lineColor] : ["transparent"],
+    },
+    plotOptions: {
+      bar: {
+        columnWidth: "39%",
+        borderRadius: 5,
+        borderRadiusApplication: "end",
+      },
+    },
+    dataLabels: { enabled: false },
+    xaxis: {
+      categories: labels,
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+      labels: { style: { colors: theme.secondaryText, fontSize: "12px" } },
+    },
+    yaxis: [
+      {
+        seriesName: barSeriesName,
+        labels: {
+          formatter: (val) => formatChartNumber(Number(val)),
+          style: { colors: [theme.secondaryText], fontSize: "12px" },
+        },
+      },
+      ...(hasLine
+        ? [
+            {
+              seriesName: lineName,
+              opposite: true,
+              labels: {
+                formatter: (val: number) => formatChartNumber(Number(val)),
+                style: { colors: [theme.secondaryText], fontSize: "12px" },
+              },
+            },
+          ]
+        : []),
+    ],
+    grid: {
+      borderColor: "#f1f5f9",
+      strokeDashArray: 0,
+      xaxis: { lines: { show: false } },
+      yaxis: { lines: { show: true } },
+    },
+    tooltip: {
+      shared: true,
+      y: {
+        formatter: (val: number) => formatChartNumber(Number(val)),
+      },
+    },
+    legend: {
+      show: hasLine,
+      position: "top",
+      horizontalAlign: "left",
+      fontSize: "12px",
+      fontFamily: apexChartFontFamily,
+    },
+  };
 
   return (
     <div
+      className="dashboard-card dashboard-card--chart"
       style={{
         background: theme.surface,
-        borderRadius: 10,
-        padding: 16,
-        border: `1px solid ${theme.divider}`,
-        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-        flex: 1,
-        minWidth: 0,
         display: "flex",
         flexDirection: "column",
-        gap: 12,
       }}
     >
-      <div>
-        <div style={{ fontSize: 16, fontWeight: 600, color: theme.primaryText }}>{title}</div>
-        {subtitle && <div style={{ fontSize: 12, color: theme.secondaryText, marginTop: 2 }}>{subtitle}</div>}
+      <div className="dashboard-card__head">
+        <div>
+          <div className="dashboard-card__title">{title}</div>
+          {subtitle && <div className="dashboard-card__subtitle">{subtitle}</div>}
+        </div>
+        <ChartCardMenu />
       </div>
-      <div style={{ width: "100%", height, minHeight: height, minWidth: 200 }}>
-        <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={height}>
-          <ComposedChart data={chartData} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke={theme.divider} vertical={false} />
-            <XAxis dataKey="name" tick={{ fontSize: 11, fill: theme.secondaryText }} stroke={theme.divider} />
-            <YAxis hide domain={[0, "auto"]} yAxisId="bar" />
-            {hasLine && <YAxis hide domain={["auto", "auto"]} yAxisId="line" orientation="right" />}
-            <Tooltip
-              contentStyle={{ background: theme.surface, border: `1px solid ${theme.divider}`, borderRadius: 8 }}
-              labelStyle={{ color: theme.primaryText }}
-              formatter={(value: number | undefined, name?: string) => [value ?? 0, name === "lineValue" ? lineName : "Cantidad"]}
-              labelFormatter={(label) => label}
-            />
-            {hasLine && (
-              <Legend
-                wrapperStyle={{ fontSize: 12 }}
-                formatter={(value) => (value === "lineValue" ? lineName : "Por día")}
-                iconType="line"
-              />
-            )}
-            <Bar dataKey="value" fill={barColor} radius={[4, 4, 0, 0]} yAxisId="bar" name="value" />
-            {hasLine && (
-              <Line
-                type="monotone"
-                dataKey="lineValue"
-                stroke={lineColor}
-                strokeWidth={2}
-                dot={{ fill: lineColor }}
-                yAxisId="line"
-                name="lineValue"
-              />
-            )}
-          </ComposedChart>
-        </ResponsiveContainer>
+      <div
+        className="dashboard-chart-plot max-w-full"
+        style={{
+          width: "100%",
+          height,
+          minHeight: height,
+          minWidth: 200,
+          flexShrink: 0,
+        }}
+      >
+        <ReactApexChart options={options} series={series} type="line" height={height} />
       </div>
     </div>
   );

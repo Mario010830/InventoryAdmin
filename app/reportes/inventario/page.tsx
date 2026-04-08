@@ -1,17 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Bar,
-  BarChart,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import dynamic from "next/dynamic";
+import type { ApexOptions } from "apexcharts";
 import { AlertTriangle, Boxes, ClipboardList, PackageSearch } from "lucide-react";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 import { ReportFilters } from "@/components/reportes/ReportFilters";
@@ -20,8 +11,19 @@ import { ReportPageLayout } from "@/components/reportes/ReportPageLayout";
 import { ReportTable } from "@/components/reportes/ReportTable";
 import { useReportData } from "@/components/reportes/useReportData";
 import type { InventoryReportResponse, ReportFilters as ReportFilterParams } from "@/lib/types/reports";
+import { apexChartLocaleEs, apexNoDataEs, formatChartNumber } from "@/lib/apexcharts-es";
 
-const PIE_COLORS = ["#16a34a", "#dc2626", "#2563eb"];
+const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
+const TYPE_LABEL: Record<string, string> = {
+  Entradas: "Entradas",
+  Salidas: "Salidas",
+  Ajustes: "Ajustes",
+};
+const TYPE_COLOR: Record<string, string> = {
+  Entradas: "#16a34a",
+  Salidas: "#dc2626",
+  Ajustes: "#2563eb",
+};
 
 function truncateName(s: string | null | undefined, max = 20): string {
   const safe = (s ?? "Sin nombre").trim() || "Sin nombre";
@@ -58,13 +60,52 @@ export default function ReportesInventarioPage() {
 
   const hasMovements = (data?.movementsSummary.totalMovements ?? 0) > 0;
 
+  const topStockOptions: ApexOptions = useMemo(
+    () => ({
+      noData: apexNoDataEs,
+      chart: { type: "bar", height: 320, toolbar: { show: false }, ...apexChartLocaleEs },
+      plotOptions: { bar: { horizontal: true, borderRadius: 6, borderRadiusApplication: "end" } },
+      dataLabels: { enabled: false },
+      xaxis: {
+        categories: chartTopStock.map((r) => r.productNameShort),
+        labels: { formatter: (v) => formatChartNumber(Number(v)) },
+      },
+      yaxis: { labels: { style: { fontSize: "11px" } } },
+      colors: ["#2563eb"],
+      tooltip: {
+        y: { formatter: (v) => formatChartNumber(Number(v)) },
+      },
+      grid: { borderColor: "#e2e8f0", strokeDashArray: 3 },
+    }),
+    [chartTopStock],
+  );
+
+  const topStockSeries = useMemo(
+    () => [{ name: "Stock", data: chartTopStock.map((r) => r.totalStock) }],
+    [chartTopStock],
+  );
+
+  const movementsPieOptions: ApexOptions = useMemo(
+    () => ({
+      noData: apexNoDataEs,
+      labels: pieMovements.map((p) => TYPE_LABEL[p.name] ?? p.name),
+      colors: pieMovements.map((p) => TYPE_COLOR[p.name] ?? "#94a3b8"),
+      chart: { type: "donut", ...apexChartLocaleEs },
+      legend: { position: "bottom" },
+      dataLabels: { enabled: false },
+      plotOptions: { pie: { donut: { size: "56%" } } },
+      tooltip: { y: { formatter: (v) => formatChartNumber(Number(v)) } },
+      stroke: { colors: ["#fff"], width: 2 },
+    }),
+    [pieMovements],
+  );
+
   return (
     <ReportPageLayout
       title="Reporte de inventario"
       description="Estado actual de stock y resumen de movimientos por período."
+      controls={<ReportFilters onFilterChange={setFilters} />}
     >
-      <ReportFilters onFilterChange={setFilters} />
-
       {error ? (
         <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -114,29 +155,7 @@ export default function ReportesInventarioPage() {
             Top productos por stock
           </h3>
           <div className="h-[320px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartTopStock} layout="vertical" margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
-                <XAxis type="number" />
-                <YAxis
-                  type="category"
-                  dataKey="productNameShort"
-                  width={130}
-                />
-                <Tooltip
-                  formatter={(value: number | string | undefined) => [
-                    String(value ?? 0),
-                    "Stock",
-                  ]}
-                  labelFormatter={(_, payload) => {
-                    const row = payload?.[0]?.payload as { productName?: string | null; productCode?: string | null } | undefined;
-                    if (!row) return "";
-                    const code = row.productCode ? `${row.productCode} · ` : "";
-                    return `${code}${row.productName ?? "Sin nombre"}`;
-                  }}
-                />
-                <Bar dataKey="totalStock" fill="#2563eb" radius={[0, 6, 6, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <ReactApexChart options={topStockOptions} series={topStockSeries} type="bar" height={320} />
           </div>
         </section>
 
@@ -146,27 +165,12 @@ export default function ReportesInventarioPage() {
           </h3>
           {hasMovements ? (
             <div className="h-[320px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieMovements}
-                    dataKey="value"
-                    nameKey="name"
-                    outerRadius={110}
-                    label
-                  >
-                    {pieMovements.map((_, idx) => (
-                      <Cell key={`mov-${idx}`} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(v: number | string | undefined) => [
-                      String(v ?? 0),
-                      "Movimientos",
-                    ]}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <ReactApexChart
+                options={movementsPieOptions}
+                series={pieMovements.map((p) => p.value)}
+                type="donut"
+                height={320}
+              />
             </div>
           ) : (
             <p className="py-20 text-center text-sm text-slate-500">
@@ -176,18 +180,18 @@ export default function ReportesInventarioPage() {
         </section>
       </div>
 
-      <div className="mb-4 flex gap-2">
+      <div className="dashboard-report-filters__periods mb-4">
         <button
           type="button"
           onClick={() => setActiveTab("low")}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium ${activeTab === "low" ? "bg-[#4f6ef7] text-white" : "bg-white text-slate-700 border border-slate-200"}`}
+          className={`dashboard-report-filters__period ${activeTab === "low" ? "dashboard-report-filters__period--active" : ""}`}
         >
           Productos bajo mínimo
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("stock")}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium ${activeTab === "stock" ? "bg-[#4f6ef7] text-white" : "bg-white text-slate-700 border border-slate-200"}`}
+          className={`dashboard-report-filters__period ${activeTab === "stock" ? "dashboard-report-filters__period--active" : ""}`}
         >
           Stock por producto
         </button>

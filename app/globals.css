@@ -308,3 +308,40 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* ApexCharts — SVG polish (parity with `src/app/globals.css` + Tu Cuadre palette) */
+.apexcharts-tooltip.apexcharts-theme-light {
+  border-radius: 0.5rem !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08) !important;
+}
+.apexcharts-tooltip-series-group {
+  padding: 0 !important;
+}
+.apexcharts-tooltip-y-group {
+  padding: 0 !important;
+}
+.apexcharts-tooltip-title {
+  margin-bottom: 0.25rem !important;
+  border-bottom: 0 !important;
+  background: transparent !important;
+  font-size: 0.625rem !important;
+  line-height: 1rem !important;
+  color: #0f172a !important;
+}
+.apexcharts-tooltip-text {
+  font-size: 0.75rem !important;
+  color: #475569 !important;
+}
+.apexcharts-tooltip-text-y-value {
+  font-weight: 600 !important;
+}
+.apexcharts-gridline {
+  stroke: #f1f5f9 !important;
+}
+.apexcharts-legend-text {
+  color: #475569 !important;
+}
+.apexcharts-text {
+  fill: #64748b;
+}

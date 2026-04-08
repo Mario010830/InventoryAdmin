@@ -33,19 +33,12 @@ export function ListCard({
 
   return (
     <div
+      className="dashboard-card dashboard-card--list"
       style={{
         background: theme.surface,
-        borderRadius: 10,
-        padding: 16,
-        border: `1px solid ${theme.divider}`,
-        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-        flex: "1 1 0",
         minWidth: 280,
-        width: "100%",
         display: "flex",
         flexDirection: "column",
-        gap: 12,
-        minHeight: 300,
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -64,7 +57,7 @@ export function ListCard({
             <Icon name={icon} />
           </div>
         )}
-        <h3 style={{ fontSize: 15, fontWeight: 600, color: theme.primaryText, margin: 0 }}>
+        <h3 className="dashboard-card__title">
           {title}
         </h3>
       </div>

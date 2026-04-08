@@ -2,18 +2,8 @@
 
 import { Package, ShoppingCart, Star, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import dynamic from "next/dynamic";
+import type { ApexOptions } from "apexcharts";
 import { BarChartCard, StatCard, theme } from "@/components/dashboard";
 import { ReportKpiCard } from "@/components/reportes/ReportKpiCard";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
@@ -30,6 +20,9 @@ import type {
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store/store";
 import { MetricsEmptyState } from "./MetricsEmptyState";
+import { apexChartLocaleEs, apexNoDataEs, formatChartNumber } from "@/lib/apexcharts-es";
+
+const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 const PERIODS: MetricsPeriod[] = ["7d", "30d", "90d"];
 
@@ -301,6 +294,44 @@ export function MetricsPageClient() {
       { name: "Compradores recurrentes", value: r },
     ];
   }, [customers]);
+
+  const donutBuyersOptions: ApexOptions = useMemo(
+    () => ({
+      noData: apexNoDataEs,
+      labels: donutBuyers.map((d) => d.name),
+      colors: donutBuyers.map((_, i) => theme.chart[i % theme.chart.length]),
+      chart: { type: "donut", ...apexChartLocaleEs },
+      legend: { show: false },
+      dataLabels: { enabled: false },
+      plotOptions: { pie: { donut: { size: "56%" } } },
+      stroke: { colors: [theme.surface], width: 2 },
+      tooltip: { y: { formatter: (v) => formatChartNumber(Number(v)) } },
+    }),
+    [donutBuyers],
+  );
+
+  const ratingsOptions: ApexOptions = useMemo(
+    () => ({
+      noData: apexNoDataEs,
+      chart: { type: "bar", height: 280, toolbar: { show: false }, ...apexChartLocaleEs },
+      plotOptions: { bar: { borderRadius: 4, borderRadiusApplication: "end", columnWidth: "48%" } },
+      dataLabels: { enabled: false },
+      xaxis: {
+        categories: ratingsBars.map((r) => r.label),
+        labels: { style: { colors: theme.secondaryText, fontSize: "11px" } },
+      },
+      yaxis: {
+        labels: {
+          formatter: (v) => formatChartNumber(Number(v)),
+          style: { colors: [theme.secondaryText], fontSize: "11px" },
+        },
+      },
+      tooltip: { y: { formatter: (v) => formatChartNumber(Number(v)) } },
+      colors: [theme.accent],
+      grid: { borderColor: theme.divider, strokeDashArray: 3 },
+    }),
+    [ratingsBars],
+  );
 
   if (!user) {
     return null;
@@ -704,45 +735,12 @@ export function MetricsPageClient() {
                   />
                 ) : (
                   <div style={{ width: "100%", height: 280, minHeight: 280 }}>
-                    <ResponsiveContainer
-                      width="100%"
-                      height="100%"
-                      minWidth={200}
-                      minHeight={280}
-                    >
-                      <PieChart>
-                        <Pie
-                          data={donutBuyers}
-                          dataKey="value"
-                          nameKey="name"
-                          cx="50%"
-                          cy="50%"
-                          innerRadius="55%"
-                          outerRadius="80%"
-                          paddingAngle={2}
-                        >
-                          {donutBuyers.map((d, i) => (
-                            <Cell
-                              key={d.name}
-                              fill={theme.chart[i % theme.chart.length]}
-                              stroke={theme.surface}
-                              strokeWidth={2}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{
-                            background: theme.surface,
-                            border: `1px solid ${theme.divider}`,
-                            borderRadius: 8,
-                          }}
-                          formatter={(
-                            value: number | undefined,
-                            name: string | undefined,
-                          ) => [(value ?? 0).toLocaleString(), name ?? ""]}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <ReactApexChart
+                      options={donutBuyersOptions}
+                      series={donutBuyers.map((d) => d.value)}
+                      type="donut"
+                      height={280}
+                    />
                   </div>
                 )}
                 <ul className="mt-2 flex flex-wrap gap-4 text-sm text-slate-600">
@@ -778,45 +776,12 @@ export function MetricsPageClient() {
                   />
                 ) : (
                   <div style={{ width: "100%", height: 280, minHeight: 280 }}>
-                    <ResponsiveContainer
-                      width="100%"
-                      height="100%"
-                      minWidth={200}
-                      minHeight={280}
-                    >
-                      <BarChart
-                        data={ratingsBars}
-                        margin={{ top: 4, right: 8, left: 4, bottom: 0 }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke={theme.divider}
-                          vertical={false}
-                        />
-                        <XAxis
-                          dataKey="label"
-                          tick={{ fontSize: 11, fill: theme.secondaryText }}
-                          stroke={theme.divider}
-                        />
-                        <YAxis
-                          tick={{ fontSize: 11, fill: theme.secondaryText }}
-                          stroke={theme.divider}
-                          allowDecimals={false}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            background: theme.surface,
-                            border: `1px solid ${theme.divider}`,
-                            borderRadius: 8,
-                          }}
-                        />
-                        <Bar
-                          dataKey="value"
-                          fill={theme.accent}
-                          radius={[4, 4, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <ReactApexChart
+                      options={ratingsOptions}
+                      series={[{ name: "Valoraciones", data: ratingsBars.map((b) => b.value) }]}
+                      type="bar"
+                      height={280}
+                    />
                   </div>
                 )}
               </div>

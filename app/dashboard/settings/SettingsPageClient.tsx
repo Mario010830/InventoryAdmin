@@ -27,6 +27,7 @@ import {
   useDeleteCurrencyMutation,
   useSetDefaultDisplayCurrencyMutation,
 } from "./_service/currencyApi";
+import { SETTINGS_SECTIONS } from "./settingsNav";
 
 function snapCurrencies(rows: CurrencyResponse[], defaultId: number | null) {
   return JSON.stringify({
@@ -262,6 +263,7 @@ export default function SettingsPageClient() {
 
   const [showAddCurrency, setShowAddCurrency] = useState(false);
   const [newCur, setNewCur] = useState({ code: "", name: "", rate: "" });
+  const [activeSection, setActiveSection] = useState<string>("inventario");
 
   const [profileFullName, setProfileFullName] = useState("");
   const [profileGender, setProfileGender] = useState("0");
@@ -443,9 +445,19 @@ export default function SettingsPageClient() {
   useEffect(() => {
     const hash = window.location.hash.replace("#", "");
     if (!hash) return;
+    setActiveSection(hash);
     requestAnimationFrame(() => {
       document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
+  }, []);
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const hash = window.location.hash.replace("#", "");
+      if (hash) setActiveSection(hash);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
   const subscriptionPlanUi = (sub: MySubscriptionDto) => {
@@ -502,6 +514,19 @@ export default function SettingsPageClient() {
           <p className="settings-page__subtitle">Ajustes del sistema y de tu cuenta</p>
         </div>
 
+        <div className="settings-layout">
+        <aside className="settings-side-nav" aria-label="Secciones de configuración">
+          {SETTINGS_SECTIONS.map((section) => (
+            <a
+              key={section.id}
+              href={`#${section.id}`}
+              className={`settings-side-nav__item ${activeSection === section.id ? "settings-side-nav__item--active" : ""}`}
+              onClick={() => setActiveSection(section.id)}
+            >
+              {section.label}
+            </a>
+          ))}
+        </aside>
         <div className="settings-stack">
         <SettingsSection id="inventario" title="Inventario">
           <div className="settings-field-grid settings-field-grid--stack">
@@ -1008,6 +1033,7 @@ export default function SettingsPageClient() {
             <p className="settings-helper mt-2">{/* TODO: billing API */}</p>
           </div>
         </SettingsSection>
+        </div>
         </div>
       </div>
 

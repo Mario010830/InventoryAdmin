@@ -1,17 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Bar,
-  BarChart,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import dynamic from "next/dynamic";
+import type { ApexOptions } from "apexcharts";
 import { Layers3, Package2, ShoppingBag, Tag } from "lucide-react";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 import { ReportFilters } from "@/components/reportes/ReportFilters";
@@ -20,8 +11,10 @@ import { ReportPageLayout } from "@/components/reportes/ReportPageLayout";
 import { ReportTable } from "@/components/reportes/ReportTable";
 import { useReportData } from "@/components/reportes/useReportData";
 import type { ProductsReportResponse, ReportFilters as ReportFilterParams } from "@/lib/types/reports";
+import { apexChartLocaleEs, apexNoDataEs, formatChartNumber } from "@/lib/apexcharts-es";
 
 const PIE_COLORS = ["#2563eb", "#7c3aed", "#16a34a", "#f59e0b", "#dc2626", "#0ea5e9", "#8b5cf6", "#22c55e"];
+const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 function truncateLabel(s: string | null | undefined, max = 12): string {
   const v = (s ?? "Sin nombre").trim() || "Sin nombre";
@@ -59,13 +52,47 @@ export default function ReportesProductosPage() {
 
   const inactive = Math.max(0, (data?.totalProducts ?? 0) - (data?.activeProducts ?? 0));
 
+  const topRevenueOptions: ApexOptions = useMemo(
+    () => ({
+      noData: apexNoDataEs,
+      chart: { type: "bar", height: 320, toolbar: { show: false }, ...apexChartLocaleEs },
+      plotOptions: { bar: { borderRadius: 6, borderRadiusApplication: "end", columnWidth: "48%" } },
+      dataLabels: { enabled: false },
+      xaxis: { categories: topByRevenue.slice(0, 10).map((r) => r.productNameShort) },
+      yaxis: { labels: { formatter: (v) => formatChartNumber(Number(v)) } },
+      tooltip: {
+        y: { formatter: (v) => formatCup(Number(v)) },
+      },
+      colors: ["#2563eb"],
+      grid: { borderColor: "#e2e8f0", strokeDashArray: 3 },
+    }),
+    [topByRevenue, formatCup],
+  );
+  const topRevenueSeries = useMemo(
+    () => [{ name: "Revenue", data: topByRevenue.slice(0, 10).map((r) => r.revenue) }],
+    [topByRevenue],
+  );
+  const categoryPieOptions: ApexOptions = useMemo(
+    () => ({
+      noData: apexNoDataEs,
+      labels: categoryRows.map((r) => r.categoryName ?? "Sin categoría"),
+      colors: categoryRows.map((_, idx) => PIE_COLORS[idx % PIE_COLORS.length]),
+      chart: { type: "donut", ...apexChartLocaleEs },
+      legend: { show: false },
+      dataLabels: { enabled: false },
+      plotOptions: { pie: { donut: { size: "56%" } } },
+      tooltip: { y: { formatter: (v) => formatChartNumber(Number(v)) } },
+      stroke: { colors: ["#fff"], width: 2 },
+    }),
+    [categoryRows],
+  );
+
   return (
     <ReportPageLayout
       title="Reporte de productos"
       description="Comportamiento comercial del catálogo y distribución por categorías."
+      controls={<ReportFilters onFilterChange={setFilters} />}
     >
-      <ReportFilters onFilterChange={setFilters} />
-
       {error ? (
         <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -113,24 +140,7 @@ export default function ReportesProductosPage() {
             </p>
           ) : (
             <div className="h-[320px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topByRevenue.slice(0, 10)} margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
-                  <XAxis dataKey="productNameShort" />
-                  <YAxis />
-                  <Tooltip
-                    formatter={(value: number | string | undefined) => [
-                      formatCup(Number(value ?? 0)),
-                      "Revenue",
-                    ]}
-                    labelFormatter={(_, payload) => {
-                      const row = payload?.[0]?.payload as { productName?: string | null; quantitySold?: number } | undefined;
-                      if (!row) return "";
-                      return `${row.productName ?? "Sin nombre"} · ${row.quantitySold ?? 0} uds`;
-                    }}
-                  />
-                  <Bar dataKey="revenue" fill="#2563eb" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <ReactApexChart options={topRevenueOptions} series={topRevenueSeries} type="bar" height={320} />
             </div>
           )}
         </section>
@@ -141,16 +151,12 @@ export default function ReportesProductosPage() {
           </h3>
           {categoryRows.length > 0 ? (
             <div className="grid h-[320px] grid-cols-[1fr_220px] gap-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={categoryRows} dataKey="productsCount" nameKey="categoryName" outerRadius={100} label>
-                    {categoryRows.map((_, idx) => (
-                      <Cell key={`cat-${idx}`} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              <ReactApexChart
+                options={categoryPieOptions}
+                series={categoryRows.map((r) => r.productsCount)}
+                type="donut"
+                height={320}
+              />
               <div className="overflow-auto pr-1 text-sm">
                 {categoryRows.map((row, idx) => (
                   <div key={`${row.categoryId ?? "null"}-${idx}`} className="mb-1 flex items-center justify-between gap-2">
@@ -170,18 +176,18 @@ export default function ReportesProductosPage() {
         </section>
       </div>
 
-      <div className="mb-4 flex gap-2">
+      <div className="dashboard-report-filters__periods mb-4">
         <button
           type="button"
           onClick={() => setActiveTab("top")}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium ${activeTab === "top" ? "bg-[#4f6ef7] text-white" : "bg-white text-slate-700 border border-slate-200"}`}
+          className={`dashboard-report-filters__period ${activeTab === "top" ? "dashboard-report-filters__period--active" : ""}`}
         >
           Más vendidos
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("cats")}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium ${activeTab === "cats" ? "bg-[#4f6ef7] text-white" : "bg-white text-slate-700 border border-slate-200"}`}
+          className={`dashboard-report-filters__period ${activeTab === "cats" ? "dashboard-report-filters__period--active" : ""}`}
         >
           Distribución por categoría
         </button>

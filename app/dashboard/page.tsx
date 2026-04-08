@@ -13,7 +13,6 @@ import {
   useGetSummaryQuery,
   useGetInventoryFlowQuery,
   useGetCategoryDistributionQuery,
-  useGetInventoryValueEvolutionQuery,
   useGetStockStatusQuery,
   useGetEntriesVsExitsQuery,
   useGetLowStockAlertsByDayQuery,
@@ -46,11 +45,6 @@ const FALLBACK_FLOW = [
 
 const FALLBACK_CATEGORY_PIE = [
   { name: "Electrónica", value: 40 }, { name: "Hogar", value: 25 }, { name: "Oficina", value: 20 }, { name: "Otros", value: 15 },
-];
-
-const FALLBACK_EVOLUCION = [
-  { label: "Sep", value: 38 }, { label: "Oct", value: 41 }, { label: "Nov", value: 42 },
-  { label: "Dic", value: 44 }, { label: "Ene", value: 43 }, { label: "Feb", value: 45 },
 ];
 
 const FALLBACK_ESTADO_STOCK = [
@@ -122,11 +116,10 @@ function buildKpisFromSummary(
 }
 
 export default function DashboardPage() {
-  const { formatCup, selectedCurrency, priceDecimals } = useDisplayCurrency();
+  const { formatCup } = useDisplayCurrency();
   const { data: summary } = useGetSummaryQuery();
   const { data: flowData } = useGetInventoryFlowQuery();
   const { data: categoryData } = useGetCategoryDistributionQuery();
-  const { data: evolutionData } = useGetInventoryValueEvolutionQuery();
   const { data: stockStatusData } = useGetStockStatusQuery();
   const { data: entriesExitsData } = useGetEntriesVsExitsQuery();
   const { data: alertsData } = useGetLowStockAlertsByDayQuery();
@@ -144,14 +137,6 @@ export default function DashboardPage() {
   );
   const flow = (flowData && flowData.length > 0) ? flowData : FALLBACK_FLOW;
   const categoryPie = (categoryData && categoryData.length > 0) ? categoryData : FALLBACK_CATEGORY_PIE;
-  const evolution = useMemo(() => {
-    const raw = (evolutionData && evolutionData.length > 0) ? evolutionData : FALLBACK_EVOLUCION;
-    const rate = selectedCurrency.exchangeRate;
-    return raw.map((d) => ({
-      label: d.label,
-      value: roundPriceDecimals(cupToDisplayAmount(d.value * 1000, rate) / 1000, priceDecimals),
-    }));
-  }, [evolutionData, selectedCurrency.exchangeRate, priceDecimals]);
   const estadoStock = (stockStatusData && stockStatusData.length > 0) ? stockStatusData : FALLBACK_ESTADO_STOCK;
   const entradasSalidas = (entriesExitsData && entriesExitsData.length > 0) ? entriesExitsData : FALLBACK_ENTRADAS_SALIDAS;
   const alertas = (alertsData && alertsData.length > 0) ? alertsData : FALLBACK_ALERTAS;
@@ -223,25 +208,12 @@ export default function DashboardPage() {
       : [{ primary: "Sin órdenes recientes" }];
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 24,
-        flex: 1,
-        minHeight: 0,
-        minWidth: 0,
-        width: "100%",
-        overflowY: "auto",
-        paddingBottom: 32,
-        boxSizing: "border-box",
-      }}
-    >
-      <div>
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: 4, color: theme.primaryText }}>
+    <div className="dashboard-page">
+      <div className="dashboard-page__header">
+        <h1>
           Panel de Control
         </h1>
-        <p style={{ color: theme.secondaryText, fontSize: "0.9rem" }}>
+        <p>
           Bienvenido de nuevo. Resumen general del inventario. Desplázate para ver listas y gráficos.
         </p>
       </div>
@@ -255,7 +227,7 @@ export default function DashboardPage() {
 
       {/* ── Ventas ─────────────────────────────────────────────────────────── */}
       <div>
-        <h2 style={{ fontSize: "1rem", fontWeight: 600, color: theme.primaryText, marginBottom: 12 }}>
+        <h2 className="dashboard-section-title">
           Ventas · últimos 30 días
         </h2>
         <div className="dashboard-flex-row">
@@ -282,13 +254,16 @@ export default function DashboardPage() {
 
       <section className="dashboard-flex-row">
         <LineChartCard
-          title="Evolución del valor del inventario"
-          subtitle={`Últimos 6 meses (miles ${selectedCurrency.code})`}
-          data={evolution}
+          title="Alertas de stock bajo por día"
+          subtitle="Última semana"
+          data={alertas}
           height={280}
-          filled={false}
+          color={theme.error}
+          filled
         />
-        <PieChartCard title="Estado del stock (En rango / Bajo / Crítico)" data={estadoStock} height={280} colors={[theme.success, "#F59E0B", theme.error]} />
+        <div style={{ flex: "0 1 460px", minWidth: 320, maxWidth: 520 }}>
+          <PieChartCard title="Estado del stock (En rango / Bajo / Crítico)" data={estadoStock} height={280} colors={[theme.success, "#F59E0B", theme.error]} />
+        </div>
       </section>
 
       <section className="dashboard-flex-row">
@@ -304,7 +279,6 @@ export default function DashboardPage() {
 
       <section className="dashboard-flex-row">
         <ListCard title="Productos añadidos recientemente" items={listRecentProd} href="/dashboard/products" icon="inventory_2" maxItems={5} />
-        <LineChartCard title="Alertas de stock bajo por día" subtitle="Última semana" data={alertas} height={280} color={theme.error} filled />
       </section>
     </div>
   );
