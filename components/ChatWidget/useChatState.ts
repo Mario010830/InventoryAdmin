@@ -11,25 +11,31 @@ function newId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }
 
+/** Acepta cuerpo plano `{ answer, sources }` o envuelto `{ result: { answer, ... } }` (mismo patrón que otras respuestas .NET). */
 function parseChatResponse(json: unknown): ChatResponse {
   if (!json || typeof json !== "object") {
     return { answer: "" };
   }
   const o = json as Record<string, unknown>;
+  const inner = o.result ?? o.Result;
+  const payload =
+    inner && typeof inner === "object" ? (inner as Record<string, unknown>) : o;
+
   const answer =
-    (typeof o.answer === "string" && o.answer) ||
-    (typeof o.Answer === "string" && o.Answer) ||
+    (typeof payload.answer === "string" && payload.answer) ||
+    (typeof payload.Answer === "string" && payload.Answer) ||
     "";
-  const rawSources = o.sources ?? o.Sources;
+
+  const rawSources = payload.sources ?? payload.Sources;
   let sources: string[] | undefined;
   if (Array.isArray(rawSources)) {
     sources = rawSources.filter((s): s is string => typeof s === "string");
   }
   const tokensUsed =
-    typeof o.tokensUsed === "number"
-      ? o.tokensUsed
-      : typeof o.TokensUsed === "number"
-        ? o.TokensUsed
+    typeof payload.tokensUsed === "number"
+      ? payload.tokensUsed
+      : typeof payload.TokensUsed === "number"
+        ? payload.TokensUsed
         : undefined;
   return { answer, sources, tokensUsed };
 }
