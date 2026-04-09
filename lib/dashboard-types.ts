@@ -510,9 +510,6 @@ export interface AccountUpdateProfileRequest {
   fullName?: string;
   genderId?: number;
   birthDate?: string;
-  currentPassword?: string;
-  newPassword?: string;
-  confirmNewPassword?: string;
 }
 
 // ─── Monedas (GET/POST/PUT/DELETE /currency, PUT /currency/default) ─────────

@@ -1,6 +1,7 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import type {
   ApiResponse,
+  ChangePasswordRequest,
   CreateOrganizationRequest,
   LoginRequest,
   OrganizationResponse,
@@ -96,6 +97,18 @@ export const authApi = createApi({
         body,
       }),
     }),
+
+    changePassword: builder.mutation<void, ChangePasswordRequest>({
+      query: (body) => ({
+        url: "/account/change-password",
+        method: "POST",
+        body: {
+          oldPassword: body.oldPassword,
+          newPassword: body.newPassword,
+          confirmPassword: body.confirmPassword,
+        },
+      }),
+    }),
   }),
 });
 
@@ -108,4 +121,5 @@ export const {
   useRefreshTokenMutation,
   useLogoutMutation,
   useResetPasswordMutation,
+  useChangePasswordMutation,
 } = authApi;

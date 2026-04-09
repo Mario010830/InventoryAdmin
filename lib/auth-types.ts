@@ -23,6 +23,13 @@ export interface CreateOrganizationRequest {
 
 export type RegistrationBillingCycle = "monthly" | "annual";
 
+/** POST /account/change-password */
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export interface RegisterWithOrganizationRequest {
   organizationName: string;
   organizationCode: string;

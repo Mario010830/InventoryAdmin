@@ -10,7 +10,10 @@ import {
 } from "react";
 import Switch from "@/components/Switch";
 import "./settings.css";
-import { useGetPlansQuery } from "@/app/login/_service/authApi";
+import {
+  useChangePasswordMutation,
+  useGetPlansQuery,
+} from "@/app/login/_service/authApi";
 import { getToken } from "@/lib/auth-api";
 import type { RegistrationBillingCycle } from "@/lib/auth-types";
 import type {
@@ -26,6 +29,7 @@ import {
 } from "@/lib/plan-utils";
 import { buildPlanChangeWhatsAppUrl } from "@/lib/sales-whatsapp";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
+import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
 import { useGetMyRoleQuery } from "../roles/_service/rolesApi";
 import {
@@ -83,6 +87,30 @@ function passwordStrengthBars(pwd: string): number {
   if (/\d/.test(pwd)) s++;
   if (/[^a-zA-Z0-9]/.test(pwd)) s++;
   return Math.min(4, s);
+}
+
+const MIN_NEW_PASSWORD_LEN = 8;
+
+function changePasswordErrorMessage(err: unknown): string {
+  const fallback = "No se pudo cambiar la contraseña.";
+  if (!err || typeof err !== "object") return fallback;
+  const o = err as Record<string, unknown>;
+  const data = o.data;
+  if (data && typeof data === "object") {
+    const d = data as Record<string, unknown>;
+    const m = d.message ?? d.Message ?? d.title ?? d.error;
+    if (typeof m === "string" && m.trim()) return m.trim();
+    if (Array.isArray(m) && m.length) return m.map(String).join(" ");
+    const errors = d.errors;
+    if (errors && typeof errors === "object") {
+      const parts = Object.values(errors as Record<string, unknown>).flatMap(
+        (v) => (Array.isArray(v) ? v.map(String) : [String(v)]),
+      );
+      if (parts.length) return parts.join(" ");
+    }
+  }
+  if (typeof o.error === "string" && o.error.trim()) return o.error.trim();
+  return fallback;
 }
 
 function formatSubscriptionDate(iso: string): string {
@@ -167,6 +195,8 @@ export default function SettingsPageClient() {
     useUpdateGroupedSettingsMutation();
   const [updateAccountProfile, { isLoading: savingProfile }] =
     useUpdateAccountProfileMutation();
+  const [changePassword, { isLoading: changingPassword }] =
+    useChangePasswordMutation();
 
   const {
     data: subscription,
@@ -382,12 +412,19 @@ export default function SettingsPageClient() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordChangeError, setPasswordChangeError] = useState<string | null>(
+    null,
+  );
   const _securityDirty =
     currentPassword.trim().length > 0 ||
     newPassword.trim().length > 0 ||
     confirmPassword.trim().length > 0;
 
   const pwdStrength = passwordStrengthBars(newPassword);
+
+  useEffect(() => {
+    setPasswordChangeError(null);
+  }, [currentPassword, newPassword, confirmPassword]);
 
   const hasGlobalDirty = groupedSectionDirty || currenciesDirty || profileDirty;
 
@@ -500,14 +537,23 @@ export default function SettingsPageClient() {
 
   const updatePassword = async () => {
     if (newPassword !== confirmPassword) return;
-    await updateAccountProfile({
-      currentPassword,
-      newPassword,
-      confirmNewPassword: confirmPassword,
-    }).unwrap();
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    if (newPassword.length < MIN_NEW_PASSWORD_LEN) return;
+    setPasswordChangeError(null);
+    try {
+      await changePassword({
+        oldPassword: currentPassword,
+        newPassword,
+        confirmPassword,
+      }).unwrap();
+      toast.success("Contraseña actualizada correctamente.");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (e) {
+      const msg = changePasswordErrorMessage(e);
+      setPasswordChangeError(msg);
+      toast.error(msg);
+    }
   };
 
   const pushEmailChip = (raw: string) => {
@@ -1174,6 +1220,9 @@ export default function SettingsPageClient() {
                       />
                     ))}
                   </div>
+                  <p className="settings-helper">
+                    Mínimo {MIN_NEW_PASSWORD_LEN} caracteres.
+                  </p>
                 </div>
                 <div className="settings-field settings-field--full">
                   <label htmlFor="pwd-confirm">
@@ -1189,18 +1238,28 @@ export default function SettingsPageClient() {
                   />
                 </div>
               </div>
+              {passwordChangeError ? (
+                <p
+                  className="settings-password-error"
+                  role="alert"
+                  aria-live="polite"
+                >
+                  {passwordChangeError}
+                </p>
+              ) : null}
               <button
                 type="button"
                 className="settings-btn settings-btn--primary settings-section__save"
                 disabled={
-                  savingProfile ||
-                  !currentPassword ||
-                  !newPassword ||
+                  changingPassword ||
+                  !currentPassword.trim() ||
+                  !newPassword.trim() ||
+                  newPassword.length < MIN_NEW_PASSWORD_LEN ||
                   newPassword !== confirmPassword
                 }
                 onClick={() => void updatePassword()}
               >
-                {savingProfile ? "Guardando…" : "Guardar"}
+                {changingPassword ? "Guardando…" : "Actualizar contraseña"}
               </button>
 
               <h3 className="settings-subhead settings-subhead--spaced">
