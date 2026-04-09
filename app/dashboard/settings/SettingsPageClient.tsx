@@ -10,7 +10,9 @@ import {
 } from "react";
 import Switch from "@/components/Switch";
 import "./settings.css";
+import { useGetPlansQuery } from "@/app/login/_service/authApi";
 import { getToken } from "@/lib/auth-api";
+import type { RegistrationBillingCycle } from "@/lib/auth-types";
 import type {
   CurrencyResponse,
   InventoryValuationMethod,
@@ -18,6 +20,11 @@ import type {
   NotificationFrequency,
   SubscriptionStatus,
 } from "@/lib/dashboard-types";
+import {
+  type PublicPlan,
+  sortPlansDisplayOrder,
+} from "@/lib/plan-utils";
+import { buildPlanChangeWhatsAppUrl } from "@/lib/sales-whatsapp";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 import { useAppSelector } from "@/store/store";
 import { useGetMyRoleQuery } from "../roles/_service/rolesApi";
@@ -129,6 +136,10 @@ function formatLimitStat(value: number | null): string {
   return String(value);
 }
 
+function planChoiceLimitsSummary(p: PublicPlan): string {
+  return `${formatLimitStat(p.productsLimit)} productos · ${formatLimitStat(p.usersLimit)} usuarios · ${formatLimitStat(p.locationsLimit)} ubicaciones`;
+}
+
 function SettingsSection({
   id,
   title,
@@ -163,6 +174,20 @@ export default function SettingsPageClient() {
     isError: subError,
     refetch: refetchSub,
   } = useGetMySubscriptionQuery();
+
+  const { data: publicPlans = [], isLoading: plansLoading } =
+    useGetPlansQuery();
+  const sortedPlans = useMemo(
+    () => sortPlansDisplayOrder(publicPlans),
+    [publicPlans],
+  );
+
+  const [planChangeOpen, setPlanChangeOpen] = useState(false);
+  const [planChangeSelectedId, setPlanChangeSelectedId] = useState<
+    number | null
+  >(null);
+  const [planChangeBilling, setPlanChangeBilling] =
+    useState<RegistrationBillingCycle>("monthly");
 
   const { data: myRoleResp } = useGetMyRoleQuery();
   const roleName = myRoleResp?.result?.name ?? "—";
@@ -552,6 +577,58 @@ export default function SettingsPageClient() {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
+  const handleOpenPlanChange = useCallback(() => {
+    if (!subscription) return;
+    const others = sortedPlans.filter(
+      (p) => p.id >= 0 && p.id !== subscription.planId,
+    );
+    const pick = others[0] ?? sortedPlans.find((p) => p.id >= 0) ?? null;
+    setPlanChangeSelectedId(pick?.id ?? null);
+    setPlanChangeBilling(
+      subscription.billingCycle === "annual" ? "annual" : "monthly",
+    );
+    setPlanChangeOpen(true);
+  }, [subscription, sortedPlans]);
+
+  const planChangeWhatsAppUrl = useMemo(() => {
+    if (
+      !planChangeOpen ||
+      !subscription ||
+      !user ||
+      planChangeSelectedId == null
+    ) {
+      return null;
+    }
+    const desired = sortedPlans.find((p) => p.id === planChangeSelectedId);
+    if (!desired) return null;
+    const org =
+      user.organization?.name ?? user.location?.organizationName ?? "—";
+    return buildPlanChangeWhatsAppUrl({
+      organizationName: org,
+      accountEmail: user.email ?? "—",
+      fullName: user.fullName,
+      currentPlanName: subscription.planName,
+      desiredPlanDisplayName: desired.displayName,
+      billingCycle: planChangeBilling,
+    });
+  }, [
+    planChangeOpen,
+    subscription,
+    user,
+    planChangeSelectedId,
+    sortedPlans,
+    planChangeBilling,
+  ]);
+
+  useEffect(() => {
+    if (!planChangeOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPlanChangeOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [planChangeOpen]);
+
   const subscriptionPlanUi = (sub: MySubscriptionDto) => {
     const badge = subscriptionStatusBadge(sub.status);
     const features: { key: string; label: string }[] = [
@@ -590,6 +667,7 @@ export default function SettingsPageClient() {
           <button
             type="button"
             className="settings-btn settings-btn--primary-outline"
+            onClick={handleOpenPlanChange}
           >
             Cambiar plan
           </button>
@@ -1275,6 +1353,130 @@ export default function SettingsPageClient() {
           >
             {savingGrouped || savingProfile ? "Guardando…" : "Guardar cambios"}
           </button>
+        </div>
+      ) : null}
+
+      {planChangeOpen && subscription ? (
+        <div
+          className="settings-plan-change-backdrop"
+          role="presentation"
+          onClick={() => setPlanChangeOpen(false)}
+        >
+          <div
+            className="settings-plan-change-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-plan-change-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="settings-plan-change-title" className="settings-plan-change-title">
+              Cambiar de plan
+            </h2>
+            <p className="settings-plan-change-intro">
+              Elige el plan y la facturación. Te llevamos al mismo WhatsApp de
+              ventas que al crear la cuenta, con un mensaje listo para enviar.
+            </p>
+            {plansLoading ? (
+              <div className="settings-loading settings-plan-change-loading">
+                <div className="dt-state__spinner" />
+                <span>Cargando planes…</span>
+              </div>
+            ) : sortedPlans.length === 0 ? (
+              <p className="settings-plan-change-empty">
+                No hay planes disponibles. Intenta más tarde o contacta a
+                soporte.
+              </p>
+            ) : (
+              <>
+                <div
+                  className="settings-plan-change-list"
+                  role="radiogroup"
+                  aria-label="Planes disponibles"
+                >
+                  {sortedPlans
+                    .filter((p) => p.id >= 0)
+                    .map((p) => {
+                      const isCurrent =
+                        subscription.planId != null && p.id === subscription.planId;
+                      return (
+                        <label
+                          key={p.id}
+                          className={`settings-plan-change-option ${planChangeSelectedId === p.id ? "settings-plan-change-option--selected" : ""}`}
+                        >
+                          <input
+                            type="radio"
+                            name="settings-plan-choice"
+                            checked={planChangeSelectedId === p.id}
+                            onChange={() => setPlanChangeSelectedId(p.id)}
+                          />
+                          <span className="settings-plan-change-option__body">
+                            <span className="settings-plan-change-option__name">
+                              {p.displayName || p.name}
+                              {isCurrent ? (
+                                <span className="settings-plan-change-option__badge">
+                                  Plan actual
+                                </span>
+                              ) : null}
+                            </span>
+                            <span className="settings-plan-change-option__meta">
+                              {planChoiceLimitsSummary(p)}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                </div>
+                <p className="settings-plan-change-billing-label">
+                  Facturación deseada
+                </p>
+                <div
+                  className="settings-plan-change-billing"
+                  role="group"
+                  aria-label="Facturación"
+                >
+                  <button
+                    type="button"
+                    className={`settings-plan-change-cycle ${planChangeBilling === "monthly" ? "settings-plan-change-cycle--active" : ""}`}
+                    onClick={() => setPlanChangeBilling("monthly")}
+                  >
+                    Mensual
+                  </button>
+                  <button
+                    type="button"
+                    className={`settings-plan-change-cycle ${planChangeBilling === "annual" ? "settings-plan-change-cycle--active" : ""}`}
+                    onClick={() => setPlanChangeBilling("annual")}
+                  >
+                    Anual
+                  </button>
+                </div>
+              </>
+            )}
+            <div className="settings-plan-change-actions">
+              <button
+                type="button"
+                className="settings-btn settings-btn--ghost"
+                onClick={() => setPlanChangeOpen(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="settings-btn settings-btn--primary"
+                disabled={!planChangeWhatsAppUrl}
+                onClick={() => {
+                  if (planChangeWhatsAppUrl) {
+                    window.open(
+                      planChangeWhatsAppUrl,
+                      "_blank",
+                      "noopener,noreferrer",
+                    );
+                  }
+                }}
+              >
+                Continuar en WhatsApp
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

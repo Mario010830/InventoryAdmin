@@ -752,3 +752,172 @@
   color: #64748b;
   border-bottom: 1px solid transparent;
 }
+
+/* Modal cambio de plan → WhatsApp ventas */
+.settings-plan-change-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.settings-plan-change-modal {
+  width: 100%;
+  max-width: 440px;
+  max-height: min(90vh, 640px);
+  overflow: auto;
+  padding: 24px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow:
+    0 20px 50px rgba(15, 23, 42, 0.12),
+    0 0 0 1px rgba(15, 23, 42, 0.04);
+}
+
+.settings-plan-change-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.settings-plan-change-intro {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.settings-plan-change-loading {
+  padding: 28px 8px;
+}
+
+.settings-plan-change-empty {
+  margin: 16px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.settings-plan-change-list {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-plan-change-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+
+.settings-plan-change-option:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.settings-plan-change-option--selected {
+  border-color: #4f6ef7;
+  background: #f5f7ff;
+}
+
+.settings-plan-change-option input {
+  margin-top: 3px;
+  accent-color: #4f6ef7;
+}
+
+.settings-plan-change-option__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.settings-plan-change-option__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-plan-change-option__badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.settings-plan-change-option__meta {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.settings-plan-change-billing-label {
+  margin: 18px 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+
+.settings-plan-change-billing {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-plan-change-cycle {
+  flex: 1;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.settings-plan-change-cycle:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.settings-plan-change-cycle--active {
+  border-color: #4f6ef7;
+  background: #eef2ff;
+  color: #1e3a8a;
+}
+
+.settings-plan-change-actions {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}

@@ -16,6 +16,10 @@ import {
 } from "@/components/ui/select";
 import type { RegistrationBillingCycle } from "@/lib/auth-types";
 import { isPaidPlan } from "@/lib/plan-utils";
+import {
+  buildSignupSalesWhatsAppUrl,
+  SALES_WHATSAPP_DISPLAY,
+} from "@/lib/sales-whatsapp";
 import { useAppDispatch } from "@/store/store";
 import {
   useGetPlansQuery,
@@ -23,27 +27,6 @@ import {
   useRegiterWithOrganizationMutation,
 } from "../_service/authApi";
 import { type AuthState, loginSuccessfull } from "../_slices/authSlice";
-
-/** WhatsApp Ventas — enlace wa.me usa solo dígitos. */
-const SALES_WHATSAPP_PHONE_DIGITS = "5358499664";
-const SALES_WHATSAPP_DISPLAY = "+53 5 8499664";
-
-function buildSignupSalesWhatsAppUrl(params: {
-  organizationName: string;
-  planDisplayName: string;
-  billingCycle: RegistrationBillingCycle;
-}): string {
-  const cicloFacturacion =
-    params.billingCycle === "annual" ? "Anual" : "Mensual";
-  const text = [
-    "Hola, acabo de registrarme en Tu Cuadre y quiero coordinar mi plan de pago.",
-    "",
-    `Organización: ${params.organizationName}`,
-    `Plan deseado: ${params.planDisplayName}`,
-    `Facturación: ${cicloFacturacion}`,
-  ].join("\n");
-  return `https://wa.me/${SALES_WHATSAPP_PHONE_DIGITS}?text=${encodeURIComponent(text)}`;
-}
 
 export default function RegisterPage() {
   const router = useRouter();
