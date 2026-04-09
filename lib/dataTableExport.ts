@@ -4,7 +4,9 @@ import { formatDisplayCurrency } from "@/lib/formatCurrency";
 export type FormatCupFn = (cup: number) => string;
 
 function getNestedValue(row: object, key: string): unknown {
-  return key.split(".").reduce((obj: unknown, k) => (obj as Record<string, unknown>)?.[k], row);
+  return key
+    .split(".")
+    .reduce((obj: unknown, k) => (obj as Record<string, unknown>)?.[k], row);
 }
 
 function resolveValue<T extends object>(
@@ -79,7 +81,12 @@ export function cellTextForExport<T extends object>(
     case "date":
       return formatDate(String(val ?? ""), col.locale);
     case "currency":
-      return formatCurrency(Number(val ?? 0), col.locale, col.currency, formatCup);
+      return formatCurrency(
+        Number(val ?? 0),
+        col.locale,
+        col.currency,
+        formatCup,
+      );
     case "number":
       return val != null ? String(val) : "";
     default:
@@ -93,20 +100,27 @@ export function buildExportRows<T extends object>(
   formatCup?: FormatCupFn,
 ): { headers: string[]; lines: string[][] } {
   const headers = columns.map((c) => c.label);
-  const lines = rows.map((row) => columns.map((c) => cellTextForExport(c, row, formatCup)));
+  const lines = rows.map((row) =>
+    columns.map((c) => cellTextForExport(c, row, formatCup)),
+  );
   return { headers, lines };
 }
 
-export function downloadCsv(filename: string, headers: string[], lines: string[][]) {
+export function downloadCsv(
+  filename: string,
+  headers: string[],
+  lines: string[][],
+) {
   const esc = (s: string) => {
     const t = String(s ?? "");
     if (/[",\n\r]/.test(t)) return `"${t.replace(/"/g, '""')}"`;
     return t;
   };
   const bom = "\uFEFF";
-  const body = [headers.map(esc).join(","), ...lines.map((row) => row.map(esc).join(","))].join(
-    "\r\n",
-  );
+  const body = [
+    headers.map(esc).join(","),
+    ...lines.map((row) => row.map(esc).join(",")),
+  ].join("\r\n");
   const blob = new Blob([bom + body], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -115,7 +129,11 @@ export function downloadCsv(filename: string, headers: string[], lines: string[]
   URL.revokeObjectURL(a.href);
 }
 
-export async function downloadXlsx(filename: string, headers: string[], lines: string[][]) {
+export async function downloadXlsx(
+  filename: string,
+  headers: string[],
+  lines: string[][],
+) {
   const XLSX = await import("xlsx");
   const wsData = [headers, ...lines];
   const ws = XLSX.utils.aoa_to_sheet(wsData);

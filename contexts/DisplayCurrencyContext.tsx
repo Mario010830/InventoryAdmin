@@ -2,18 +2,22 @@
 
 import {
   createContext,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
-  type ReactNode,
 } from "react";
-import { getToken } from "@/lib/auth-api";
-import { useGetGroupedSettingsQuery } from "@/app/dashboard/settings/_service/settingsApi";
 import { useGetCurrenciesQuery } from "@/app/dashboard/settings/_service/currencyApi";
+import { useGetGroupedSettingsQuery } from "@/app/dashboard/settings/_service/settingsApi";
+import { getToken } from "@/lib/auth-api";
 import type { CurrencyResponse } from "@/lib/dashboard-types";
-import { cupToDisplayAmount, formatAmountWithCode, roundPriceDecimals } from "@/lib/displayCurrencyFormat";
+import {
+  cupToDisplayAmount,
+  formatAmountWithCode,
+  roundPriceDecimals,
+} from "@/lib/displayCurrencyFormat";
 
 const STORAGE_KEY = "strova_display_currency_id";
 
@@ -43,7 +47,8 @@ type DisplayCurrencyContextValue = {
   isLoading: boolean;
 };
 
-const DisplayCurrencyContext = createContext<DisplayCurrencyContextValue | null>(null);
+const DisplayCurrencyContext =
+  createContext<DisplayCurrencyContextValue | null>(null);
 
 export function DisplayCurrencyProvider({ children }: { children: ReactNode }) {
   const hasToken = typeof window !== "undefined" && !!getToken();
@@ -82,12 +87,14 @@ export function DisplayCurrencyProvider({ children }: { children: ReactNode }) {
       return;
     }
     setSelectedId((prev) => {
-      if (prev != null && activeCurrencies.some((c) => c.id === prev)) return prev;
+      if (prev != null && activeCurrencies.some((c) => c.id === prev))
+        return prev;
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw != null) {
           const n = Number.parseInt(raw, 10);
-          if (Number.isFinite(n) && activeCurrencies.some((c) => c.id === n)) return n;
+          if (Number.isFinite(n) && activeCurrencies.some((c) => c.id === n))
+            return n;
         }
       } catch {
         /* ignore */
@@ -120,7 +127,11 @@ export function DisplayCurrencyProvider({ children }: { children: ReactNode }) {
       const rate = selectedCurrency.exchangeRate;
       const display = cupToDisplayAmount(Number(cup), rate);
       const rounded = roundPriceDecimals(display, priceDecimals);
-      return formatAmountWithCode(rounded, selectedCurrency.code, priceDecimals);
+      return formatAmountWithCode(
+        rounded,
+        selectedCurrency.code,
+        priceDecimals,
+      );
     },
     [selectedCurrency, priceDecimals],
   );
@@ -134,10 +145,22 @@ export function DisplayCurrencyProvider({ children }: { children: ReactNode }) {
       formatCup,
       isLoading: currenciesLoading || currenciesFetching,
     }),
-    [selectedCurrency, activeCurrencies, priceDecimals, setCurrencyId, formatCup, currenciesLoading, currenciesFetching],
+    [
+      selectedCurrency,
+      activeCurrencies,
+      priceDecimals,
+      setCurrencyId,
+      formatCup,
+      currenciesLoading,
+      currenciesFetching,
+    ],
   );
 
-  return <DisplayCurrencyContext.Provider value={value}>{children}</DisplayCurrencyContext.Provider>;
+  return (
+    <DisplayCurrencyContext.Provider value={value}>
+      {children}
+    </DisplayCurrencyContext.Provider>
+  );
 }
 
 export function useDisplayCurrency(): DisplayCurrencyContextValue {
@@ -149,7 +172,8 @@ export function useDisplayCurrency(): DisplayCurrencyContextValue {
       activeCurrencies: [],
       priceDecimals: 2,
       setCurrencyId: () => {},
-      formatCup: (cup: number) => formatAmountWithCode(roundPriceDecimals(cup, 2), "CUP", 2),
+      formatCup: (cup: number) =>
+        formatAmountWithCode(roundPriceDecimals(cup, 2), "CUP", 2),
       isLoading: false,
     };
   }

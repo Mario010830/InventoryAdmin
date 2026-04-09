@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 /** Headers que suelen aceptar túneles para devolver el recurso real */
 const TUNNEL_FETCH_HEADERS: Record<string, string> = {

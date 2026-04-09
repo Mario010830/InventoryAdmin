@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { ChevronDown, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import "./grid-filter-bar.css";
 
 function ClearButton({ onClear }: { onClear: () => void }) {

@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { getApiUrl, getToken } from "@/lib/auth-api";
 import { parseChartResult, parseSummaryResult } from "@/lib/api-utils";
+import { getApiUrl, getToken } from "@/lib/auth-api";
 
 // ─── Tipos para gráficos/listas (formato API) ─────────────────────────────────
 
@@ -71,7 +71,10 @@ export const dashboardApi = createApi({
   refetchOnReconnect: true,
   tagTypes: ["DashboardStats"],
   endpoints: (builder) => ({
-    getSummary: builder.query<DashboardSummary | null, DashboardQuery | void>({
+    getSummary: builder.query<
+      DashboardSummary | null,
+      DashboardQuery | undefined
+    >({
       query: (arg) => {
         const params = new URLSearchParams();
         if (arg?.from) params.set("from", arg.from);
@@ -81,7 +84,7 @@ export const dashboardApi = createApi({
       },
       transformResponse: parseSummaryResult<DashboardSummary>,
     }),
-    getInventoryFlow: builder.query<ChartPoint[], DashboardQuery | void>({
+    getInventoryFlow: builder.query<ChartPoint[], DashboardQuery | undefined>({
       query: (arg) => {
         const params = new URLSearchParams();
         const a = arg as DashboardQuery | undefined;
@@ -96,7 +99,10 @@ export const dashboardApi = createApi({
       query: () => "/dashboard/category-distribution",
       transformResponse: (raw: unknown) => parseChartResult<PiePoint>(raw),
     }),
-    getInventoryValueEvolution: builder.query<ChartPoint[], DashboardQuery | void>({
+    getInventoryValueEvolution: builder.query<
+      ChartPoint[],
+      DashboardQuery | undefined
+    >({
       query: (arg) => {
         const params = new URLSearchParams();
         const a = arg as DashboardQuery | undefined;
@@ -111,7 +117,10 @@ export const dashboardApi = createApi({
       query: () => "/dashboard/stock-status",
       transformResponse: (raw: unknown) => parseChartResult<PiePoint>(raw),
     }),
-    getEntriesVsExits: builder.query<ChartPointWithLine[], DashboardQuery | void>({
+    getEntriesVsExits: builder.query<
+      ChartPointWithLine[],
+      DashboardQuery | undefined
+    >({
       query: (arg) => {
         const params = new URLSearchParams();
         const a = arg as DashboardQuery | undefined;
@@ -120,9 +129,13 @@ export const dashboardApi = createApi({
         if (a?.to) params.set("to", a.to);
         return `/dashboard/entries-vs-exits?${params.toString()}`;
       },
-      transformResponse: (raw: unknown) => parseChartResult<ChartPointWithLine>(raw),
+      transformResponse: (raw: unknown) =>
+        parseChartResult<ChartPointWithLine>(raw),
     }),
-    getLowStockAlertsByDay: builder.query<ChartPoint[], DashboardQuery | void>({
+    getLowStockAlertsByDay: builder.query<
+      ChartPoint[],
+      DashboardQuery | undefined
+    >({
       query: (arg) => {
         const a = arg as DashboardQuery | undefined;
         const days = a?.days ?? 7;
@@ -130,35 +143,44 @@ export const dashboardApi = createApi({
       },
       transformResponse: (raw: unknown) => parseChartResult<ChartPoint>(raw),
     }),
-    getListTopMovements: builder.query<ListItem[], DashboardQuery | void>({
+    getListTopMovements: builder.query<ListItem[], DashboardQuery | undefined>({
       query: (arg) => {
         const a = arg as DashboardQuery | undefined;
         return `/dashboard/list-top-movements?days=${a?.days ?? 30}&limit=${a?.limit ?? 5}`;
       },
       transformResponse: (raw: unknown) => parseChartResult<ListItem>(raw),
     }),
-    getListLowStock: builder.query<ListItem[], DashboardQuery | void>({
+    getListLowStock: builder.query<ListItem[], DashboardQuery | undefined>({
       query: (arg) => {
         const a = arg as DashboardQuery | undefined;
         return `/dashboard/list-low-stock?limit=${a?.limit ?? 5}`;
       },
       transformResponse: (raw: unknown) => parseChartResult<ListItem>(raw),
     }),
-    getListLatestMovements: builder.query<ListItem[], DashboardQuery | void>({
+    getListLatestMovements: builder.query<
+      ListItem[],
+      DashboardQuery | undefined
+    >({
       query: (arg) => {
         const a = arg as DashboardQuery | undefined;
         return `/dashboard/list-latest-movements?limit=${a?.limit ?? 5}`;
       },
       transformResponse: (raw: unknown) => parseChartResult<ListItem>(raw),
     }),
-    getListValueByLocation: builder.query<ListItem[], DashboardQuery | void>({
+    getListValueByLocation: builder.query<
+      ListItem[],
+      DashboardQuery | undefined
+    >({
       query: (arg) => {
         const a = arg as DashboardQuery | undefined;
         return `/dashboard/list-value-by-location?limit=${a?.limit ?? 5}`;
       },
       transformResponse: (raw: unknown) => parseChartResult<ListItem>(raw),
     }),
-    getListRecentProducts: builder.query<ListItem[], DashboardQuery | void>({
+    getListRecentProducts: builder.query<
+      ListItem[],
+      DashboardQuery | undefined
+    >({
       query: (arg) => {
         const a = arg as DashboardQuery | undefined;
         return `/dashboard/list-recent-products?limit=${a?.limit ?? 5}&days=${a?.days ?? 30}`;
@@ -166,13 +188,17 @@ export const dashboardApi = createApi({
       transformResponse: (raw: unknown) => parseChartResult<ListItem>(raw),
     }),
     /** Heatmap de actividad: movimientos por día de la semana y hora (0=Lun, 0–23h). */
-    getActivityHeatmap: builder.query<ActivityHeatmapCell[], DashboardQuery | void>({
+    getActivityHeatmap: builder.query<
+      ActivityHeatmapCell[],
+      DashboardQuery | undefined
+    >({
       query: (arg) => {
         const a = arg as DashboardQuery | undefined;
         const days = a?.days ?? 14;
         return `/dashboard/activity-heatmap?days=${days}`;
       },
-      transformResponse: (raw: unknown) => parseChartResult<ActivityHeatmapCell>(raw),
+      transformResponse: (raw: unknown) =>
+        parseChartResult<ActivityHeatmapCell>(raw),
     }),
   }),
 });

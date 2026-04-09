@@ -32,7 +32,10 @@ const OP_NAMES: Record<string, string> = {
 };
 
 /** Último segmento = operación; el resto = clave de entidad (puede incluir puntos). */
-export function parsePermissionCode(code: string): { entity: string; op: string } {
+export function parsePermissionCode(code: string): {
+  entity: string;
+  op: string;
+} {
   const parts = code.split(".").filter(Boolean);
   if (parts.length === 0) return { entity: "", op: "read" };
   if (parts.length === 1) return { entity: parts[0]!, op: "manage" };
@@ -67,26 +70,33 @@ function friendlyName(code: string, op: string): string {
     plan: "Plan",
     currency: "Moneda",
   };
-  const lastSeg = entity.includes(".") ? entity.split(".").pop() ?? entity : entity;
+  const lastSeg = entity.includes(".")
+    ? (entity.split(".").pop() ?? entity)
+    : entity;
   const entityLabel = entityLabels[entity] ?? entityLabels[lastSeg] ?? lastSeg;
   if (entity === "admin" || lastSeg === "admin") return "Administrador";
-  if (op === "read") return `Ver ${entityLabel}${entity === "productcategory" || entity === "inventorymovement" ? "" : "s"}`;
+  if (op === "read")
+    return `Ver ${entityLabel}${entity === "productcategory" || entity === "inventorymovement" ? "" : "s"}`;
   return `${opLabel} ${entityLabel}`;
 }
 
 /** Construye grupos desde una lista de permisos { id, code, name }. */
-export function buildEntityGroups(list: { id: number; code: string; name?: string }[]): EntityGroup[] {
+export function buildEntityGroups(
+  list: { id: number; code: string; name?: string }[],
+): EntityGroup[] {
   const byEntity = new Map<string, PermissionItem[]>();
 
   for (const p of list) {
     if (!p.code?.trim()) continue;
     const { entity, op } = parsePermissionCode(p.code);
-    const rawName = p.name && p.name.trim() ? p.name : "";
+    const rawName = p.name?.trim() ? p.name : "";
     const name =
-      rawName && !rawName.includes(".") && rawName !== p.code ? rawName : friendlyName(p.code, op);
+      rawName && !rawName.includes(".") && rawName !== p.code
+        ? rawName
+        : friendlyName(p.code, op);
     const item: PermissionItem = { id: p.id, code: p.code, name, op };
     if (!byEntity.has(entity)) byEntity.set(entity, []);
-    byEntity.get(entity)!.push(item);
+    byEntity.get(entity)?.push(item);
   }
 
   const ORDER: Record<string, number> = {
@@ -158,7 +168,15 @@ export function buildEntityGroups(list: { id: number; code: string; name?: strin
     currency: "Monedas y tipos de cambio.",
   };
 
-  const OP_SORT_ORDER = ["read", "create", "update", "delete", "cancel", "report", "manage"];
+  const OP_SORT_ORDER = [
+    "read",
+    "create",
+    "update",
+    "delete",
+    "cancel",
+    "report",
+    "manage",
+  ];
 
   const groups: EntityGroup[] = [];
   for (const [entity, perms] of byEntity) {
@@ -183,7 +201,11 @@ export function buildEntityGroups(list: { id: number; code: string; name?: strin
 
 /** Obtiene el permiso "read" de un grupo (para el toggle Ver); si no hay, el primero. */
 export function getReadPermission(group: EntityGroup): PermissionItem | null {
-  return group.permissions.find((p) => p.op === "read") ?? group.permissions[0] ?? null;
+  return (
+    group.permissions.find((p) => p.op === "read") ??
+    group.permissions[0] ??
+    null
+  );
 }
 
 /** Permisos distintos del que controla el interruptor principal (evita duplicar el mismo id en switch + lista). */

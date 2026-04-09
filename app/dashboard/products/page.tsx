@@ -1,50 +1,50 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useDebouncedValue } from "@/lib/useDebouncedValue";
-import {
-  useLoadAllRemainingPages,
-  SEARCH_TABLE_CHUNK_PAGE_SIZE,
-  TABLE_SEARCH_DEBOUNCE_MS,
-} from "@/lib/useLoadAllRemainingPages";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
-import type {
-  ProductResponse,
-  CreateProductRequest,
-  UpdateProductRequest,
-  ProductTipo,
-} from "@/lib/dashboard-types";
 import {
   extractRtkQueryErrorFields,
   userFacingBusinessErrorMessage,
 } from "@/lib/apiBusinessErrors";
-import "./products-modal.css";
-import { DataTable } from "@/components/DataTable";
-import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
-import type { DataTableColumn } from "@/components/DataTable";
+import type {
+  CreateProductRequest,
+  ProductResponse,
+  ProductTipo,
+  UpdateProductRequest,
+} from "@/lib/dashboard-types";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
-  useGetProductsQuery,
-  useGetProductCategoriesQuery,
-  useCreateProductMutation,
-  useUpdateProductMutation,
-  useDeleteProductMutation,
-  useUploadProductImageMutation,
-} from "./_service/productsApi";
+  SEARCH_TABLE_CHUNK_PAGE_SIZE,
+  TABLE_SEARCH_DEBOUNCE_MS,
+  useLoadAllRemainingPages,
+} from "@/lib/useLoadAllRemainingPages";
+import "./products-modal.css";
+import { toast } from "sonner";
+import type { DataTableColumn } from "@/components/DataTable";
+import { DataTable } from "@/components/DataTable";
 import { DeleteModal } from "@/components/DeleteModal";
+import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
 import { FormModal } from "@/components/FormModal";
 import Switch from "@/components/Switch";
-import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
-import { toast } from "sonner";
-import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
-import { TagSelector } from "./TagSelector";
-import { ProductImageGallery } from "./ProductImageGallery";
-import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
+import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
+import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
+import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
+import {
+  useCreateProductMutation,
+  useDeleteProductMutation,
+  useGetProductCategoriesQuery,
+  useGetProductsQuery,
+  useUpdateProductMutation,
+  useUploadProductImageMutation,
+} from "./_service/productsApi";
+import { ProductImageGallery } from "./ProductImageGallery";
+import { TagSelector } from "./TagSelector";
 import "./products-table.css";
-import { ProductDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
 import { useGetLocationsQuery } from "@/app/dashboard/locations/_service/locationsApi";
-import { useDefaultLocation } from "@/lib/useDefaultLocation";
 import { ProductsBulkToolbar } from "@/components/DataTableBulkToolbar";
+import { ProductDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
+import { useDefaultLocation } from "@/lib/useDefaultLocation";
 import { ProductImportWizard } from "./ProductImportWizard";
 
 /** Máximo de productos a pedir en una sola página para que «seleccionar todo» cubra el catálogo sin depender del scroll. */
@@ -71,7 +71,9 @@ function ProductMarginCell({ row }: { row: ProductResponse }) {
   return (
     <div className="product-margin-cell">
       <span className="dt-cell-mono">{formatCup(diff)}</span>
-      <span className={`product-margin-cell__pct ${pctClass}`.trim()}>{pctLabel}</span>
+      <span className={`product-margin-cell__pct ${pctClass}`.trim()}>
+        {pctLabel}
+      </span>
     </div>
   );
 }
@@ -104,7 +106,9 @@ const MARGIN_COLUMN_HEADER_TOOLTIP = (
         <span className="dt-th-hint__glyph" aria-hidden>
           🔴
         </span>
-        <span className="dt-th-hint__text">Rojo → Muy bajo (menos del 10%)</span>
+        <span className="dt-th-hint__text">
+          Rojo → Muy bajo (menos del 10%)
+        </span>
       </div>
     </div>
   </div>
@@ -133,7 +137,10 @@ function useProductColumns(): DataTableColumn<ProductResponse>[] {
                 loading="lazy"
               />
             ) : (
-              <span className="product-grid-thumb product-grid-thumb--placeholder" aria-hidden>
+              <span
+                className="product-grid-thumb product-grid-thumb--placeholder"
+                aria-hidden
+              >
                 <Icon name="inventory_2" />
               </span>
             )}
@@ -146,7 +153,10 @@ function useProductColumns(): DataTableColumn<ProductResponse>[] {
         label: "Descripción",
         width: "min(240px, 28vw)",
         render: (row) => (
-          <span className="product-grid-desc" title={(row.description ?? "").trim() || undefined}>
+          <span
+            className="product-grid-desc"
+            title={(row.description ?? "").trim() || undefined}
+          >
             {(row.description ?? "").trim() ? row.description : "—"}
           </span>
         ),
@@ -161,7 +171,8 @@ function useProductColumns(): DataTableColumn<ProductResponse>[] {
         sortValue: (row) => {
           const p = Number(row.precio);
           const c = Number(row.costo);
-          if (!Number.isFinite(p) || !Number.isFinite(c) || p <= 0) return Number.NEGATIVE_INFINITY;
+          if (!Number.isFinite(p) || !Number.isFinite(c) || p <= 0)
+            return Number.NEGATIVE_INFINITY;
           return ((p - c) / p) * 100;
         },
         exportValue: (row) => {
@@ -191,7 +202,12 @@ function useProductColumns(): DataTableColumn<ProductResponse>[] {
         },
       },
       /* Anchos fijos: si no, en table-layout:fixed se estiran y “Activo” queda con un hueco enorme entre columnas */
-      { key: "isAvailable", label: "Disponible", type: "boolean", width: "96px" },
+      {
+        key: "isAvailable",
+        label: "Disponible",
+        type: "boolean",
+        width: "96px",
+      },
       { key: "isForSale", label: "En Venta", type: "boolean", width: "96px" },
       { key: "createdAt", label: "Creado", type: "date", width: "112px" },
     ],
@@ -295,13 +311,20 @@ function ImageUploader({ value, onChange, disabled }: ImageUploaderProps) {
           </div>
         ) : hasImage ? (
           <>
-            <img src={getProxiedImageSrc(value) ?? value} alt="Preview" className="img-uploader__preview" />
+            <img
+              src={getProxiedImageSrc(value) ?? value}
+              alt="Preview"
+              className="img-uploader__preview"
+            />
             <div className="img-uploader__overlay">
               <button
                 type="button"
                 className="img-uploader__overlay-btn img-uploader__overlay-btn--change"
                 disabled={disabled}
-                onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  inputRef.current?.click();
+                }}
               >
                 <Icon name="upload" />
                 Cambiar
@@ -310,7 +333,10 @@ function ImageUploader({ value, onChange, disabled }: ImageUploaderProps) {
                 type="button"
                 className="img-uploader__overlay-btn img-uploader__overlay-btn--remove"
                 disabled={disabled}
-                onClick={(e) => { e.stopPropagation(); onChange(""); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange("");
+                }}
               >
                 <Icon name="delete" />
                 Quitar
@@ -388,7 +414,10 @@ export default function ProductsPage() {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [filterText, setFilterText] = useState("");
-  const debouncedFilterText = useDebouncedValue(filterText, TABLE_SEARCH_DEBOUNCE_MS);
+  const debouncedFilterText = useDebouncedValue(
+    filterText,
+    TABLE_SEARCH_DEBOUNCE_MS,
+  );
   const [filterCategoryId, setFilterCategoryId] = useState<string>("");
   const [filterAvailable, setFilterAvailable] = useState<string>("");
   const [filterForSale, setFilterForSale] = useState<string>("");
@@ -417,18 +446,25 @@ export default function ProductsPage() {
    * Edición: solo enviar `offerLocationIds` si el usuario modificó los checkboxes
    * (evita sobrescribir en servidor al guardar otros campos).
    */
-  const [offerLocationsSelectionTouched, setOfferLocationsSelectionTouched] = useState(false);
+  const [offerLocationsSelectionTouched, setOfferLocationsSelectionTouched] =
+    useState(false);
 
   const [confirmCostHigherOpen, setConfirmCostHigherOpen] = useState(false);
   const [importWizardOpen, setImportWizardOpen] = useState(false);
 
   // ─── Queries ──────────────────────────────────────────────────────────────
 
-  const { data: result, isLoading, isFetching } = useGetProductsQuery({
+  const {
+    data: result,
+    isLoading,
+    isFetching,
+  } = useGetProductsQuery({
     page,
     perPage: effectivePerPage,
   });
-  const { data: categoriesResult } = useGetProductCategoriesQuery({ perPage: 100 });
+  const { data: categoriesResult } = useGetProductCategoriesQuery({
+    perPage: 100,
+  });
   const { data: locationsResult } = useGetLocationsQuery({
     page: 1,
     perPage: 500,
@@ -457,9 +493,7 @@ export default function ProductsPage() {
   );
 
   const loadedRows =
-    page === 1 && allRows.length === 0
-      ? (result?.data ?? [])
-      : allRows;
+    page === 1 && allRows.length === 0 ? (result?.data ?? []) : allRows;
 
   // Accumulate rows across pages
   useEffect(() => {
@@ -498,18 +532,13 @@ export default function ProductsPage() {
   });
 
   useEffect(() => {
-    if (!filtersChanged.current) { filtersChanged.current = true; return; }
+    if (!filtersChanged.current) {
+      filtersChanged.current = true;
+      return;
+    }
     setPage(1);
     setAllRows([]);
-  }, [
-    debouncedFilterText,
-    filterCategoryId,
-    filterAvailable,
-    filterForSale,
-    filterTipo,
-    priceMin,
-    priceMax,
-  ]);
+  }, []);
 
   const clearGridFilters = () => {
     setFilterText("");
@@ -527,9 +556,15 @@ export default function ProductsPage() {
     if (q) {
       rows = rows.filter(
         (row) =>
-          String(row.name ?? "").toLowerCase().includes(q) ||
-          String(row.code ?? "").toLowerCase().includes(q) ||
-          String(row.description ?? "").toLowerCase().includes(q),
+          String(row.name ?? "")
+            .toLowerCase()
+            .includes(q) ||
+          String(row.code ?? "")
+            .toLowerCase()
+            .includes(q) ||
+          String(row.description ?? "")
+            .toLowerCase()
+            .includes(q),
       );
     }
     if (filterCategoryId !== "") {
@@ -541,7 +576,9 @@ export default function ProductsPage() {
     if (filterForSale === "yes") rows = rows.filter((r) => r.isForSale);
     if (filterForSale === "no") rows = rows.filter((r) => !r.isForSale);
     if (filterTipo === "inventariable") {
-      rows = rows.filter((r) => (r.tipo ?? "inventariable") === "inventariable");
+      rows = rows.filter(
+        (r) => (r.tipo ?? "inventariable") === "inventariable",
+      );
     }
     if (filterTipo === "elaborado") {
       rows = rows.filter((r) => r.tipo === "elaborado");
@@ -572,8 +609,7 @@ export default function ProductsPage() {
     priceMax.trim() !== "";
 
   const allPagesLoaded =
-    result?.pagination != null &&
-    page >= (result.pagination.totalPages ?? 1);
+    result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
 
   const filteredDataRef = useRef(filteredData);
   filteredDataRef.current = filteredData;
@@ -613,7 +649,8 @@ export default function ProductsPage() {
     setOfferLocationsSelectionTouched(false);
     setForm({
       ...initialForm,
-      offerLocationIds: defaultLoc.locationId != null ? [defaultLoc.locationId] : [],
+      offerLocationIds:
+        defaultLoc.locationId != null ? [defaultLoc.locationId] : [],
     });
     setFormErrors({});
     setFormOpen(true);
@@ -652,13 +689,15 @@ export default function ProductsPage() {
     const precio = Number(form.precio);
     const costo = Number(form.costo);
     if (Number.isNaN(precio) || precio < 0) err.precio = "Precio inválido";
-    if (Number.isNaN(costo)  || costo  < 0) err.costo  = "Costo inválido";
+    if (Number.isNaN(costo) || costo < 0) err.costo = "Costo inválido";
     setFormErrors(err);
     return Object.keys(err).length === 0;
   };
 
   const performSubmit = async () => {
-    const sortedOfferIds = [...new Set(form.offerLocationIds)].sort((a, b) => a - b);
+    const sortedOfferIds = [...new Set(form.offerLocationIds)].sort(
+      (a, b) => a - b,
+    );
 
     const shared = {
       tipo: form.tipo,
@@ -784,7 +823,9 @@ export default function ProductsPage() {
         { id: tid },
       );
       setAllRows((prev) =>
-        prev.map((r) => (ids.includes(r.id) ? { ...r, isAvailable: value } : r)),
+        prev.map((r) =>
+          ids.includes(r.id) ? { ...r, isAvailable: value } : r,
+        ),
       );
     } catch {
       toast.error("No se pudo actualizar la disponibilidad de todos.", {
@@ -820,137 +861,145 @@ export default function ProductsPage() {
   return (
     <>
       <div className="products-page-wrap">
-      <DataTable
-        gridConfig={{
-          storageKey: "dashboard-products",
-          exportFilenamePrefix: "productos",
-          primaryColumnKey: "name",
-          bulkEntityLabel: "productos",
-        }}
-        renderBulkToolbar={(ctx) => (
-          <ProductsBulkToolbar
-            count={ctx.count}
-            onClear={ctx.clearSelection}
-            onDeleteSelected={
-              canDeleteProduct ? () => void handleBulkDeleteProducts(ctx.selectedIds) : undefined
-            }
-            onSetAvailable={(v) => void handleBulkSetAvailable(v, ctx.selectedIds)}
-            onSetForSale={(v) => void handleBulkSetForSale(v, ctx.selectedIds)}
-            exportSelectedCsv={ctx.exportSelectedCsv}
-            exportSelectedXlsx={ctx.exportSelectedXlsx}
-            showDelete={canDeleteProduct}
-            disableMutations={!canEditProduct}
-          />
-        )}
-        filters={
-          <GridFilterBar onClear={clearGridFilters}>
-            <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Buscar</span>
-              <input
-                type="search"
-                className={`grid-filter-bar__control grid-filter-bar__control--wide ${filterText.trim() ? "grid-filter-bar__control--active" : ""}`}
-                placeholder="Nombre, código, descripción…"
-                value={filterText}
-                onChange={(e) => setFilterText(e.target.value)}
-              />
-            </div>
-            <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Categoría</span>
-              <GridFilterSelect
-                aria-label="Categoría"
-                value={filterCategoryId}
-                onChange={setFilterCategoryId}
-                active={filterCategoryId !== ""}
-                className="grid-filter-bar__control--medium"
-                options={[
-                  { value: "", label: "Todas" },
-                  ...categories.map((c) => ({ value: String(c.id), label: c.name })),
-                ]}
-              />
-            </div>
-            <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Tipo</span>
-              <GridFilterSelect
-                aria-label="Tipo de producto"
-                value={filterTipo}
-                onChange={setFilterTipo}
-                active={filterTipo !== ""}
-                className="grid-filter-bar__control--medium"
-                options={[
-                  { value: "", label: "Todos" },
-                  { value: "inventariable", label: "Inventariable" },
-                  { value: "elaborado", label: "Elaborado" },
-                ]}
-              />
-            </div>
-            <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Disponible</span>
-              <GridFilterSelect
-                aria-label="Disponible"
-                value={filterAvailable}
-                onChange={setFilterAvailable}
-                active={filterAvailable !== ""}
-            options={[
-              { value: "", label: "Todos" },
-              { value: "yes", label: "Activo" },
-              { value: "no", label: "Inactivo" },
-            ]}
-          />
-        </div>
-        <div className="grid-filter-bar__field">
-          <span className="grid-filter-bar__label">En venta</span>
-          <GridFilterSelect
-            aria-label="En venta"
-            value={filterForSale}
-            onChange={setFilterForSale}
-            active={filterForSale !== ""}
-            options={[
-              { value: "", label: "Todos" },
-                  { value: "yes", label: "Activo" },
-                  { value: "no", label: "Inactivo" },
-                ]}
-              />
-            </div>
-            <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Precio</span>
-              <div className="grid-filter-bar__price-range">
+        <DataTable
+          gridConfig={{
+            storageKey: "dashboard-products",
+            exportFilenamePrefix: "productos",
+            primaryColumnKey: "name",
+            bulkEntityLabel: "productos",
+          }}
+          renderBulkToolbar={(ctx) => (
+            <ProductsBulkToolbar
+              count={ctx.count}
+              onClear={ctx.clearSelection}
+              onDeleteSelected={
+                canDeleteProduct
+                  ? () => void handleBulkDeleteProducts(ctx.selectedIds)
+                  : undefined
+              }
+              onSetAvailable={(v) =>
+                void handleBulkSetAvailable(v, ctx.selectedIds)
+              }
+              onSetForSale={(v) =>
+                void handleBulkSetForSale(v, ctx.selectedIds)
+              }
+              exportSelectedCsv={ctx.exportSelectedCsv}
+              exportSelectedXlsx={ctx.exportSelectedXlsx}
+              showDelete={canDeleteProduct}
+              disableMutations={!canEditProduct}
+            />
+          )}
+          filters={
+            <GridFilterBar onClear={clearGridFilters}>
+              <div className="grid-filter-bar__field">
+                <span className="grid-filter-bar__label">Buscar</span>
                 <input
-                  type="text"
-                  inputMode="decimal"
-                  className={`grid-filter-bar__control grid-filter-bar__control--narrow ${priceMin.trim() ? "grid-filter-bar__control--active" : ""}`}
-                  placeholder="Min"
-                  aria-label="Precio mínimo"
-                  value={priceMin}
-                  onChange={(e) => setPriceMin(e.target.value)}
-                />
-                <span className="grid-filter-bar__price-dash" aria-hidden>
-                  –
-                </span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className={`grid-filter-bar__control grid-filter-bar__control--narrow ${priceMax.trim() ? "grid-filter-bar__control--active" : ""}`}
-                  placeholder="Max"
-                  aria-label="Precio máximo"
-                  value={priceMax}
-                  onChange={(e) => setPriceMax(e.target.value)}
+                  type="search"
+                  className={`grid-filter-bar__control grid-filter-bar__control--wide ${filterText.trim() ? "grid-filter-bar__control--active" : ""}`}
+                  placeholder="Nombre, código, descripción…"
+                  value={filterText}
+                  onChange={(e) => setFilterText(e.target.value)}
                 />
               </div>
-            </div>
-          </GridFilterBar>
-        }
-        data={filteredData}
-        columns={productColumns}
-        loading={allRows.length === 0 && (isLoading || isFetching)}
-        title="Productos"
-        titleIcon="inventory_2"
-        addLabel="Nuevo Producto"
-        onAdd={openCreate}
-        addDisabled={!canCreateProduct}
-        addButtonDataTutorial="tutorial-products-add"
-        toolbarExtra={
-          canCreateProduct ? (
-            <>
+              <div className="grid-filter-bar__field">
+                <span className="grid-filter-bar__label">Categoría</span>
+                <GridFilterSelect
+                  aria-label="Categoría"
+                  value={filterCategoryId}
+                  onChange={setFilterCategoryId}
+                  active={filterCategoryId !== ""}
+                  className="grid-filter-bar__control--medium"
+                  options={[
+                    { value: "", label: "Todas" },
+                    ...categories.map((c) => ({
+                      value: String(c.id),
+                      label: c.name,
+                    })),
+                  ]}
+                />
+              </div>
+              <div className="grid-filter-bar__field">
+                <span className="grid-filter-bar__label">Tipo</span>
+                <GridFilterSelect
+                  aria-label="Tipo de producto"
+                  value={filterTipo}
+                  onChange={setFilterTipo}
+                  active={filterTipo !== ""}
+                  className="grid-filter-bar__control--medium"
+                  options={[
+                    { value: "", label: "Todos" },
+                    { value: "inventariable", label: "Inventariable" },
+                    { value: "elaborado", label: "Elaborado" },
+                  ]}
+                />
+              </div>
+              <div className="grid-filter-bar__field">
+                <span className="grid-filter-bar__label">Disponible</span>
+                <GridFilterSelect
+                  aria-label="Disponible"
+                  value={filterAvailable}
+                  onChange={setFilterAvailable}
+                  active={filterAvailable !== ""}
+                  options={[
+                    { value: "", label: "Todos" },
+                    { value: "yes", label: "Activo" },
+                    { value: "no", label: "Inactivo" },
+                  ]}
+                />
+              </div>
+              <div className="grid-filter-bar__field">
+                <span className="grid-filter-bar__label">En venta</span>
+                <GridFilterSelect
+                  aria-label="En venta"
+                  value={filterForSale}
+                  onChange={setFilterForSale}
+                  active={filterForSale !== ""}
+                  options={[
+                    { value: "", label: "Todos" },
+                    { value: "yes", label: "Activo" },
+                    { value: "no", label: "Inactivo" },
+                  ]}
+                />
+              </div>
+              <div className="grid-filter-bar__field">
+                <span className="grid-filter-bar__label">Precio</span>
+                <div className="grid-filter-bar__price-range">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className={`grid-filter-bar__control grid-filter-bar__control--narrow ${priceMin.trim() ? "grid-filter-bar__control--active" : ""}`}
+                    placeholder="Min"
+                    aria-label="Precio mínimo"
+                    value={priceMin}
+                    onChange={(e) => setPriceMin(e.target.value)}
+                  />
+                  <span className="grid-filter-bar__price-dash" aria-hidden>
+                    –
+                  </span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className={`grid-filter-bar__control grid-filter-bar__control--narrow ${priceMax.trim() ? "grid-filter-bar__control--active" : ""}`}
+                    placeholder="Max"
+                    aria-label="Precio máximo"
+                    value={priceMax}
+                    onChange={(e) => setPriceMax(e.target.value)}
+                  />
+                </div>
+              </div>
+            </GridFilterBar>
+          }
+          data={filteredData}
+          columns={productColumns}
+          loading={allRows.length === 0 && (isLoading || isFetching)}
+          title="Productos"
+          titleIcon="inventory_2"
+          addLabel="Nuevo Producto"
+          onAdd={openCreate}
+          addDisabled={!canCreateProduct}
+          addButtonDataTutorial="tutorial-products-add"
+          toolbarExtra={
+            canCreateProduct ? (
               <button
                 type="button"
                 className="dt-btn-ghost"
@@ -959,46 +1008,61 @@ export default function ProductsPage() {
                 <Icon name="upload_file" />
                 <span className="dt-btn-ghost__label">Importar Excel</span>
               </button>
-            </>
-          ) : undefined
-        }
-        actions={[
-          { icon: "edit", label: "Editar", onClick: openEdit, disabled: () => !canEditProduct },
-          { icon: "delete_outline", label: "Eliminar", onClick: openDelete, variant: "danger", disabled: () => !canDeleteProduct },
-        ]}
-        detailDrawer={{
-          entityLabelPlural: "productos",
-          getTitle: (row) => row.name?.trim() || row.code || `Producto #${row.id}`,
-          getStatusBadge: (row) => (
-            <span className={`dt-tag ${row.isAvailable ? "dt-tag--green" : "dt-tag--red"}`}>
-              {row.isAvailable ? "Activo" : "Inactivo"}
-            </span>
-          ),
-          render: (row) => (
-            <ProductDetailBody
-              row={row}
-              categoryName={categories.find((c) => c.id === row.categoryId)?.name ?? "—"}
-              locations={locationsForDetail}
-            />
-          ),
-          onEdit: openEdit,
-          showEditButton: () => canEditProduct,
-        }}
-        infiniteScroll
-        onLoadMore={allPagesLoaded ? undefined : loadNextPage}
-        hasMore={!allPagesLoaded}
-        loadingMore={isFetching && !allPagesLoaded}
-        onBulkSelectAll={onBulkSelectAllProducts}
-        emptyIcon="inventory_2"
-        emptyTitle="Sin registros"
-        emptyDesc={
-          gridFiltersActive && loadedRows.length > 0
-            ? "Ningún producto coincide con los filtros."
-            : loadedRows.length === 0
-              ? "Aún no hay productos"
-              : "Sin resultados"
-        }
-      />
+            ) : undefined
+          }
+          actions={[
+            {
+              icon: "edit",
+              label: "Editar",
+              onClick: openEdit,
+              disabled: () => !canEditProduct,
+            },
+            {
+              icon: "delete_outline",
+              label: "Eliminar",
+              onClick: openDelete,
+              variant: "danger",
+              disabled: () => !canDeleteProduct,
+            },
+          ]}
+          detailDrawer={{
+            entityLabelPlural: "productos",
+            getTitle: (row) =>
+              row.name?.trim() || row.code || `Producto #${row.id}`,
+            getStatusBadge: (row) => (
+              <span
+                className={`dt-tag ${row.isAvailable ? "dt-tag--green" : "dt-tag--red"}`}
+              >
+                {row.isAvailable ? "Activo" : "Inactivo"}
+              </span>
+            ),
+            render: (row) => (
+              <ProductDetailBody
+                row={row}
+                categoryName={
+                  categories.find((c) => c.id === row.categoryId)?.name ?? "—"
+                }
+                locations={locationsForDetail}
+              />
+            ),
+            onEdit: openEdit,
+            showEditButton: () => canEditProduct,
+          }}
+          infiniteScroll
+          onLoadMore={allPagesLoaded ? undefined : loadNextPage}
+          hasMore={!allPagesLoaded}
+          loadingMore={isFetching && !allPagesLoaded}
+          onBulkSelectAll={onBulkSelectAllProducts}
+          emptyIcon="inventory_2"
+          emptyTitle="Sin registros"
+          emptyDesc={
+            gridFiltersActive && loadedRows.length > 0
+              ? "Ningún producto coincide con los filtros."
+              : loadedRows.length === 0
+                ? "Aún no hay productos"
+                : "Sin resultados"
+          }
+        />
       </div>
 
       {/* ── Form modal ── */}
@@ -1021,18 +1085,29 @@ export default function ProductsPage() {
               const next = e.target.value as ProductTipo;
               setOfferLocationsSelectionTouched(false);
               setForm((f) => {
-                if (next === "elaborado" && f.tipo === "inventariable" && editing) {
+                if (
+                  next === "elaborado" &&
+                  f.tipo === "inventariable" &&
+                  editing
+                ) {
                   return {
                     ...f,
                     tipo: next,
                     offerLocationIds: [...(editing.offerLocationIds ?? [])],
                   };
                 }
-                if (next === "elaborado" && f.tipo === "inventariable" && !editing) {
+                if (
+                  next === "elaborado" &&
+                  f.tipo === "inventariable" &&
+                  !editing
+                ) {
                   return {
                     ...f,
                     tipo: next,
-                    offerLocationIds: defaultLoc.locationId != null ? [defaultLoc.locationId] : [],
+                    offerLocationIds:
+                      defaultLoc.locationId != null
+                        ? [defaultLoc.locationId]
+                        : [],
                   };
                 }
                 if (next === "inventariable" && f.tipo === "elaborado") {
@@ -1052,24 +1127,31 @@ export default function ProductsPage() {
 
         {form.tipo === "elaborado" && (
           <div className="modal-field field-full">
-            <div className="product-offer-card" role="group" aria-label="Tiendas donde se ofrece el producto elaborado">
+            <div
+              className="product-offer-card"
+              role="group"
+              aria-label="Tiendas donde se ofrece el producto elaborado"
+            >
               <div className="product-offer-card__head">
                 <span className="product-offer-card__title">
                   <Icon name="storefront" />
                   Tiendas en catálogo
                 </span>
                 <span className="product-offer-card__count">
-                  {form.offerLocationIds.length} de {organizationLocations.length || 0}
+                  {form.offerLocationIds.length} de{" "}
+                  {organizationLocations.length || 0}
                 </span>
               </div>
               <p className="product-offer-card__hint">
-                Marca en qué ubicaciones verán este producto los clientes. Si editas un producto y no
-                cambias esta lista, no se actualizarán las tiendas al guardar.
+                Marca en qué ubicaciones verán este producto los clientes. Si
+                editas un producto y no cambias esta lista, no se actualizarán
+                las tiendas al guardar.
               </p>
               <div className="product-offer-locs">
                 {organizationLocations.length === 0 ? (
                   <p className="product-offer-locs__empty">
-                    No hay ubicaciones. Créalas en <strong>Ubicaciones</strong> del menú lateral.
+                    No hay ubicaciones. Créalas en <strong>Ubicaciones</strong>{" "}
+                    del menú lateral.
                   </p>
                 ) : (
                   organizationLocations.map((loc) => {
@@ -1086,7 +1168,9 @@ export default function ProductsPage() {
                               ...f,
                               offerLocationIds: checked
                                 ? f.offerLocationIds.filter((x) => x !== id)
-                                : [...f.offerLocationIds, id].sort((a, b) => a - b),
+                                : [...f.offerLocationIds, id].sort(
+                                    (a, b) => a - b,
+                                  ),
                             }));
                           }}
                         />
@@ -1098,7 +1182,8 @@ export default function ProductsPage() {
               </div>
               {editing && !offerLocationsSelectionTouched ? (
                 <p className="product-offer-card__hint product-offer-card__hint--muted">
-                  Sin cambios en la lista: al guardar no se reenvían tiendas al servidor.
+                  Sin cambios en la lista: al guardar no se reenvían tiendas al
+                  servidor.
                 </p>
               ) : null}
             </div>
@@ -1132,7 +1217,9 @@ export default function ProductsPage() {
           <textarea
             id="description"
             value={form.description}
-            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, description: e.target.value }))
+            }
             placeholder="Descripción"
             rows={3}
           />
@@ -1152,7 +1239,9 @@ export default function ProductsPage() {
           >
             <option value="">Sin categoría</option>
             {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
             ))}
           </select>
         </div>
@@ -1175,7 +1264,9 @@ export default function ProductsPage() {
             value={form.precio}
             onChange={(e) => setForm((f) => ({ ...f, precio: e.target.value }))}
           />
-          {formErrors.precio && <p className="form-error">{formErrors.precio}</p>}
+          {formErrors.precio && (
+            <p className="form-error">{formErrors.precio}</p>
+          )}
         </div>
 
         <div className="modal-field">
@@ -1196,7 +1287,9 @@ export default function ProductsPage() {
             mode={editing ? "edit" : "create"}
             productId={editing?.id}
             imagenUrl={form.imagenUrl}
-            onImagenUrlChange={(url) => setForm((f) => ({ ...f, imagenUrl: url }))}
+            onImagenUrlChange={(url) =>
+              setForm((f) => ({ ...f, imagenUrl: url }))
+            }
             disabled={editing ? !canEditProduct : !canCreateProduct}
             createSlot={
               <ImageUploader
@@ -1211,7 +1304,9 @@ export default function ProductsPage() {
         <div className="modal-field field-full modal-toggle">
           <Switch
             checked={form.isAvailable}
-            onChange={(checked) => setForm((f) => ({ ...f, isAvailable: checked }))}
+            onChange={(checked) =>
+              setForm((f) => ({ ...f, isAvailable: checked }))
+            }
           />
           <label>Disponible</label>
         </div>
@@ -1219,7 +1314,9 @@ export default function ProductsPage() {
         <div className="modal-field field-full modal-toggle">
           <Switch
             checked={form.isForSale}
-            onChange={(checked) => setForm((f) => ({ ...f, isForSale: checked }))}
+            onChange={(checked) =>
+              setForm((f) => ({ ...f, isForSale: checked }))
+            }
           />
           <label>En venta (visible en catálogo público)</label>
         </div>
@@ -1236,17 +1333,27 @@ export default function ProductsPage() {
       />
 
       {/* ── Confirmar costo mayor que precio ── */}
-      <ProductImportWizard open={importWizardOpen} onClose={() => setImportWizardOpen(false)} />
+      <ProductImportWizard
+        open={importWizardOpen}
+        onClose={() => setImportWizardOpen(false)}
+      />
 
       {confirmCostHigherOpen && (
-        <div className="modal-overlay" onClick={() => setConfirmCostHigherOpen(false)}>
-          <div className="modal-box confirm-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-overlay"
+          onClick={() => setConfirmCostHigherOpen(false)}
+        >
+          <div
+            className="modal-box confirm-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="confirm-icon confirm-icon--warning">
               <Icon name="warning_amber" />
             </div>
             <h3 className="confirm-title">¿Estás seguro?</h3>
             <p className="confirm-msg">
-              El costo es mayor que el precio de venta (por ejemplo en un remate). ¿Deseas guardar así?
+              El costo es mayor que el precio de venta (por ejemplo en un
+              remate). ¿Deseas guardar así?
             </p>
             <div className="confirm-actions">
               <button

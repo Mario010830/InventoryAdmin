@@ -1,18 +1,18 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { getApiUrl, getToken } from "@/lib/auth-api";
 import {
-  parsePaginated,
-  parseChartResult,
-  parseSummaryResult,
   type PaginatedResult,
+  parseChartResult,
+  parsePaginated,
+  parseSummaryResult,
 } from "@/lib/api-utils";
+import { getApiUrl, getToken } from "@/lib/auth-api";
 import type {
-  ProductResponse,
-  ProductImageResponse,
-  ProductCategoryResponse,
   CreateProductRequest,
-  UpdateProductRequest,
+  ProductCategoryResponse,
+  ProductImageResponse,
+  ProductResponse,
   Tag,
+  UpdateProductRequest,
 } from "../../../../lib/dashboard-types";
 
 interface GetProductsArgs {
@@ -31,7 +31,9 @@ interface UpdateProductArgs {
   body: UpdateProductRequest;
 }
 
-function normalizeProductImageRow(row: Record<string, unknown>): ProductImageResponse {
+function normalizeProductImageRow(
+  row: Record<string, unknown>,
+): ProductImageResponse {
   const id = Number(row.id ?? row.Id ?? 0);
   const url = String(
     row.url ??
@@ -51,7 +53,13 @@ export function extractImagenUrlFromUnknown(raw: unknown): string | null {
   if (typeof raw === "string" && raw.trim()) return raw.trim();
   const obj = raw as Record<string, unknown>;
   const nested =
-    obj.result ?? obj.Result ?? obj.data ?? obj.Data ?? obj.product ?? obj.Product ?? obj;
+    obj.result ??
+    obj.Result ??
+    obj.data ??
+    obj.Data ??
+    obj.product ??
+    obj.Product ??
+    obj;
   if (typeof nested === "string" && nested.trim()) return nested.trim();
   if (nested && typeof nested === "object") {
     const n = nested as Record<string, unknown>;
@@ -69,7 +77,9 @@ export function extractImagenUrlFromUnknown(raw: unknown): string | null {
   return null;
 }
 
-function parseOfferLocationIds(row: Record<string, unknown>): number[] | undefined {
+function parseOfferLocationIds(
+  row: Record<string, unknown>,
+): number[] | undefined {
   const raw = row.offerLocationIds ?? row.OfferLocationIds;
   if (!Array.isArray(raw)) return undefined;
   const ids = raw.map((x) => Number(x)).filter((n) => Number.isFinite(n));
@@ -83,7 +93,11 @@ function parseProductOne(raw: unknown): ProductResponse | null {
   }
   const obj = raw as Record<string, unknown> | null;
   if (!obj) return null;
-  const inner = (obj.result ?? obj.Result ?? obj.data ?? obj.Data ?? obj) as unknown;
+  const inner = (obj.result ??
+    obj.Result ??
+    obj.data ??
+    obj.Data ??
+    obj) as unknown;
   const row =
     inner && typeof inner === "object" && !Array.isArray(inner)
       ? (inner as Record<string, unknown>)
@@ -108,7 +122,10 @@ function parseProductOne(raw: unknown): ProductResponse | null {
     offerLocationIds: parseOfferLocationIds(row),
     createdAt: String(row.createdAt ?? row.CreatedAt ?? ""),
     modifiedAt: String(row.modifiedAt ?? row.ModifiedAt ?? ""),
-    totalStock: row.totalStock != null ? Number(row.totalStock ?? row.TotalStock) : undefined,
+    totalStock:
+      row.totalStock != null
+        ? Number(row.totalStock ?? row.TotalStock)
+        : undefined,
   };
 }
 
@@ -135,9 +152,11 @@ export const productsApi = createApi({
   tagTypes: ["Product", "ProductCategory", "Tag", "ProductImages"],
 
   endpoints: (builder) => ({
-
     // GET /product
-    getProducts: builder.query<PaginatedResult<ProductResponse>, GetProductsArgs>({
+    getProducts: builder.query<
+      PaginatedResult<ProductResponse>,
+      GetProductsArgs
+    >({
       query: ({ page = 1, perPage = 10, sortOrder = "desc" } = {}) =>
         `/product?page=${page}&perPage=${perPage}&sortOrder=${sortOrder}`,
       transformResponse: (raw: unknown, _meta, arg) =>
@@ -145,7 +164,10 @@ export const productsApi = createApi({
       providesTags: (result) =>
         result
           ? [
-              ...result.data.map(({ id }) => ({ type: "Product" as const, id })),
+              ...result.data.map(({ id }) => ({
+                type: "Product" as const,
+                id,
+              })),
               { type: "Product", id: "LIST" },
             ]
           : [{ type: "Product", id: "LIST" }],
@@ -158,9 +180,17 @@ export const productsApi = createApi({
         method: "POST",
         body,
       }),
-      transformResponse: (raw: ProductResponse | { data?: ProductResponse; result?: ProductResponse }) => {
+      transformResponse: (
+        raw:
+          | ProductResponse
+          | { data?: ProductResponse; result?: ProductResponse },
+      ) => {
         const obj = raw as Record<string, unknown>;
-        if (obj && typeof obj === "object" && (obj.data != null || obj.result != null)) {
+        if (
+          obj &&
+          typeof obj === "object" &&
+          (obj.data != null || obj.result != null)
+        ) {
           return (obj.data ?? obj.result) as ProductResponse;
         }
         return raw as ProductResponse;
@@ -193,8 +223,10 @@ export const productsApi = createApi({
       ],
     }),
 
-
-    getTags: builder.query<PaginatedResult<Tag>, { page?: number; perPage?: number }>({
+    getTags: builder.query<
+      PaginatedResult<Tag>,
+      { page?: number; perPage?: number }
+    >({
       query: ({ page = 1, perPage = 200 } = {}) =>
         `/tags?page=${page}&perPage=${perPage}`,
       transformResponse: (raw: unknown, _meta, arg) =>
@@ -203,7 +235,10 @@ export const productsApi = createApi({
     }),
 
     // GET /product-category
-    getProductCategories: builder.query<PaginatedResult<ProductCategoryResponse>, GetCategoriesArgs>({
+    getProductCategories: builder.query<
+      PaginatedResult<ProductCategoryResponse>,
+      GetCategoriesArgs
+    >({
       query: ({ page = 1, perPage = 100 } = {}) =>
         `/product-category?page=${page}&perPage=${perPage}`,
       transformResponse: (raw: unknown, _meta, arg) =>
@@ -212,7 +247,10 @@ export const productsApi = createApi({
     }),
 
     // GET /product/stats (KPIs)
-    getProductStats: builder.query<Record<string, unknown> | null, { from?: string; to?: string } | void>({
+    getProductStats: builder.query<
+      Record<string, unknown> | null,
+      { from?: string; to?: string } | undefined
+    >({
       query: (arg) => {
         const params = new URLSearchParams();
         if (arg?.from) params.set("from", arg.from);
@@ -223,7 +261,10 @@ export const productsApi = createApi({
       transformResponse: parseSummaryResult<Record<string, unknown>>,
     }),
     // GET /product/performance (barras)
-    getProductPerformance: builder.query<{ label: string; value: number; date?: string }[], { days?: number; from?: string; to?: string } | void>({
+    getProductPerformance: builder.query<
+      { label: string; value: number; date?: string }[],
+      { days?: number; from?: string; to?: string } | undefined
+    >({
       query: (arg) => {
         const params = new URLSearchParams();
         params.set("days", String(arg?.days ?? 7));
@@ -231,12 +272,17 @@ export const productsApi = createApi({
         if (arg?.to) params.set("to", arg.to);
         return `/product/performance?${params.toString()}`;
       },
-      transformResponse: (raw: unknown) => parseChartResult<{ label: string; value: number; date?: string }>(raw),
+      transformResponse: (raw: unknown) =>
+        parseChartResult<{ label: string; value: number; date?: string }>(raw),
     }),
     // GET /product/stock-by-category (dona)
-    getProductStockByCategory: builder.query<{ name: string; value: number }[], void>({
+    getProductStockByCategory: builder.query<
+      { name: string; value: number }[],
+      void
+    >({
       query: () => "/product/stock-by-category",
-      transformResponse: (raw: unknown) => parseChartResult<{ name: string; value: number }>(raw),
+      transformResponse: (raw: unknown) =>
+        parseChartResult<{ name: string; value: number }>(raw),
     }),
 
     // POST /product/image (multipart/form-data, campo "file")
@@ -271,7 +317,9 @@ export const productsApi = createApi({
           const p = parseProductOne(r2.data);
           if (p) return { data: p };
         }
-        return { error: r2.error ?? r1.error ?? { status: 404, data: "Not found" } };
+        return {
+          error: r2.error ?? r1.error ?? { status: 404, data: "Not found" },
+        };
       },
       providesTags: (_r, _e, id) => [{ type: "Product", id }],
     }),
@@ -282,10 +330,15 @@ export const productsApi = createApi({
         parseChartResult<Record<string, unknown>>(raw).map((row) =>
           normalizeProductImageRow(row as Record<string, unknown>),
         ),
-      providesTags: (_r, _e, productId) => [{ type: "ProductImages", id: productId }],
+      providesTags: (_r, _e, productId) => [
+        { type: "ProductImages", id: productId },
+      ],
     }),
 
-    uploadProductImages: builder.mutation<unknown, { productId: number; files: File[] }>({
+    uploadProductImages: builder.mutation<
+      unknown,
+      { productId: number; files: File[] }
+    >({
       query: ({ productId, files }) => {
         const body = new FormData();
         for (const f of files) body.append("files", f);
@@ -303,7 +356,10 @@ export const productsApi = createApi({
       ],
     }),
 
-    setProductImageMain: builder.mutation<unknown, { productId: number; imageId: number }>({
+    setProductImageMain: builder.mutation<
+      unknown,
+      { productId: number; imageId: number }
+    >({
       query: ({ productId, imageId }) => ({
         url: `/product/${productId}/images/${imageId}/main`,
         method: "PUT",
@@ -315,7 +371,10 @@ export const productsApi = createApi({
       ],
     }),
 
-    reorderProductImages: builder.mutation<unknown, { productId: number; imageIds: number[] }>({
+    reorderProductImages: builder.mutation<
+      unknown,
+      { productId: number; imageIds: number[] }
+    >({
       query: ({ productId, imageIds }) => ({
         url: `/product/${productId}/images/reorder`,
         method: "PUT",
@@ -328,7 +387,10 @@ export const productsApi = createApi({
       ],
     }),
 
-    deleteProductImage: builder.mutation<unknown, { productId: number; imageId: number }>({
+    deleteProductImage: builder.mutation<
+      unknown,
+      { productId: number; imageId: number }
+    >({
       query: ({ productId, imageId }) => ({
         url: `/product/${productId}/images/${imageId}`,
         method: "DELETE",

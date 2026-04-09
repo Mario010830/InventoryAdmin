@@ -1,33 +1,36 @@
 "use client";
 
 import {
-  useRef,
-  useEffect,
-  useState,
-  useCallback,
-  useMemo,
-  useSyncExternalStore,
   type CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
 } from "react";
+import { DefaultBulkToolbar } from "@/components/DataTableBulkToolbar";
+import { GridDetailDrawer } from "@/components/GridDetailDrawer";
 import { Icon } from "@/components/ui/Icon";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
-import type { FormatCupFn } from "@/lib/dataTableExport";
-import { GridDetailDrawer } from "@/components/GridDetailDrawer";
 import {
-  computeInitialWidths,
-  measureColumnFit,
-  MIN_COL,
-} from "./dataTableWidths";
-import { sortData, cycleSort, type SortState } from "@/lib/dataTableSort";
+  loadHiddenColumnKeys,
+  saveHiddenColumnKeys,
+} from "@/lib/dataTableColumnStorage";
+import type { FormatCupFn } from "@/lib/dataTableExport";
 import {
   buildExportRows,
   downloadCsv,
   downloadXlsx,
-  exportFilename,
   type ExportColumn,
+  exportFilename,
 } from "@/lib/dataTableExport";
-import { loadHiddenColumnKeys, saveHiddenColumnKeys } from "@/lib/dataTableColumnStorage";
-import { DefaultBulkToolbar } from "@/components/DataTableBulkToolbar";
+import { cycleSort, type SortState, sortData } from "@/lib/dataTableSort";
+import {
+  computeInitialWidths,
+  MIN_COL,
+  measureColumnFit,
+} from "./dataTableWidths";
 import "./data-table.css";
 
 const DT_LAYOUT_MOBILE_MAX_PX = 768;
@@ -61,7 +64,13 @@ function useMatchMaxWidth(maxWidthPx: number) {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type ColumnType = "text" | "number" | "currency" | "date" | "boolean" | "custom";
+export type ColumnType =
+  | "text"
+  | "number"
+  | "currency"
+  | "date"
+  | "boolean"
+  | "custom";
 
 export interface DataTableColumn<T = Record<string, unknown>> {
   key: string | ((row: T) => string | number);
@@ -158,7 +167,7 @@ export interface DataTableProps<T extends { id: string | number }> {
    * Con scroll infinito y aún hay más páginas en el servidor: antes de marcar «todas» las filas
    * visibles, se puede cargar el resto y devolver los ids a seleccionar (p. ej. filas que pasan el filtro).
    */
-  onBulkSelectAll?: () => Promise<string[] | void>;
+  onBulkSelectAll?: () => Promise<string[] | undefined>;
 }
 
 export interface DataTableDetailDrawerConfig<T> {
@@ -182,13 +191,16 @@ function getNestedValue(row: object, key: string): unknown {
 
 function resolveValue<T extends object>(
   row: T,
-  key: string | ((row: T) => string | number)
+  key: string | ((row: T) => string | number),
 ): unknown {
   if (typeof key === "function") return key(row);
   return getNestedValue(row, key);
 }
 
-function resolveColKey<T>(col: { key: string | ((row: T) => string | number) }, index: number): string {
+function resolveColKey<T>(
+  col: { key: string | ((row: T) => string | number) },
+  index: number,
+): string {
   if (typeof col.key === "string") return col.key;
   return `col-${index}`;
 }
@@ -205,7 +217,12 @@ function formatDate(iso: string, locale = "es-ES") {
   }
 }
 
-function formatCurrencyCell(n: number, locale = "es-ES", currency: string | undefined, formatCup: FormatCupFn) {
+function formatCurrencyCell(
+  n: number,
+  locale = "es-ES",
+  currency: string | undefined,
+  formatCup: FormatCupFn,
+) {
   if (currency != null && currency !== "CUP") {
     return new Intl.NumberFormat(locale, {
       style: "currency",
@@ -217,8 +234,13 @@ function formatCurrencyCell(n: number, locale = "es-ES", currency: string | unde
   return formatCup(n);
 }
 
-function getPageNumbers(current: number, total: number, maxVisible = 5): number[] {
-  if (total <= maxVisible) return Array.from({ length: total }, (_, i) => i + 1);
+function getPageNumbers(
+  current: number,
+  total: number,
+  maxVisible = 5,
+): number[] {
+  if (total <= maxVisible)
+    return Array.from({ length: total }, (_, i) => i + 1);
   let start = Math.max(1, current - Math.floor(maxVisible / 2));
   let end = start + maxVisible - 1;
   if (end > total) {
@@ -257,14 +279,17 @@ function Cell<T extends object>({
     case "currency":
       return (
         <span className="dt-cell-mono">
-          {formatCurrencyCell(Number(val ?? 0), col.locale, col.currency, formatCup)}
+          {formatCurrencyCell(
+            Number(val ?? 0),
+            col.locale,
+            col.currency,
+            formatCup,
+          )}
         </span>
       );
     default:
       return (
-        <span className="dt-cell-clamp">
-          {val != null ? String(val) : "—"}
-        </span>
+        <span className="dt-cell-clamp">{val != null ? String(val) : "—"}</span>
       );
   }
 }
@@ -315,8 +340,13 @@ export function DataTable<T extends { id: string | number }>({
 
   const [detailIndex, setDetailIndex] = useState<number | null>(null);
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
-  const [sortState, setSortState] = useState<SortState>({ key: null, dir: null });
-  const [hiddenColKeys, setHiddenColKeys] = useState<Set<string>>(() => new Set());
+  const [sortState, setSortState] = useState<SortState>({
+    key: null,
+    dir: null,
+  });
+  const [hiddenColKeys, setHiddenColKeys] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [columnsMenuOpen, setColumnsMenuOpen] = useState(false);
@@ -366,7 +396,11 @@ export function DataTable<T extends { id: string | number }>({
   const sentinelRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ index: number; startX: number; startW: number } | null>(null);
+  const dragRef = useRef<{
+    index: number;
+    startX: number;
+    startW: number;
+  } | null>(null);
 
   const expectedColCount =
     (hasCheckbox ? 1 : 0) + columns.length + (hasActions ? 1 : 0);
@@ -387,7 +421,9 @@ export function DataTable<T extends { id: string | number }>({
 
   const widthStorageKey = columnWidthsStorageKey ?? gridConfig?.storageKey;
 
-  const [mobileTableZoom, setMobileTableZoom] = useState(DEFAULT_MOBILE_TABLE_ZOOM);
+  const [mobileTableZoom, setMobileTableZoom] = useState(
+    DEFAULT_MOBILE_TABLE_ZOOM,
+  );
 
   useEffect(() => {
     if (!widthStorageKey || typeof window === "undefined") return;
@@ -418,10 +454,7 @@ export function DataTable<T extends { id: string | number }>({
     (physicalIdx: number): CSSProperties => {
       if (isMobileLayout) {
         const base = colWidths[physicalIdx] ?? MIN_COL;
-        const w = Math.max(
-          MIN_COL,
-          Math.round(base * MOBILE_COL_SHRINK),
-        );
+        const w = Math.max(MIN_COL, Math.round(base * MOBILE_COL_SHRINK));
         return { width: w, minWidth: w, maxWidth: "none" };
       }
       return {
@@ -433,7 +466,11 @@ export function DataTable<T extends { id: string | number }>({
     [isMobileLayout, colWidths, colWidthPct],
   );
 
-  const [guide, setGuide] = useState<{ left: number; top: number; height: number } | null>(null);
+  const [guide, setGuide] = useState<{
+    left: number;
+    top: number;
+    height: number;
+  } | null>(null);
 
   const primaryColumnKey = gridConfig?.primaryColumnKey ?? "";
 
@@ -473,9 +510,14 @@ export function DataTable<T extends { id: string | number }>({
   const lockedColumnFooterItems = useMemo(() => {
     const items: { key: string; label: string }[] = [];
     if (primaryColumnKey) {
-      const primaryCol = columns.find((c, i) => resolveColKey(c, i) === primaryColumnKey);
+      const primaryCol = columns.find(
+        (c, i) => resolveColKey(c, i) === primaryColumnKey,
+      );
       if (primaryCol) {
-        items.push({ key: `__locked__${primaryColumnKey}`, label: primaryCol.label });
+        items.push({
+          key: `__locked__${primaryColumnKey}`,
+          label: primaryCol.label,
+        });
       }
     }
     if (hasActions) {
@@ -501,7 +543,8 @@ export function DataTable<T extends { id: string | number }>({
   );
 
   const selectedNumericIds = useMemo(
-    () => selectedRows.map((r) => Number(r.id)).filter((id) => !Number.isNaN(id)),
+    () =>
+      selectedRows.map((r) => Number(r.id)).filter((id) => !Number.isNaN(id)),
     [selectedRows],
   );
 
@@ -536,12 +579,7 @@ export function DataTable<T extends { id: string | number }>({
         setSelectedIds(new Set());
         return;
       }
-      if (
-        gridEnabled &&
-        infiniteScroll &&
-        hasMore &&
-        onBulkSelectAll
-      ) {
+      if (gridEnabled && infiniteScroll && hasMore && onBulkSelectAll) {
         const ids = await onBulkSelectAll();
         if (ids != null) {
           setSelectedIds(new Set(ids.map(String)));
@@ -572,7 +610,11 @@ export function DataTable<T extends { id: string | number }>({
         selectedIds.size > 0
           ? sortedData.filter((r) => selectedIds.has(String(r.id)))
           : sortedData;
-      const { headers, lines } = buildExportRows(rowsForExport, exportCols, formatCup);
+      const { headers, lines } = buildExportRows(
+        rowsForExport,
+        exportCols,
+        formatCup,
+      );
       const fn = exportFilename(gridConfig.exportFilenamePrefix, format);
       if (format === "csv") downloadCsv(fn, headers, lines);
       else await downloadXlsx(fn, headers, lines);
@@ -604,9 +646,12 @@ export function DataTable<T extends { id: string | number }>({
     window.setTimeout(() => setDetailIndex(null), 280);
   }, []);
 
-  const openDetailAtIndex = useCallback((idx: number) => {
-    if (idx >= 0 && idx < sortedData.length) setDetailIndex(idx);
-  }, [sortedData.length]);
+  const openDetailAtIndex = useCallback(
+    (idx: number) => {
+      if (idx >= 0 && idx < sortedData.length) setDetailIndex(idx);
+    },
+    [sortedData.length],
+  );
 
   useEffect(() => {
     const fb = computeInitialWidths(columns, { hasCheckbox, hasActions });
@@ -633,7 +678,10 @@ export function DataTable<T extends { id: string | number }>({
     (widths: number[]) => {
       if (!widthStorageKey) return;
       try {
-        localStorage.setItem(`dt-col-widths:${widthStorageKey}`, JSON.stringify(widths));
+        localStorage.setItem(
+          `dt-col-widths:${widthStorageKey}`,
+          JSON.stringify(widths),
+        );
       } catch {
         /* ignore */
       }
@@ -662,7 +710,7 @@ export function DataTable<T extends { id: string | number }>({
       document.body.style.userSelect = "none";
       updateGuide(e.clientX);
     },
-    [colWidths, updateGuide]
+    [colWidths, updateGuide],
   );
 
   useEffect(() => {
@@ -713,7 +761,7 @@ export function DataTable<T extends { id: string | number }>({
         });
       });
     },
-    [persistWidths, colWidths]
+    [persistWidths, colWidths],
   );
 
   useEffect(() => {
@@ -732,154 +780,246 @@ export function DataTable<T extends { id: string | number }>({
         root: null,
         rootMargin: "0px",
         threshold: 0,
-      }
+      },
     );
 
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [infiniteScroll, onLoadMore, hasMore, loadingMore]);
 
-  const rangeStart = pagination ? (pagination.currentPage - 1) * pagination.pageSize + 1 : 0;
+  const rangeStart = pagination
+    ? (pagination.currentPage - 1) * pagination.pageSize + 1
+    : 0;
   const rangeEnd = pagination
-    ? Math.min(pagination.currentPage * pagination.pageSize, pagination.totalCount)
+    ? Math.min(
+        pagination.currentPage * pagination.pageSize,
+        pagination.totalCount,
+      )
     : 0;
 
   const showBulkBar = hasCheckbox && selectedIds.size > 0;
   const wrapClass =
-    filters != null || showBulkBar ? "dt-wrap dt-wrap--after-filters" : "dt-wrap";
+    filters != null || showBulkBar
+      ? "dt-wrap dt-wrap--after-filters"
+      : "dt-wrap";
 
   const detailRow = detailIndex != null ? sortedData[detailIndex] : null;
 
   return (
     <>
-    <div className="dt-card">
-      <div className="dt-card-head">
-        <h1 className="dt-header__title">
-          {titleIcon && <Icon name={titleIcon} />}
-          {title}
-        </h1>
-        {hasHeadActions ? (
-          <div className="dt-card-head__actions">
-            {onSearchChange && (
-              <div className="dt-toolbar__search">
-                <Icon name="search" />
-                <input
-                  type="text"
-                  placeholder={searchPlaceholder}
-                  value={searchTerm}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                />
-              </div>
-            )}
-            {toolbarExtra}
-            {gridEnabled && (
-              <>
-                <div className="dt-toolbar-dropdown" ref={columnsMenuRef}>
-                  <button
-                    type="button"
-                    className="dt-btn-ghost dt-btn-ghost--columns"
-                    onClick={() => {
-                      setColumnsMenuOpen((o) => !o);
-                      setExportMenuOpen(false);
-                    }}
-                  >
-                    <Icon name="view_column" />
-                    <span className="dt-btn-ghost__label">Columnas</span>
-                    {hiddenColumnBadgeCount > 0 ? (
-                      <span className="dt-btn-ghost__badge" aria-label={`${hiddenColumnBadgeCount} columnas ocultas`}>
-                        · {hiddenColumnBadgeCount}
-                      </span>
-                    ) : null}
-                  </button>
-                  {columnsMenuOpen ? (
-                    <div
-                      className={`dt-column-picker${toggleableColumnEntries.length >= 8 ? " dt-column-picker--wide" : ""}`}
-                      role="menu"
+      <div className="dt-card">
+        <div className="dt-card-head">
+          <h1 className="dt-header__title">
+            {titleIcon && <Icon name={titleIcon} />}
+            {title}
+          </h1>
+          {hasHeadActions ? (
+            <div className="dt-card-head__actions">
+              {onSearchChange && (
+                <div className="dt-toolbar__search">
+                  <Icon name="search" />
+                  <input
+                    type="text"
+                    placeholder={searchPlaceholder}
+                    value={searchTerm}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                  />
+                </div>
+              )}
+              {toolbarExtra}
+              {gridEnabled && (
+                <>
+                  <div className="dt-toolbar-dropdown" ref={columnsMenuRef}>
+                    <button
+                      type="button"
+                      className="dt-btn-ghost dt-btn-ghost--columns"
+                      onClick={() => {
+                        setColumnsMenuOpen((o) => !o);
+                        setExportMenuOpen(false);
+                      }}
                     >
-                      <div className="dt-column-picker__title">Columnas visibles</div>
-                      <div
-                        className={`dt-column-picker__grid${toggleableColumnEntries.length >= 8 ? " dt-column-picker__grid--two" : ""}`}
-                      >
-                        {toggleableColumnEntries.map(({ col, key: k }) => {
-                          const hidden = hiddenColKeys.has(k);
-                          return (
-                            <label key={k} className="dt-column-picker__row">
-                              <input
-                                type="checkbox"
-                                className="dt-column-picker__checkbox"
-                                checked={!hidden}
-                                onChange={() => toggleColumnHidden(k)}
-                              />
-                              <span className="dt-column-picker__name">{col.label}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                      {lockedColumnFooterItems.length > 0 ? (
-                        <>
-                          <div className="dt-column-picker__divider" />
-                          <div className="dt-column-picker__locked">
-                            {lockedColumnFooterItems.map((item) => (
-                              <div key={item.key} className="dt-column-picker__locked-row">
-                                <Icon name="lock" className="dt-column-picker__lock-icon" />
-                                <span className="dt-column-picker__locked-label">{item.label}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </>
+                      <Icon name="view_column" />
+                      <span className="dt-btn-ghost__label">Columnas</span>
+                      {hiddenColumnBadgeCount > 0 ? (
+                        <span
+                          className="dt-btn-ghost__badge"
+                          aria-label={`${hiddenColumnBadgeCount} columnas ocultas`}
+                        >
+                          · {hiddenColumnBadgeCount}
+                        </span>
                       ) : null}
-                      <button
-                        type="button"
-                        className="dt-column-picker__restore"
-                        onClick={() => {
-                          restoreAllColumns();
-                        }}
+                    </button>
+                    {columnsMenuOpen ? (
+                      <div
+                        className={`dt-column-picker${toggleableColumnEntries.length >= 8 ? " dt-column-picker--wide" : ""}`}
+                        role="menu"
                       >
-                        Restaurar todo
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-                <div className="dt-toolbar-dropdown" ref={exportMenuRef}>
-                  <button
-                    type="button"
-                    className="dt-btn-ghost"
-                    onClick={() => {
-                      setExportMenuOpen((o) => !o);
-                      setColumnsMenuOpen(false);
-                    }}
-                  >
-                    <Icon name="download" />
-                    Exportar
-                  </button>
-                  {exportMenuOpen ? (
-                    <div className="dt-dropdown-panel dt-dropdown-panel--narrow" role="menu">
-                      <button
-                        type="button"
-                        className="dt-dropdown-item"
-                        onClick={() => void runExport("csv")}
+                        <div className="dt-column-picker__title">
+                          Columnas visibles
+                        </div>
+                        <div
+                          className={`dt-column-picker__grid${toggleableColumnEntries.length >= 8 ? " dt-column-picker__grid--two" : ""}`}
+                        >
+                          {toggleableColumnEntries.map(({ col, key: k }) => {
+                            const hidden = hiddenColKeys.has(k);
+                            return (
+                              <label key={k} className="dt-column-picker__row">
+                                <input
+                                  type="checkbox"
+                                  className="dt-column-picker__checkbox"
+                                  checked={!hidden}
+                                  onChange={() => toggleColumnHidden(k)}
+                                />
+                                <span className="dt-column-picker__name">
+                                  {col.label}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        {lockedColumnFooterItems.length > 0 ? (
+                          <>
+                            <div className="dt-column-picker__divider" />
+                            <div className="dt-column-picker__locked">
+                              {lockedColumnFooterItems.map((item) => (
+                                <div
+                                  key={item.key}
+                                  className="dt-column-picker__locked-row"
+                                >
+                                  <Icon
+                                    name="lock"
+                                    className="dt-column-picker__lock-icon"
+                                  />
+                                  <span className="dt-column-picker__locked-label">
+                                    {item.label}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="dt-column-picker__restore"
+                          onClick={() => {
+                            restoreAllColumns();
+                          }}
+                        >
+                          Restaurar todo
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="dt-toolbar-dropdown" ref={exportMenuRef}>
+                    <button
+                      type="button"
+                      className="dt-btn-ghost"
+                      onClick={() => {
+                        setExportMenuOpen((o) => !o);
+                        setColumnsMenuOpen(false);
+                      }}
+                    >
+                      <Icon name="download" />
+                      Exportar
+                    </button>
+                    {exportMenuOpen ? (
+                      <div
+                        className="dt-dropdown-panel dt-dropdown-panel--narrow"
+                        role="menu"
                       >
-                        Exportar CSV
-                      </button>
-                      <button
-                        type="button"
-                        className="dt-dropdown-item"
-                        onClick={() => void runExport("xlsx")}
-                      >
-                        Exportar Excel (.xlsx)
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              </>
+                        <button
+                          type="button"
+                          className="dt-dropdown-item"
+                          onClick={() => void runExport("csv")}
+                        >
+                          Exportar CSV
+                        </button>
+                        <button
+                          type="button"
+                          className="dt-dropdown-item"
+                          onClick={() => void runExport("xlsx")}
+                        >
+                          Exportar Excel (.xlsx)
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </>
+              )}
+              {addLabel && (
+                <button
+                  type="button"
+                  className="dt-btn-add"
+                  disabled={addDisabled}
+                  onClick={() => !addDisabled && onAdd?.()}
+                  data-tutorial={addButtonDataTutorial}
+                  title={addDisabled ? "Sin permiso para crear" : undefined}
+                >
+                  <Icon name={addIcon} />
+                  {addLabel}
+                </button>
+              )}
+            </div>
+          ) : null}
+        </div>
+
+        {filters != null || showBulkBar ? (
+          <>
+            <div className="dt-card-divider" role="presentation" />
+            {showBulkBar ? (
+              <div className="dt-bulk-bar">
+                {renderBulkToolbar ? (
+                  renderBulkToolbar({
+                    selectedIds: selectedNumericIds,
+                    selectedRows,
+                    clearSelection,
+                    count: selectedIds.size,
+                    exportSelectedCsv: () => void runExport("csv"),
+                    exportSelectedXlsx: () => void runExport("xlsx"),
+                  })
+                ) : (
+                  <DefaultBulkToolbar
+                    count={selectedIds.size}
+                    entityLabel={gridConfig?.bulkEntityLabel ?? "elementos"}
+                    onClear={clearSelection}
+                    onExportSelectedCsv={() => void runExport("csv")}
+                    onExportSelectedXlsx={() => void runExport("xlsx")}
+                    onDeleteSelected={
+                      onBulkDeleteSelected
+                        ? () => void onBulkDeleteSelected(selectedNumericIds)
+                        : undefined
+                    }
+                    showDelete={Boolean(onBulkDeleteSelected)}
+                  />
+                )}
+              </div>
+            ) : (
+              filters != null && (
+                <div className="dt-card-filters">{filters}</div>
+              )
             )}
+            <div className="dt-card-divider" role="presentation" />
+          </>
+        ) : null}
+
+        {loading ? (
+          <div className="dt-state">
+            <div className="dt-state__spinner" />
+            <span>Cargando datos...</span>
+          </div>
+        ) : data.length === 0 ? (
+          <div className="dt-state dt-state--empty">
+            <div className="dt-state__icon-box">
+              <Icon name={emptyIcon} />
+            </div>
+            <p className="dt-state__title">{emptyTitle}</p>
+            {emptyDesc && <p className="dt-state__desc">{emptyDesc}</p>}
             {addLabel && (
               <button
                 type="button"
                 className="dt-btn-add"
                 disabled={addDisabled}
                 onClick={() => !addDisabled && onAdd?.()}
-                data-tutorial={addButtonDataTutorial}
                 title={addDisabled ? "Sin permiso para crear" : undefined}
               >
                 <Icon name={addIcon} />
@@ -887,419 +1027,394 @@ export function DataTable<T extends { id: string | number }>({
               </button>
             )}
           </div>
-        ) : null}
-      </div>
-
-      {filters != null || showBulkBar ? (
-        <>
-          <div className="dt-card-divider" role="presentation" />
-          {showBulkBar ? (
-            <div className="dt-bulk-bar">
-              {renderBulkToolbar ? (
-                renderBulkToolbar({
-                  selectedIds: selectedNumericIds,
-                  selectedRows,
-                  clearSelection,
-                  count: selectedIds.size,
-                  exportSelectedCsv: () => void runExport("csv"),
-                  exportSelectedXlsx: () => void runExport("xlsx"),
-                })
-              ) : (
-                <DefaultBulkToolbar
-                  count={selectedIds.size}
-                  entityLabel={gridConfig?.bulkEntityLabel ?? "elementos"}
-                  onClear={clearSelection}
-                  onExportSelectedCsv={() => void runExport("csv")}
-                  onExportSelectedXlsx={() => void runExport("xlsx")}
-                  onDeleteSelected={
-                    onBulkDeleteSelected
-                      ? () => void onBulkDeleteSelected(selectedNumericIds)
+        ) : (
+          <>
+            <div ref={wrapRef} className={wrapClass}>
+              {guide ? (
+                <div
+                  className="dt-resize-guide"
+                  style={{
+                    left: guide.left,
+                    top: guide.top,
+                    height: guide.height,
+                  }}
+                  aria-hidden
+                />
+              ) : null}
+              {isMobileLayout ? (
+                <div
+                  className="dt-mobile-zoom-bar"
+                  role="toolbar"
+                  aria-label="Zoom de la tabla"
+                >
+                  <span className="dt-mobile-zoom-bar__label">Tabla</span>
+                  <button
+                    type="button"
+                    className="dt-mobile-zoom-btn"
+                    aria-label="Alejar tabla"
+                    onClick={() =>
+                      setMobileTableZoom((z) =>
+                        clampMobileZoom(z - MOBILE_TABLE_ZOOM_STEP),
+                      )
+                    }
+                  >
+                    −
+                  </button>
+                  <span
+                    className="dt-mobile-zoom-bar__value"
+                    aria-live="polite"
+                  >
+                    {Math.round(mobileTableZoom * 100)}%
+                  </span>
+                  <button
+                    type="button"
+                    className="dt-mobile-zoom-btn"
+                    aria-label="Acercar tabla"
+                    onClick={() =>
+                      setMobileTableZoom((z) =>
+                        clampMobileZoom(z + MOBILE_TABLE_ZOOM_STEP),
+                      )
+                    }
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
+                    className="dt-mobile-zoom-btn dt-mobile-zoom-btn--reset"
+                    title="Tamaño predeterminado (más filas visibles)"
+                    aria-label="Restablecer zoom de la tabla"
+                    onClick={() =>
+                      setMobileTableZoom(DEFAULT_MOBILE_TABLE_ZOOM)
+                    }
+                  >
+                    Predet.
+                  </button>
+                </div>
+              ) : null}
+              <div
+                className={isMobileLayout ? "dt-mobile-zoom-inner" : undefined}
+                style={
+                  isMobileLayout
+                    ? ({ zoom: mobileTableZoom } as CSSProperties)
+                    : undefined
+                }
+              >
+                <table
+                  ref={tableRef}
+                  className={`dt-table${isMobileLayout ? " dt-table--mobile" : ""}`}
+                  style={
+                    isMobileLayout
+                      ? { width: "max-content", minWidth: "100%" }
                       : undefined
                   }
-                  showDelete={Boolean(onBulkDeleteSelected)}
-                />
-              )}
-            </div>
-          ) : (
-            filters != null && <div className="dt-card-filters">{filters}</div>
-          )}
-          <div className="dt-card-divider" role="presentation" />
-        </>
-      ) : null}
-
-      {loading ? (
-        <div className="dt-state">
-          <div className="dt-state__spinner" />
-          <span>Cargando datos...</span>
-        </div>
-      ) : data.length === 0 ? (
-        <div className="dt-state dt-state--empty">
-          <div className="dt-state__icon-box">
-            <Icon name={emptyIcon} />
-          </div>
-          <p className="dt-state__title">{emptyTitle}</p>
-          {emptyDesc && <p className="dt-state__desc">{emptyDesc}</p>}
-          {addLabel && (
-            <button
-              type="button"
-              className="dt-btn-add"
-              disabled={addDisabled}
-              onClick={() => !addDisabled && onAdd?.()}
-              title={addDisabled ? "Sin permiso para crear" : undefined}
-            >
-              <Icon name={addIcon} />
-              {addLabel}
-            </button>
-          )}
-        </div>
-      ) : (
-        <>
-          <div ref={wrapRef} className={wrapClass}>
-            {guide ? (
-              <div
-                className="dt-resize-guide"
-                style={{
-                  left: guide.left,
-                  top: guide.top,
-                  height: guide.height,
-                }}
-                aria-hidden
-              />
-            ) : null}
-            {isMobileLayout ? (
-              <div
-                className="dt-mobile-zoom-bar"
-                role="toolbar"
-                aria-label="Zoom de la tabla"
-              >
-                <span className="dt-mobile-zoom-bar__label">Tabla</span>
-                <button
-                  type="button"
-                  className="dt-mobile-zoom-btn"
-                  aria-label="Alejar tabla"
-                  onClick={() =>
-                    setMobileTableZoom((z) =>
-                      clampMobileZoom(z - MOBILE_TABLE_ZOOM_STEP),
-                    )
-                  }
                 >
-                  −
-                </button>
-                <span className="dt-mobile-zoom-bar__value" aria-live="polite">
-                  {Math.round(mobileTableZoom * 100)}%
-                </span>
-                <button
-                  type="button"
-                  className="dt-mobile-zoom-btn"
-                  aria-label="Acercar tabla"
-                  onClick={() =>
-                    setMobileTableZoom((z) =>
-                      clampMobileZoom(z + MOBILE_TABLE_ZOOM_STEP),
-                    )
-                  }
-                >
-                  +
-                </button>
-                <button
-                  type="button"
-                  className="dt-mobile-zoom-btn dt-mobile-zoom-btn--reset"
-                  title="Tamaño predeterminado (más filas visibles)"
-                  aria-label="Restablecer zoom de la tabla"
-                  onClick={() =>
-                    setMobileTableZoom(DEFAULT_MOBILE_TABLE_ZOOM)
-                  }
-                >
-                  Predet.
-                </button>
-              </div>
-            ) : null}
-            <div
-              className={isMobileLayout ? "dt-mobile-zoom-inner" : undefined}
-              style={
-                isMobileLayout
-                  ? ({ zoom: mobileTableZoom } as CSSProperties)
-                  : undefined
-              }
-            >
-            <table
-              ref={tableRef}
-              className={`dt-table${isMobileLayout ? " dt-table--mobile" : ""}`}
-              style={
-                isMobileLayout
-                  ? { width: "max-content", minWidth: "100%" }
-                  : undefined
-              }
-            >
-              <thead>
-                <tr>
-                  {hasCheckbox ? (
-                    <th
-                      className="dt-th dt-th-checkbox"
-                      style={getColStyle(0)}
-                    >
-                      <input
-                        ref={headerSelectRef}
-                        type="checkbox"
-                        className="dt-row-checkbox"
-                        checked={
-                          sortedData.length > 0 && selectedIds.size === sortedData.length
-                        }
-                        onChange={toggleSelectAll}
-                        aria-label="Seleccionar todas las filas"
-                      />
-                    </th>
-                  ) : null}
-                  {columns.map((col, colIdx) => {
-                    const colKey = resolveColKey(col, colIdx);
-                    const hidden = hiddenColKeys.has(colKey);
-                    const physicalIdx = colIdx + (hasCheckbox ? 1 : 0);
-                    const sortable = gridEnabled && col.sortable !== false;
-                    return (
-                      <th
-                        key={colKey}
-                        className={`dt-th${hidden ? " dt-col-hidden" : ""}`}
-                        style={getColStyle(physicalIdx)}
-                      >
-                        <div className="dt-th-inner">
-                          <button
-                            type="button"
-                            className={`dt-th-sort${sortable ? "" : " dt-th-sort--static"}`}
-                            onClick={() =>
-                              sortable &&
-                              setSortState((p) => cycleSort(p, colKey))
+                  <thead>
+                    <tr>
+                      {hasCheckbox ? (
+                        <th
+                          className="dt-th dt-th-checkbox"
+                          style={getColStyle(0)}
+                        >
+                          <input
+                            ref={headerSelectRef}
+                            type="checkbox"
+                            className="dt-row-checkbox"
+                            checked={
+                              sortedData.length > 0 &&
+                              selectedIds.size === sortedData.length
                             }
-                            disabled={!sortable}
+                            onChange={toggleSelectAll}
+                            aria-label="Seleccionar todas las filas"
+                          />
+                        </th>
+                      ) : null}
+                      {columns.map((col, colIdx) => {
+                        const colKey = resolveColKey(col, colIdx);
+                        const hidden = hiddenColKeys.has(colKey);
+                        const physicalIdx = colIdx + (hasCheckbox ? 1 : 0);
+                        const sortable = gridEnabled && col.sortable !== false;
+                        return (
+                          <th
+                            key={colKey}
+                            className={`dt-th${hidden ? " dt-col-hidden" : ""}`}
+                            style={getColStyle(physicalIdx)}
                           >
-                            <span className="dt-th-label">{col.label}</span>
-                            {sortable ? (
-                              <span className="dt-sort-icons" aria-hidden>
-                                {sortState.key === colKey && sortState.dir === "asc" ? (
-                                  <Icon name="arrow_upward" className="dt-sort-icon dt-sort-icon--on" />
-                                ) : sortState.key === colKey && sortState.dir === "desc" ? (
-                                  <Icon name="arrow_downward" className="dt-sort-icon dt-sort-icon--on" />
-                                ) : (
-                                  <Icon name="unfold_more" className="dt-sort-icon dt-sort-icon--muted" />
-                                )}
-                              </span>
-                            ) : null}
-                          </button>
-                          {col.headerTooltip != null ? (
-                            <span className="dt-th-hint">
+                            <div className="dt-th-inner">
                               <button
                                 type="button"
-                                className="dt-th-hint__trigger"
-                                tabIndex={0}
-                                aria-label="Ver leyenda de la columna"
+                                className={`dt-th-sort${sortable ? "" : " dt-th-sort--static"}`}
+                                onClick={() =>
+                                  sortable &&
+                                  setSortState((p) => cycleSort(p, colKey))
+                                }
+                                disabled={!sortable}
                               >
-                                <Icon name="info" />
+                                <span className="dt-th-label">{col.label}</span>
+                                {sortable ? (
+                                  <span className="dt-sort-icons" aria-hidden>
+                                    {sortState.key === colKey &&
+                                    sortState.dir === "asc" ? (
+                                      <Icon
+                                        name="arrow_upward"
+                                        className="dt-sort-icon dt-sort-icon--on"
+                                      />
+                                    ) : sortState.key === colKey &&
+                                      sortState.dir === "desc" ? (
+                                      <Icon
+                                        name="arrow_downward"
+                                        className="dt-sort-icon dt-sort-icon--on"
+                                      />
+                                    ) : (
+                                      <Icon
+                                        name="unfold_more"
+                                        className="dt-sort-icon dt-sort-icon--muted"
+                                      />
+                                    )}
+                                  </span>
+                                ) : null}
                               </button>
-                              <div className="dt-th-hint__popover" role="tooltip">
-                                {col.headerTooltip}
-                              </div>
-                            </span>
-                          ) : null}
-                        </div>
-                        <span
-                          role="separator"
-                          aria-orientation="vertical"
-                          aria-hidden
-                          className="dt-resize-handle"
-                          onMouseDown={(e) => onResizeStart(e, physicalIdx)}
-                          onDoubleClick={(e) => onResizeDoubleClick(e, physicalIdx)}
-                        />
-                      </th>
-                    );
-                  })}
-                  {hasActions && (
-                    <th
-                      className="dt-th dt-th-actions"
-                      style={getColStyle(
-                        columns.length + (hasCheckbox ? 1 : 0),
-                      )}
-                    >
-                      <span className="dt-th-label">Acciones</span>
-                      <span
-                        role="separator"
-                        aria-hidden
-                        className="dt-resize-handle"
-                        onMouseDown={(e) =>
-                          onResizeStart(e, columns.length + (hasCheckbox ? 1 : 0))
-                        }
-                        onDoubleClick={(e) =>
-                          onResizeDoubleClick(e, columns.length + (hasCheckbox ? 1 : 0))
-                        }
-                      />
-                    </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {sortedData.map((row, idx) => (
-                  <tr
-                    key={row.id}
-                    className={`${idx % 2 === 1 ? "dt-row-alt" : ""}${detailDrawer ? " dt-row-clickable" : ""}`.trim()}
-                    onClick={detailDrawer ? () => openDetailAtIndex(idx) : undefined}
-                  >
-                    {hasCheckbox ? (
-                      <td
-                        className="dt-td-checkbox"
-                        onClick={(e) => e.stopPropagation()}
-                        style={getColStyle(0)}
-                      >
-                        <input
-                          type="checkbox"
-                          className="dt-row-checkbox"
-                          checked={selectedIds.has(String(row.id))}
-                          onChange={() => toggleRowSelected(row.id)}
-                          aria-label="Seleccionar fila"
-                        />
-                      </td>
-                    ) : null}
-                    {columns.map((col, colIdx) => {
-                      const colKey = resolveColKey(col, colIdx);
-                      const hidden = hiddenColKeys.has(colKey);
-                      const physicalIdx = colIdx + (hasCheckbox ? 1 : 0);
-                      return (
-                        <td
-                          key={colKey}
-                          className={hidden ? "dt-col-hidden" : undefined}
-                          style={getColStyle(physicalIdx)}
+                              {col.headerTooltip != null ? (
+                                <span className="dt-th-hint">
+                                  <button
+                                    type="button"
+                                    className="dt-th-hint__trigger"
+                                    tabIndex={0}
+                                    aria-label="Ver leyenda de la columna"
+                                  >
+                                    <Icon name="info" />
+                                  </button>
+                                  <div
+                                    className="dt-th-hint__popover"
+                                    role="tooltip"
+                                  >
+                                    {col.headerTooltip}
+                                  </div>
+                                </span>
+                              ) : null}
+                            </div>
+                            <span
+                              role="separator"
+                              aria-orientation="vertical"
+                              aria-hidden
+                              className="dt-resize-handle"
+                              onMouseDown={(e) => onResizeStart(e, physicalIdx)}
+                              onDoubleClick={(e) =>
+                                onResizeDoubleClick(e, physicalIdx)
+                              }
+                            />
+                          </th>
+                        );
+                      })}
+                      {hasActions && (
+                        <th
+                          className="dt-th dt-th-actions"
+                          style={getColStyle(
+                            columns.length + (hasCheckbox ? 1 : 0),
+                          )}
                         >
-                          <Cell col={col} row={row} formatCup={formatCup} />
-                        </td>
-                      );
-                    })}
-                    {hasActions && (
-                      <td
-                        className="dt-td-actions"
-                        style={getColStyle(
-                          columns.length + (hasCheckbox ? 1 : 0),
-                        )}
-                        onClick={(e) => e.stopPropagation()}
+                          <span className="dt-th-label">Acciones</span>
+                          <span
+                            role="separator"
+                            aria-hidden
+                            className="dt-resize-handle"
+                            onMouseDown={(e) =>
+                              onResizeStart(
+                                e,
+                                columns.length + (hasCheckbox ? 1 : 0),
+                              )
+                            }
+                            onDoubleClick={(e) =>
+                              onResizeDoubleClick(
+                                e,
+                                columns.length + (hasCheckbox ? 1 : 0),
+                              )
+                            }
+                          />
+                        </th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedData.map((row, idx) => (
+                      <tr
+                        key={row.id}
+                        className={`${idx % 2 === 1 ? "dt-row-alt" : ""}${detailDrawer ? " dt-row-clickable" : ""}`.trim()}
+                        onClick={
+                          detailDrawer
+                            ? () => openDetailAtIndex(idx)
+                            : undefined
+                        }
                       >
-                        {mergedActions!.map((action, actionIdx) => {
-                          if (action.hidden?.(row)) return null;
+                        {hasCheckbox ? (
+                          <td
+                            className="dt-td-checkbox"
+                            onClick={(e) => e.stopPropagation()}
+                            style={getColStyle(0)}
+                          >
+                            <input
+                              type="checkbox"
+                              className="dt-row-checkbox"
+                              checked={selectedIds.has(String(row.id))}
+                              onChange={() => toggleRowSelected(row.id)}
+                              aria-label="Seleccionar fila"
+                            />
+                          </td>
+                        ) : null}
+                        {columns.map((col, colIdx) => {
+                          const colKey = resolveColKey(col, colIdx);
+                          const hidden = hiddenColKeys.has(colKey);
+                          const physicalIdx = colIdx + (hasCheckbox ? 1 : 0);
                           return (
-                            <button
-                              key={`${actionIdx}-${action.label}`}
-                              type="button"
-                              className={`dt-icon-btn${action.variant === "danger" ? " dt-icon-btn--danger" : ""}${action.disabled?.(row) ? " dt-icon-btn--disabled" : ""}`}
-                              onClick={() => {
-                                if (!action.disabled?.(row)) action.onClick(row);
-                              }}
-                              title={action.label}
-                              disabled={action.disabled?.(row)}
+                            <td
+                              key={colKey}
+                              className={hidden ? "dt-col-hidden" : undefined}
+                              style={getColStyle(physicalIdx)}
                             >
-                              <Icon name={action.icon} />
-                            </button>
+                              <Cell col={col} row={row} formatCup={formatCup} />
+                            </td>
                           );
                         })}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
-          </div>
-
-          {infiniteScroll ? (
-            <>
-              {loadingMore && (
-                <div className="dt-load-more">
-                  <div className="dt-state__spinner" />
-                  <span>Cargando más...</span>
-                </div>
-              )}
-              {!hasMore && data.length > 0 && (
-                <div className="dt-end-msg">— Fin de los registros —</div>
-              )}
-              <div ref={sentinelRef} style={{ height: "20px", width: "100%" }} />
-            </>
-          ) : pagination ? (
-            <div className="dt-footer">
-              <div className="dt-footer__left">
-                <span>Filas por página</span>
-                <select
-                  className="dt-footer-select"
-                  value={pageSize}
-                  onChange={(e) => onPageSizeChange?.(Number(e.target.value))}
-                >
-                  {pageSizeOptions.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
+                        {hasActions && (
+                          <td
+                            className="dt-td-actions"
+                            style={getColStyle(
+                              columns.length + (hasCheckbox ? 1 : 0),
+                            )}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {mergedActions?.map((action, actionIdx) => {
+                              if (action.hidden?.(row)) return null;
+                              return (
+                                <button
+                                  key={`${actionIdx}-${action.label}`}
+                                  type="button"
+                                  className={`dt-icon-btn${action.variant === "danger" ? " dt-icon-btn--danger" : ""}${action.disabled?.(row) ? " dt-icon-btn--disabled" : ""}`}
+                                  onClick={() => {
+                                    if (!action.disabled?.(row))
+                                      action.onClick(row);
+                                  }}
+                                  title={action.label}
+                                  disabled={action.disabled?.(row)}
+                                >
+                                  <Icon name={action.icon} />
+                                </button>
+                              );
+                            })}
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <div className="dt-footer__center">
-                <button
-                  type="button"
-                  className="dt-pg-btn"
-                  disabled={!pagination.hasPreviousPage}
-                  onClick={() => onPageChange?.(pagination.currentPage - 1)}
-                >
-                  <Icon name="chevron_left" />
-                  Anterior
-                </button>
-                {getPageNumbers(pagination.currentPage, pagination.totalPages).map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    className={`dt-pg-num${p === pagination.currentPage ? " dt-pg-num--on" : ""}`}
-                    onClick={() => onPageChange?.(p)}
+            </div>
+
+            {infiniteScroll ? (
+              <>
+                {loadingMore && (
+                  <div className="dt-load-more">
+                    <div className="dt-state__spinner" />
+                    <span>Cargando más...</span>
+                  </div>
+                )}
+                {!hasMore && data.length > 0 && (
+                  <div className="dt-end-msg">— Fin de los registros —</div>
+                )}
+                <div
+                  ref={sentinelRef}
+                  style={{ height: "20px", width: "100%" }}
+                />
+              </>
+            ) : pagination ? (
+              <div className="dt-footer">
+                <div className="dt-footer__left">
+                  <span>Filas por página</span>
+                  <select
+                    className="dt-footer-select"
+                    value={pageSize}
+                    onChange={(e) => onPageSizeChange?.(Number(e.target.value))}
                   >
-                    {p}
+                    {pageSizeOptions.map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="dt-footer__center">
+                  <button
+                    type="button"
+                    className="dt-pg-btn"
+                    disabled={!pagination.hasPreviousPage}
+                    onClick={() => onPageChange?.(pagination.currentPage - 1)}
+                  >
+                    <Icon name="chevron_left" />
+                    Anterior
                   </button>
-                ))}
-                <button
-                  type="button"
-                  className="dt-pg-btn"
-                  disabled={!pagination.hasNextPage}
-                  onClick={() => onPageChange?.(pagination.currentPage + 1)}
-                >
-                  Próximo
-                  <Icon name="chevron_right" />
-                </button>
+                  {getPageNumbers(
+                    pagination.currentPage,
+                    pagination.totalPages,
+                  ).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      className={`dt-pg-num${p === pagination.currentPage ? " dt-pg-num--on" : ""}`}
+                      onClick={() => onPageChange?.(p)}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="dt-pg-btn"
+                    disabled={!pagination.hasNextPage}
+                    onClick={() => onPageChange?.(pagination.currentPage + 1)}
+                  >
+                    Próximo
+                    <Icon name="chevron_right" />
+                  </button>
+                </div>
+                <div className="dt-footer__right">
+                  Mostrando {rangeStart}–{rangeEnd} de {pagination.totalCount}{" "}
+                  registros
+                </div>
               </div>
-              <div className="dt-footer__right">
-                Mostrando {rangeStart}–{rangeEnd} de {pagination.totalCount} registros
-              </div>
-            </div>
-          ) : null}
-        </>
-      )}
-    </div>
+            ) : null}
+          </>
+        )}
+      </div>
 
-    {detailDrawer && detailRow != null && detailIndex != null && (
-      <GridDetailDrawer
-        open={detailPanelOpen}
-        onClose={closeDetailDrawer}
-        title={detailDrawer.getTitle(detailRow)}
-        statusBadge={detailDrawer.getStatusBadge?.(detailRow)}
-        currentPosition={detailIndex + 1}
-        total={sortedData.length}
-        entityLabelPlural={detailDrawer.entityLabelPlural}
-        onPrev={() => {
-          setDetailIndex((i) => (i == null || i <= 0 ? i : i - 1));
-        }}
-        onNext={() => {
-          setDetailIndex((i) =>
-            i == null || i >= sortedData.length - 1 ? i : i + 1,
-          );
-        }}
-        onEdit={
-          detailDrawer.onEdit ? () => detailDrawer.onEdit!(detailRow) : undefined
-        }
-        showEditButton={
-          typeof detailDrawer.showEditButton === "function"
-            ? detailDrawer.showEditButton(detailRow)
-            : detailDrawer.showEditButton !== false && !!detailDrawer.onEdit
-        }
-      >
-        {detailDrawer.render(detailRow)}
-      </GridDetailDrawer>
-    )}
+      {detailDrawer && detailRow != null && detailIndex != null && (
+        <GridDetailDrawer
+          open={detailPanelOpen}
+          onClose={closeDetailDrawer}
+          title={detailDrawer.getTitle(detailRow)}
+          statusBadge={detailDrawer.getStatusBadge?.(detailRow)}
+          currentPosition={detailIndex + 1}
+          total={sortedData.length}
+          entityLabelPlural={detailDrawer.entityLabelPlural}
+          onPrev={() => {
+            setDetailIndex((i) => (i == null || i <= 0 ? i : i - 1));
+          }}
+          onNext={() => {
+            setDetailIndex((i) =>
+              i == null || i >= sortedData.length - 1 ? i : i + 1,
+            );
+          }}
+          onEdit={
+            detailDrawer.onEdit
+              ? () => detailDrawer.onEdit?.(detailRow)
+              : undefined
+          }
+          showEditButton={
+            typeof detailDrawer.showEditButton === "function"
+              ? detailDrawer.showEditButton(detailRow)
+              : detailDrawer.showEditButton !== false && !!detailDrawer.onEdit
+          }
+        >
+          {detailDrawer.render(detailRow)}
+        </GridDetailDrawer>
+      )}
     </>
   );
 }

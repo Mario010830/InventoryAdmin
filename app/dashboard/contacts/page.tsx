@@ -1,31 +1,34 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { useDebouncedValue } from "@/lib/useDebouncedValue";
-import {
-  useLoadAllRemainingPages,
-  SEARCH_TABLE_CHUNK_PAGE_SIZE,
-  TABLE_SEARCH_DEBOUNCE_MS,
-} from "@/lib/useLoadAllRemainingPages";
-import type { ContactResponse, CreateContactRequest } from "@/lib/dashboard-types";
-import { DataTable } from "@/components/DataTable";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DataTableColumn } from "@/components/DataTable";
-import {
-  useGetContactsQuery,
-  useCreateContactMutation,
-  useUpdateContactMutation,
-  useDeleteContactMutation,
-} from "./_service/contactsApi";
-import { useGetUsersQuery } from "../users/_service/usersApi";
+import { DataTable } from "@/components/DataTable";
 import { DeleteModal } from "@/components/DeleteModal";
+import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
 import { FormModal } from "@/components/FormModal";
 import Switch from "@/components/Switch";
-import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
+import type {
+  ContactResponse,
+  CreateContactRequest,
+} from "@/lib/dashboard-types";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
+import {
+  SEARCH_TABLE_CHUNK_PAGE_SIZE,
+  TABLE_SEARCH_DEBOUNCE_MS,
+  useLoadAllRemainingPages,
+} from "@/lib/useLoadAllRemainingPages";
+import { useGetUsersQuery } from "../users/_service/usersApi";
+import {
+  useCreateContactMutation,
+  useDeleteContactMutation,
+  useGetContactsQuery,
+  useUpdateContactMutation,
+} from "./_service/contactsApi";
 import "../products/products-modal.css";
-import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 import { toast } from "sonner";
-import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
 import { ContactDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
+import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
+import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 
 const COLUMNS: DataTableColumn<ContactResponse>[] = [
   { key: "name", label: "Nombre", width: "160px" },
@@ -59,9 +62,12 @@ const initialForm = {
 
 export default function ContactsPage() {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, _setPageSize] = useState(10);
   const [filterText, setFilterText] = useState("");
-  const debouncedFilterText = useDebouncedValue(filterText, TABLE_SEARCH_DEBOUNCE_MS);
+  const debouncedFilterText = useDebouncedValue(
+    filterText,
+    TABLE_SEARCH_DEBOUNCE_MS,
+  );
   const [filterActive, setFilterActive] = useState("");
   const [filterOrigin, setFilterOrigin] = useState("");
   const perPage = Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
@@ -81,7 +87,11 @@ export default function ContactsPage() {
   const canEditContact = hasPermission("contact.update");
   const canDeleteContact = hasPermission("contact.delete");
 
-  const { data: result, isLoading, isFetching } = useGetContactsQuery({ page, perPage });
+  const {
+    data: result,
+    isLoading,
+    isFetching,
+  } = useGetContactsQuery({ page, perPage });
   const { data: usersPage } = useGetUsersQuery({ page: 1, perPage: 500 });
   const users = usersPage?.data ?? [];
   const userNameById = useMemo(() => {
@@ -121,7 +131,7 @@ export default function ContactsPage() {
     }
     setPage(1);
     setAllRows([]);
-  }, [debouncedFilterText, filterActive, filterOrigin]);
+  }, []);
 
   const loadedRows =
     page === 1 && allRows.length === 0 ? (result?.data ?? []) : allRows;
@@ -166,7 +176,8 @@ export default function ContactsPage() {
     }
     if (filterActive === "yes") rows = rows.filter((r) => r.isActive);
     if (filterActive === "no") rows = rows.filter((r) => !r.isActive);
-    if (filterOrigin !== "") rows = rows.filter((r) => (r.origin ?? "").trim() === filterOrigin);
+    if (filterOrigin !== "")
+      rows = rows.filter((r) => (r.origin ?? "").trim() === filterOrigin);
     return rows;
   }, [loadedRows, debouncedFilterText, filterActive, filterOrigin]);
 
@@ -364,7 +375,9 @@ export default function ContactsPage() {
           entityLabelPlural: "contactos",
           getTitle: (row) => row.name,
           getStatusBadge: (row) => (
-            <span className={`dt-tag ${row.isActive ? "dt-tag--green" : "dt-tag--red"}`}>
+            <span
+              className={`dt-tag ${row.isActive ? "dt-tag--green" : "dt-tag--red"}`}
+            >
               {row.isActive ? "Activo" : "Inactivo"}
             </span>
           ),
@@ -373,7 +386,7 @@ export default function ContactsPage() {
               row={row}
               assignedUserName={
                 row.assignedUserId != null
-                  ? userNameById.get(row.assignedUserId) ?? null
+                  ? (userNameById.get(row.assignedUserId) ?? null)
                   : null
               }
             />
@@ -419,7 +432,9 @@ export default function ContactsPage() {
             <input
               id="c-company"
               value={form.company}
-              onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, company: e.target.value }))
+              }
             />
           </div>
           <div className="modal-field">
@@ -427,7 +442,9 @@ export default function ContactsPage() {
             <input
               id="c-contactPerson"
               value={form.contactPerson}
-              onChange={(e) => setForm((f) => ({ ...f, contactPerson: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, contactPerson: e.target.value }))
+              }
             />
           </div>
           <div className="modal-field">
@@ -435,7 +452,9 @@ export default function ContactsPage() {
             <input
               id="c-phone"
               value={form.phone}
-              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, phone: e.target.value }))
+              }
             />
           </div>
           <div className="modal-field">
@@ -444,7 +463,9 @@ export default function ContactsPage() {
               id="c-email"
               type="email"
               value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, email: e.target.value }))
+              }
             />
           </div>
           <div className="modal-field field-full">
@@ -452,7 +473,9 @@ export default function ContactsPage() {
             <input
               id="c-address"
               value={form.address}
-              onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, address: e.target.value }))
+              }
             />
           </div>
           <div className="modal-field field-full">
@@ -460,7 +483,9 @@ export default function ContactsPage() {
             <input
               id="c-origin"
               value={form.origin}
-              onChange={(e) => setForm((f) => ({ ...f, origin: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, origin: e.target.value }))
+              }
               placeholder="Web, feria, referido…"
             />
           </div>
@@ -469,7 +494,9 @@ export default function ContactsPage() {
             <textarea
               id="c-notes"
               value={form.notes}
-              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, notes: e.target.value }))
+              }
               rows={3}
             />
           </div>
@@ -477,7 +504,9 @@ export default function ContactsPage() {
             <label htmlFor="c-assigned">Asignado a</label>
             <select
               id="c-assigned"
-              value={form.assignedUserId === "" ? "" : String(form.assignedUserId)}
+              value={
+                form.assignedUserId === "" ? "" : String(form.assignedUserId)
+              }
               onChange={(e) => {
                 const v = e.target.value;
                 setForm((f) => ({
@@ -497,7 +526,9 @@ export default function ContactsPage() {
           <div className="modal-field field-full modal-toggle">
             <Switch
               checked={form.isActive}
-              onChange={(checked) => setForm((f) => ({ ...f, isActive: checked }))}
+              onChange={(checked) =>
+                setForm((f) => ({ ...f, isActive: checked }))
+              }
             />
             <label>Activo</label>
           </div>

@@ -186,12 +186,12 @@
 }
 
 .grid-filter-bar [data-slot="select-trigger"] {
-  background-color: #ffffff !important;
-  background-image: none !important;
+  background-color: #ffffff;
+  background-image: none;
 }
 
 .grid-filter-bar [data-slot="select-trigger"].grid-filter-bar__control--active {
-  background-color: #ffffff !important;
+  background-color: #ffffff;
 }
 
 .grid-filter-bar__select-trigger {
@@ -238,20 +238,20 @@
 
 /* Mismo calendario que registro — trigger compacto */
 .grid-filter-bar__date-trigger {
-  height: 36px !important;
-  min-height: 36px !important;
-  padding-left: 10px !important;
-  padding-right: 10px !important;
-  font-size: 0.8125rem !important;
-  font-weight: 400 !important;
-  border-color: var(--gf-border) !important;
-  background: #fff !important;
-  box-shadow: none !important;
+  height: 36px;
+  min-height: 36px;
+  padding-left: 10px;
+  padding-right: 10px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  border-color: var(--gf-border);
+  background: #fff;
+  box-shadow: none;
 }
 
 .grid-filter-bar__date-trigger.grid-filter-bar__control--active {
-  border-color: var(--gf-focus) !important;
-  box-shadow: 0 0 0 1px rgba(79, 110, 247, 0.25) !important;
+  border-color: var(--gf-focus);
+  box-shadow: 0 0 0 1px rgba(79, 110, 247, 0.25);
 }
 
 /* Rango precio / monto: Min – Max */

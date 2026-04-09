@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 
 const ROTATING_WORDS = ["Organiza", "Optimiza", "Controla"];
@@ -105,7 +105,11 @@ export function Hero() {
               Comenzar Gratis
               <Icon name="rocket_launch" />
             </Link>
-            <button type="button" className="btn-outline" onClick={scrollToFeatures}>
+            <button
+              type="button"
+              className="btn-outline"
+              onClick={scrollToFeatures}
+            >
               <Icon name="play_circle" />
               Ver Características
             </button>
@@ -215,7 +219,10 @@ export function Hero() {
           </div>
 
           <div className="hero__float-card hero__float-card--2">
-            <Icon name="notifications_active" className="fc-icon fc-icon--amber" />
+            <Icon
+              name="notifications_active"
+              className="fc-icon fc-icon--amber"
+            />
             <div>
               <strong>Alerta de stock mínimo</strong>
               <span>Teclado Logitech — Quedan 3 uds.</span>

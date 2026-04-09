@@ -21,7 +21,6 @@ export interface CreateOrganizationRequest {
   code: string;
 }
 
-
 export type RegistrationBillingCycle = "monthly" | "annual";
 
 export interface RegisterWithOrganizationRequest {
@@ -76,7 +75,7 @@ export interface OrganizationResponse {
     description?: string;
     createdAt: string;
     modifiedAt: string;
-  },
+  };
   statusCode: number;
   customStatusCode: number;
 }

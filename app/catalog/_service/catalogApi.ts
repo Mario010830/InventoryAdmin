@@ -1,12 +1,11 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { getApiUrl } from "@/lib/auth-api";
 import type {
-  PublicLocation,
-  PublicCatalogItem,
   PaginationMeta,
+  PublicCatalogItem,
+  PublicLocation,
   Tag,
 } from "@/lib/dashboard-types";
-
 
 function parseList<T>(raw: unknown): T[] {
   if (Array.isArray(raw)) return raw as T[];
@@ -52,10 +51,8 @@ function normalizeLocations(raw: unknown): PublicLocation[] {
       | { lat?: number; lng?: number }
       | undefined;
 
-    const latitude =
-      loc.latitude ?? loc.lat ?? coordinates?.lat ?? null;
-    const longitude =
-      loc.longitude ?? loc.lng ?? coordinates?.lng ?? null;
+    const latitude = loc.latitude ?? loc.lat ?? coordinates?.lat ?? null;
+    const longitude = loc.longitude ?? loc.lng ?? coordinates?.lng ?? null;
 
     const todayOpen = today?.open ?? null;
     const todayClose = today?.close ?? null;
@@ -112,7 +109,11 @@ export const catalogApi = createApi({
         raw: unknown,
       ): { data: PublicCatalogItem[]; pagination: PaginationMeta } => {
         const obj = raw as Record<string, unknown> | null;
-        if (!obj) return { data: [], pagination: { page: 1, pageSize: 50, total: 0, totalPages: 0 } };
+        if (!obj)
+          return {
+            data: [],
+            pagination: { page: 1, pageSize: 50, total: 0, totalPages: 0 },
+          };
         const data = parseList<Record<string, unknown>>(
           obj.data ?? obj.result ?? [],
         ).map(normalizePublicItem);

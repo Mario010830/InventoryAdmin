@@ -1,4 +1,4 @@
-import { type Middleware } from "@reduxjs/toolkit";
+import type { Middleware } from "@reduxjs/toolkit";
 import { toast } from "sonner";
 import { areMutationToastsSuppressed } from "@/lib/mutationToastControl";
 
@@ -107,8 +107,9 @@ export const toastMiddleware: Middleware = () => (next) => (action) => {
 
   if (!type.includes("executeMutation")) return result;
 
-  const endpointName = (action as { meta?: { arg?: { endpointName?: string } } })?.meta?.arg
-    ?.endpointName as string | undefined;
+  const endpointName = (
+    action as { meta?: { arg?: { endpointName?: string } } }
+  )?.meta?.arg?.endpointName as string | undefined;
   if (!endpointName || SILENT_MUTATIONS.has(endpointName)) return result;
 
   if (type.endsWith("/fulfilled")) {
@@ -134,7 +135,9 @@ export const toastMiddleware: Middleware = () => (next) => (action) => {
         (payload as { error?: string } | undefined)?.error ??
         (payload as { message?: string } | undefined)?.message ??
         null;
-      message = (typeof serverMessage === "string" ? serverMessage : null) ?? "Ocurrió un error";
+      message =
+        (typeof serverMessage === "string" ? serverMessage : null) ??
+        "Ocurrió un error";
     }
     toast.error(message, { duration: 5000 });
   }

@@ -1,73 +1,82 @@
-import { createApi } from '@reduxjs/toolkit/query/react';
-import baseQueryWithReauth, { saveToken, saveRefreshToken } from '@/lib/baseQuery';
+import { createApi } from "@reduxjs/toolkit/query/react";
 import type {
-  LoginRequest,
-  CreateOrganizationRequest,
-  UserResponse,
-  OrganizationResponse,
   ApiResponse,
+  CreateOrganizationRequest,
+  LoginRequest,
+  OrganizationResponse,
   RegisterWithOrganizationRequest,
-} from '@/lib/auth-types';
-import { parsePlansFromApi, type PublicPlan } from '@/lib/plan-utils';
+  UserResponse,
+} from "@/lib/auth-types";
+import baseQueryWithReauth from "@/lib/baseQuery";
+import { type PublicPlan, parsePlansFromApi } from "@/lib/plan-utils";
 
 export const authApi = createApi({
-  reducerPath: 'authApi',
+  reducerPath: "authApi",
   baseQuery: baseQueryWithReauth,
   refetchOnMountOrArgChange: true,
   refetchOnFocus: true,
   refetchOnReconnect: true,
-  tagTypes: ['User', 'Organization'],
+  tagTypes: ["User", "Organization"],
   endpoints: (builder) => ({
     login: builder.mutation<ApiResponse<UserResponse>, LoginRequest>({
       query: (credentials) => ({
-        url: '/account/login',
-        method: 'POST',
+        url: "/account/login",
+        method: "POST",
         body: credentials,
       }),
-      invalidatesTags: ['User'],
+      invalidatesTags: ["User"],
     }),
 
-    register: builder.mutation<void, {
-      FullName: string;
-      Email: string;
-      Password: string;
-      ConfirmationPassword: string;
-      Birthday: string;
-      Gender: number;
-      Phone?: string;
-      OrganizationId?: number;
-    }>({
+    register: builder.mutation<
+      void,
+      {
+        FullName: string;
+        Email: string;
+        Password: string;
+        ConfirmationPassword: string;
+        Birthday: string;
+        Gender: number;
+        Phone?: string;
+        OrganizationId?: number;
+      }
+    >({
       query: (body) => ({
-        url: '/account/register',
-        method: 'POST',
+        url: "/account/register",
+        method: "POST",
         body,
       }),
     }),
-    regiterWithOrganization: builder.mutation<void, RegisterWithOrganizationRequest>({
+    regiterWithOrganization: builder.mutation<
+      void,
+      RegisterWithOrganizationRequest
+    >({
       query: (body) => ({
-        url: '/account/register-with-organization',
-        method: 'POST',
+        url: "/account/register-with-organization",
+        method: "POST",
         body,
       }),
     }),
 
     getPlans: builder.query<PublicPlan[], void>({
-      query: () => ({ url: '/plan', method: 'GET' }),
+      query: () => ({ url: "/plan", method: "GET" }),
       transformResponse: (raw: unknown) => parsePlansFromApi(raw),
     }),
-    createOrganization: builder.mutation<OrganizationResponse, CreateOrganizationRequest>({
+    createOrganization: builder.mutation<
+      OrganizationResponse,
+      CreateOrganizationRequest
+    >({
       query: (data) => ({
-        url: '/organization',
-        method: 'POST',
+        url: "/organization",
+        method: "POST",
         body: { Name: data.name, Code: data.code },
       }),
-      invalidatesTags: ['Organization'],
+      invalidatesTags: ["Organization"],
     }),
 
     refreshToken: builder.mutation<void, { refreshToken: string }>({
       query: (body) => ({
-        url: '/account/refresh',
-        method: 'POST',
+        url: "/account/refresh",
+        method: "POST",
         body,
       }),
     }),
@@ -82,8 +91,8 @@ export const authApi = createApi({
     }),
     resetPassword: builder.mutation<void, { email: string }>({
       query: (body) => ({
-        url: '/account/forgot-password',
-        method: 'POST',
+        url: "/account/forgot-password",
+        method: "POST",
         body,
       }),
     }),
@@ -98,5 +107,5 @@ export const {
   useCreateOrganizationMutation,
   useRefreshTokenMutation,
   useLogoutMutation,
-  useResetPasswordMutation
+  useResetPasswordMutation,
 } = authApi;

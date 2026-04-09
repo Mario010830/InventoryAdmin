@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import type { LatLngExpression } from "leaflet";
+import { useMemo } from "react";
+import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "./locations-grid.css";
 import L from "leaflet";
@@ -55,7 +55,11 @@ function MarkerController({ value, onChange }: MapProps) {
   );
 }
 
-export default function LocationPickerMap({ center, value, onChange }: MapProps) {
+export default function LocationPickerMap({
+  center,
+  value,
+  onChange,
+}: MapProps) {
   const initialCenter: LatLngExpression = value
     ? [value.lat, value.lng]
     : center;
@@ -77,4 +81,3 @@ export default function LocationPickerMap({ center, value, onChange }: MapProps)
     </MapContainer>
   );
 }
-

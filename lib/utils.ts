@@ -1,8 +1,8 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 /** IDs alineados con la tabla Permission de la base de datos */
@@ -18,16 +18,36 @@ export const PERMISSIONS = [
   { id: 9, code: "user.delete", name: "Eliminar Usuario" },
   { id: 10, code: "inventory.read", name: "Ver Inventario" },
   { id: 11, code: "inventory.manage", name: "Gestionar Inventario" },
-  { id: 12, code: "inventorymovement.read", name: "Ver Movimientos de Inventario" },
-  { id: 13, code: "inventorymovement.create", name: "Crear Movimiento de Inventario" },
+  {
+    id: 12,
+    code: "inventorymovement.read",
+    name: "Ver Movimientos de Inventario",
+  },
+  {
+    id: 13,
+    code: "inventorymovement.create",
+    name: "Crear Movimiento de Inventario",
+  },
   { id: 14, code: "supplier.read", name: "Ver Proveedores" },
   { id: 15, code: "supplier.create", name: "Crear Proveedor" },
   { id: 16, code: "supplier.update", name: "Editar Proveedor" },
   { id: 17, code: "supplier.delete", name: "Eliminar Proveedor" },
   { id: 18, code: "productcategory.read", name: "Ver Categorías de Producto" },
-  { id: 19, code: "productcategory.create", name: "Crear Categoría de Producto" },
-  { id: 20, code: "productcategory.update", name: "Editar Categoría de Producto" },
-  { id: 21, code: "productcategory.delete", name: "Eliminar Categoría de Producto" },
+  {
+    id: 19,
+    code: "productcategory.create",
+    name: "Crear Categoría de Producto",
+  },
+  {
+    id: 20,
+    code: "productcategory.update",
+    name: "Editar Categoría de Producto",
+  },
+  {
+    id: 21,
+    code: "productcategory.delete",
+    name: "Eliminar Categoría de Producto",
+  },
   { id: 22, code: "log.read", name: "Ver Registros de Actividad" },
   { id: 23, code: "setting.read", name: "Ver Configuración" },
   { id: 24, code: "setting.manage", name: "Gestionar Configuración" },
@@ -69,5 +89,4 @@ export const PERMISSIONS = [
   { id: 1056, code: "currency.create", name: "Crear Moneda" },
   { id: 1057, code: "currency.update", name: "Editar Moneda" },
   { id: 1058, code: "currency.delete", name: "Eliminar Moneda" },
-  
 ];

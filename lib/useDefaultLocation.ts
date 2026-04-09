@@ -22,7 +22,9 @@ interface DefaultLocationResult {
  * 2. If the user has an assigned locationId -> return it as a default (isSingle = false).
  * 3. Otherwise -> null.
  */
-export function useDefaultLocation(locations: LocationLike[]): DefaultLocationResult {
+export function useDefaultLocation(
+  locations: LocationLike[],
+): DefaultLocationResult {
   const user = useAppSelector((s) => s.auth);
 
   if (locations.length === 1) {

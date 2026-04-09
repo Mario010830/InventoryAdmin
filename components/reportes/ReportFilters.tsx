@@ -158,7 +158,11 @@ export function ReportFilters({
 
   return (
     <div className="dashboard-report-filters">
-      <div className="dashboard-report-filters__periods" role="tablist" aria-label="Período del reporte">
+      <div
+        className="dashboard-report-filters__periods"
+        role="tablist"
+        aria-label="Período del reporte"
+      >
         {PERIOD_OPTIONS.map((opt) => (
           <button
             key={opt.value}

@@ -1,53 +1,63 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { useDebouncedValue } from "@/lib/useDebouncedValue";
-import {
-  useLoadAllRemainingPages,
-  SEARCH_TABLE_CHUNK_PAGE_SIZE,
-  TABLE_SEARCH_DEBOUNCE_MS,
-} from "@/lib/useLoadAllRemainingPages";
-import type { LocationResponse } from "@/lib/auth-types";
-import type { CreateLocationRequest, UpdateLocationRequest } from "@/lib/dashboard-types";
-import { DataTable } from "@/components/DataTable";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DataTableColumn } from "@/components/DataTable";
-import {
-  useGetLocationsQuery,
-  useCreateLocationMutation,
-  useUpdateLocationMutation,
-  useDeleteLocationMutation,
-  useUploadLocationImageMutation,
-} from "./_service/locationsApi";
-import { useGetBusinessCategoriesQuery } from "./_service/businessCategoryApi";
-import { BusinessCategorySelect } from "./BusinessCategorySelect";
+import { DataTable } from "@/components/DataTable";
 import { DeleteModal } from "@/components/DeleteModal";
 import { FormModal } from "@/components/FormModal";
 import { Icon } from "@/components/ui/Icon";
+import type { LocationResponse } from "@/lib/auth-types";
+import type {
+  CreateLocationRequest,
+  UpdateLocationRequest,
+} from "@/lib/dashboard-types";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
+import {
+  SEARCH_TABLE_CHUNK_PAGE_SIZE,
+  TABLE_SEARCH_DEBOUNCE_MS,
+  useLoadAllRemainingPages,
+} from "@/lib/useLoadAllRemainingPages";
 import { useAppSelector } from "@/store/store";
+import { useGetBusinessCategoriesQuery } from "./_service/businessCategoryApi";
+import {
+  useCreateLocationMutation,
+  useDeleteLocationMutation,
+  useGetLocationsQuery,
+  useUpdateLocationMutation,
+  useUploadLocationImageMutation,
+} from "./_service/locationsApi";
+import { BusinessCategorySelect } from "./BusinessCategorySelect";
 import "../products/products-modal.css";
-import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 import { toast } from "sonner";
-import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
 import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
 import { BusinessCategoryLucideGlyph } from "@/components/dashboard/BusinessCategoryLucideGlyph";
+import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
+import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 import "./locations-grid.css";
-import { CUBA_PROVINCES, getMunicipalitiesByProvince } from "@/lib/cuba-locations";
+import { useGetPublicLocationsQuery } from "@/app/catalog/_service/catalogApi";
+import { LocationDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
+import Switch from "@/components/Switch";
+import {
+  CUBA_PROVINCES,
+  getMunicipalitiesByProvince,
+} from "@/lib/cuba-locations";
+import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import {
   BusinessHoursEditor,
+  type BusinessHoursFormState,
   businessHoursCompareKey,
   deserializeBusinessHoursDto,
   makeEmptyBusinessHoursState,
   serializeBusinessHoursState,
   validateBusinessHoursFormState,
-  type BusinessHoursFormState,
 } from "./BusinessHoursEditor";
 import LocationPicker from "./LocationPicker";
-import Switch from "@/components/Switch";
-import { useGetPublicLocationsQuery } from "@/app/catalog/_service/catalogApi";
-import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
-import { LocationDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
 
-function formatAddress(loc: { street?: string | null; municipality?: string | null; province?: string | null }): string {
+function formatAddress(loc: {
+  street?: string | null;
+  municipality?: string | null;
+  province?: string | null;
+}): string {
   const parts = [loc.street, loc.municipality, loc.province].filter(Boolean);
   return parts.length ? parts.join(", ") : "—";
 }
@@ -86,10 +96,13 @@ const initialForm = {
 
 export default function LocationsPage() {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, _setPageSize] = useState(10);
   const [filterText, setFilterText] = useState("");
   const [filterBusinessCategoryId, setFilterBusinessCategoryId] = useState("");
-  const debouncedFilterText = useDebouncedValue(filterText, TABLE_SEARCH_DEBOUNCE_MS);
+  const debouncedFilterText = useDebouncedValue(
+    filterText,
+    TABLE_SEARCH_DEBOUNCE_MS,
+  );
   const perPage = Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
   const loadNextPage = useCallback(() => setPage((p) => p + 1), []);
   const [formOpen, setFormOpen] = useState(false);
@@ -108,7 +121,9 @@ export default function LocationsPage() {
   const [offersPickup, setOffersPickup] = useState(true);
   const [formLoading, setFormLoading] = useState(false);
   const filtersChanged = useRef(false);
-  const formLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const formLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   /** Estado inicial al abrir «Editar» para PUT parcial (`null` en el servidor = no tocar). */
   const editSnapshotRef = useRef<LocationEditSnapshot | null>(null);
 
@@ -122,7 +137,11 @@ export default function LocationsPage() {
   const canEditLocation = hasPermission("location.update");
   const canDeleteLocation = hasPermission("location.delete");
 
-  const { data: result, isLoading, isFetching } = useGetLocationsQuery({
+  const {
+    data: result,
+    isLoading,
+    isFetching,
+  } = useGetLocationsQuery({
     page,
     perPage,
     ...(organizationId ? { organizationId } : {}),
@@ -130,10 +149,13 @@ export default function LocationsPage() {
   const [createLocation] = useCreateLocationMutation();
   const [updateLocation] = useUpdateLocationMutation();
   const [deleteLocation] = useDeleteLocationMutation();
-  const [uploadLocationImage, { isLoading: uploadingImage }] = useUploadLocationImageMutation();
+  const [uploadLocationImage, { isLoading: uploadingImage }] =
+    useUploadLocationImageMutation();
 
-  const { data: businessCategories = [], isLoading: businessCategoriesLoading } =
-    useGetBusinessCategoriesQuery();
+  const {
+    data: businessCategories = [],
+    isLoading: businessCategoriesLoading,
+  } = useGetBusinessCategoriesQuery();
 
   const { data: publicLocations = [] } = useGetPublicLocationsQuery();
   const publicExtrasById = useMemo(() => {
@@ -160,9 +182,29 @@ export default function LocationsPage() {
         exportable: false,
         render: (row) =>
           row.photoUrl ? (
-            <img src={getProxiedImageSrc(row.photoUrl) ?? row.photoUrl} alt="" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 8 }} />
+            <img
+              src={getProxiedImageSrc(row.photoUrl) ?? row.photoUrl}
+              alt=""
+              style={{
+                width: 40,
+                height: 40,
+                objectFit: "cover",
+                borderRadius: 8,
+              }}
+            />
           ) : (
-            <div style={{ width: 40, height: 40, borderRadius: 8, background: "#f1f5f9", display: "grid", placeItems: "center", color: "#94a3b8", fontSize: 20 }}>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 8,
+                background: "#f1f5f9",
+                display: "grid",
+                placeItems: "center",
+                color: "#94a3b8",
+                fontSize: 20,
+              }}
+            >
               <Icon name="location_on" />
             </div>
           ),
@@ -173,7 +215,9 @@ export default function LocationsPage() {
         key: "address",
         label: "Dirección",
         width: "200px",
-        render: (row) => <span style={{ fontSize: "0.875rem" }}>{formatAddress(row)}</span>,
+        render: (row) => (
+          <span style={{ fontSize: "0.875rem" }}>{formatAddress(row)}</span>
+        ),
       },
       { key: "description", label: "Descripción" },
       { key: "organizationName", label: "Organización" },
@@ -185,17 +229,23 @@ export default function LocationsPage() {
         sortValue: (row) => {
           const id = row.businessCategoryId;
           if (id == null || !Number.isFinite(Number(id))) return "";
-          const name = row.businessCategoryName ?? categoryNameById.get(Number(id));
+          const name =
+            row.businessCategoryName ?? categoryNameById.get(Number(id));
           return name ?? "";
         },
         render: (row) => {
           const id = row.businessCategoryId;
           if (id == null || !Number.isFinite(Number(id))) return <span>—</span>;
-          const name = row.businessCategoryName ?? categoryNameById.get(Number(id));
+          const name =
+            row.businessCategoryName ?? categoryNameById.get(Number(id));
           if (!name) return <span>—</span>;
           return (
             <span className="location-bc-pill">
-              <BusinessCategoryLucideGlyph categoryName={name} size={14} strokeWidth={2} />
+              <BusinessCategoryLucideGlyph
+                categoryName={name}
+                size={14}
+                strokeWidth={2}
+              />
               <span>{name}</span>
             </span>
           );
@@ -220,7 +270,10 @@ export default function LocationsPage() {
           const hp = publicExtrasById.get(row.id)?.hasPromo;
           if (hp === true) {
             return (
-              <span className="dt-tag dt-tag--green" title="Hay promoción activa">
+              <span
+                className="dt-tag dt-tag--green"
+                title="Hay promoción activa"
+              >
                 Sí
               </span>
             );
@@ -238,7 +291,10 @@ export default function LocationsPage() {
         sortable: false,
         render: (row) =>
           row.offersDelivery !== false ? (
-            <span title="Ofrece domicilio" style={{ fontSize: 20, color: "#64748b" }}>
+            <span
+              title="Ofrece domicilio"
+              style={{ fontSize: 20, color: "#64748b" }}
+            >
               <Icon name="local_shipping" />
             </span>
           ) : (
@@ -252,7 +308,10 @@ export default function LocationsPage() {
         sortable: false,
         render: (row) =>
           row.offersPickup !== false ? (
-            <span title="Ofrece recogida en tienda" style={{ fontSize: 20, color: "#64748b" }}>
+            <span
+              title="Ofrece recogida en tienda"
+              style={{ fontSize: 20, color: "#64748b" }}
+            >
               <Icon name="storefront" />
             </span>
           ) : (
@@ -282,10 +341,13 @@ export default function LocationsPage() {
   });
 
   useEffect(() => {
-    if (!filtersChanged.current) { filtersChanged.current = true; return; }
+    if (!filtersChanged.current) {
+      filtersChanged.current = true;
+      return;
+    }
     setPage(1);
     setAllRows([]);
-  }, [debouncedFilterText, organizationId, filterBusinessCategoryId]);
+  }, []);
 
   const loadedRows =
     page === 1 && allRows.length === 0 ? (result?.data ?? []) : allRows;
@@ -306,16 +368,20 @@ export default function LocationsPage() {
     if (!q) return rows;
     return rows.filter(
       (row) =>
-        String(row.name ?? "").toLowerCase().includes(q) ||
-        String(row.code ?? "").toLowerCase().includes(q),
+        String(row.name ?? "")
+          .toLowerCase()
+          .includes(q) ||
+        String(row.code ?? "")
+          .toLowerCase()
+          .includes(q),
     );
   }, [loadedRows, debouncedFilterText, filterBusinessCategoryId]);
 
-  const gridFiltersActive = filterText.trim() !== "" || filterBusinessCategoryId !== "";
+  const gridFiltersActive =
+    filterText.trim() !== "" || filterBusinessCategoryId !== "";
 
   const allPagesLoaded =
-    result?.pagination != null &&
-    page >= (result.pagination.totalPages ?? 1);
+    result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
 
   const openCreate = () => {
     editSnapshotRef.current = null;
@@ -336,7 +402,8 @@ export default function LocationsPage() {
     const lat = item.latitude ?? item.coordinates?.lat ?? null;
     const lng = item.longitude ?? item.coordinates?.lng ?? null;
     const bcid =
-      item.businessCategoryId != null && Number.isFinite(Number(item.businessCategoryId))
+      item.businessCategoryId != null &&
+      Number.isFinite(Number(item.businessCategoryId))
         ? Number(item.businessCategoryId)
         : null;
     editSnapshotRef.current = {
@@ -422,7 +489,9 @@ export default function LocationsPage() {
       if (editing) {
         const snap = editSnapshotRef.current;
         if (!snap) {
-          toast.error("No se pudo cargar el estado inicial. Cierra el formulario y vuelve a editar.");
+          toast.error(
+            "No se pudo cargar el estado inicial. Cierra el formulario y vuelve a editar.",
+          );
           setFormSubmitting(false);
           return;
         }
@@ -461,8 +530,10 @@ export default function LocationsPage() {
         if (businessHoursCompareKey(businessHours) !== snap.businessHoursKey) {
           body.businessHours = serializeBusinessHoursState(businessHours);
         }
-        if (offersDelivery !== snap.offersDelivery) body.offersDelivery = offersDelivery;
-        if (offersPickup !== snap.offersPickup) body.offersPickup = offersPickup;
+        if (offersDelivery !== snap.offersDelivery)
+          body.offersDelivery = offersDelivery;
+        if (offersPickup !== snap.offersPickup)
+          body.offersPickup = offersPickup;
 
         if (Object.keys(body).length === 0) {
           toast.info("No hay cambios para guardar.");
@@ -483,7 +554,9 @@ export default function LocationsPage() {
           street: form.street.trim() || undefined,
           latitude: hasCoords ? form.latitude : null,
           longitude: hasCoords ? form.longitude : null,
-          coordinates: hasCoords ? { lat: form.latitude!, lng: form.longitude! } : null,
+          coordinates: hasCoords
+            ? { lat: form.latitude!, lng: form.longitude! }
+            : null,
           businessHours: serializeBusinessHoursState(businessHours),
           businessCategoryId: form.businessCategoryId ?? null,
           offersDelivery,
@@ -494,7 +567,9 @@ export default function LocationsPage() {
       }
       closeForm();
     } catch (err) {
-      setFormErrors({ submit: err instanceof Error ? err.message : "Error al guardar" });
+      setFormErrors({
+        submit: err instanceof Error ? err.message : "Error al guardar",
+      });
     } finally {
       setFormSubmitting(false);
     }
@@ -505,7 +580,10 @@ export default function LocationsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      setFormErrors((prev) => ({ ...prev, photoUrl: "Máximo 5 MB (JPEG, PNG, GIF o WebP)" }));
+      setFormErrors((prev) => ({
+        ...prev,
+        photoUrl: "Máximo 5 MB (JPEG, PNG, GIF o WebP)",
+      }));
       return;
     }
     e.target.value = "";
@@ -514,7 +592,10 @@ export default function LocationsPage() {
       setForm((f) => ({ ...f, photoUrl }));
       setFormErrors((prev) => ({ ...prev, photoUrl: "" }));
     } catch {
-      setFormErrors((prev) => ({ ...prev, photoUrl: "Error al subir la imagen" }));
+      setFormErrors((prev) => ({
+        ...prev,
+        photoUrl: "Error al subir la imagen",
+      }));
     }
   };
 
@@ -543,7 +624,9 @@ export default function LocationsPage() {
       toast.success(`${ids.length} ubicación(es) eliminada(s).`, { id: tid });
       setAllRows((prev) => prev.filter((r) => !ids.includes(r.id)));
     } catch {
-      toast.error("No se pudieron eliminar todas las ubicaciones.", { id: tid });
+      toast.error("No se pudieron eliminar todas las ubicaciones.", {
+        id: tid,
+      });
     }
   };
 
@@ -555,15 +638,21 @@ export default function LocationsPage() {
       closeConfirm();
     } catch (err: unknown) {
       const status = (err as { status?: number })?.status;
-      const data = (err as { data?: { message?: string; Message?: string } })?.data;
+      const data = (err as { data?: { message?: string; Message?: string } })
+        ?.data;
       const msg = data?.message ?? data?.Message ?? "";
       const isInUse =
         status === 400 ||
         (typeof msg === "string" &&
-          (msg.includes("en uso") || msg.includes("ventas") || msg.includes("devoluciones") || msg.includes("LocationInUse")));
+          (msg.includes("en uso") ||
+            msg.includes("ventas") ||
+            msg.includes("devoluciones") ||
+            msg.includes("LocationInUse")));
       if (isInUse) {
         setDeleteBlockedByApi(true);
-        setDeleteError("No se puede eliminar esta ubicación porque tiene ventas o devoluciones asociadas.");
+        setDeleteError(
+          "No se puede eliminar esta ubicación porque tiene ventas o devoluciones asociadas.",
+        );
       } else {
         setDeleteError("Error al eliminar. Intenta de nuevo.");
       }
@@ -579,7 +668,9 @@ export default function LocationsPage() {
           primaryColumnKey: "name",
           bulkEntityLabel: "ubicaciones",
         }}
-        onBulkDeleteSelected={canDeleteLocation ? handleBulkDeleteLocations : undefined}
+        onBulkDeleteSelected={
+          canDeleteLocation ? handleBulkDeleteLocations : undefined
+        }
         filters={
           <GridFilterBar onClear={clearGridFilters}>
             <div className="grid-filter-bar__field">
@@ -600,7 +691,10 @@ export default function LocationsPage() {
                 onChange={setFilterBusinessCategoryId}
                 options={[
                   { value: "", label: "Todas" },
-                  ...businessCategories.map((c) => ({ value: String(c.id), label: c.name })),
+                  ...businessCategories.map((c) => ({
+                    value: String(c.id),
+                    label: c.name,
+                  })),
                 ]}
                 placeholder="Todas"
                 active={filterBusinessCategoryId !== ""}
@@ -618,13 +712,26 @@ export default function LocationsPage() {
         onAdd={openCreate}
         addDisabled={!canCreateLocation}
         actions={[
-          { icon: "edit", label: "Editar", onClick: openEdit, disabled: () => !canEditLocation },
-          { icon: "delete_outline", label: "Eliminar", onClick: openDelete, variant: "danger", disabled: () => !canDeleteLocation },
+          {
+            icon: "edit",
+            label: "Editar",
+            onClick: openEdit,
+            disabled: () => !canEditLocation,
+          },
+          {
+            icon: "delete_outline",
+            label: "Eliminar",
+            onClick: openDelete,
+            variant: "danger",
+            disabled: () => !canDeleteLocation,
+          },
         ]}
         detailDrawer={{
           entityLabelPlural: "ubicaciones",
           getTitle: (row) => row.name,
-          getStatusBadge: () => <span className="dt-tag dt-tag--green">Activo</span>,
+          getStatusBadge: () => (
+            <span className="dt-tag dt-tag--green">Activo</span>
+          ),
           render: (row) => <LocationDetailBody row={row} />,
           onEdit: openEdit,
           showEditButton: () => canEditLocation,
@@ -679,14 +786,18 @@ export default function LocationsPage() {
             <textarea
               id="description"
               value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, description: e.target.value }))
+              }
               placeholder="Descripción"
               rows={3}
             />
           </div>
           <BusinessCategorySelect
             value={form.businessCategoryId}
-            onChange={(id) => setForm((f) => ({ ...f, businessCategoryId: id }))}
+            onChange={(id) =>
+              setForm((f) => ({ ...f, businessCategoryId: id }))
+            }
             categories={businessCategories}
             loading={businessCategoriesLoading}
             disabled={editing ? !canEditLocation : !canCreateLocation}
@@ -701,34 +812,71 @@ export default function LocationsPage() {
               onChange={handleUploadPhoto}
               style={{ display: "none" }}
             />
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
               {form.photoUrl ? (
                 <>
-                  <img src={getProxiedImageSrc(form.photoUrl) ?? form.photoUrl} alt="" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8 }} />
+                  <img
+                    src={getProxiedImageSrc(form.photoUrl) ?? form.photoUrl}
+                    alt=""
+                    style={{
+                      width: 64,
+                      height: 64,
+                      objectFit: "cover",
+                      borderRadius: 8,
+                    }}
+                  />
                   <div>
-                    <button type="button" className="modal-btn modal-btn--secondary" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage}>
+                    <button
+                      type="button"
+                      className="modal-btn modal-btn--secondary"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingImage}
+                    >
                       {uploadingImage ? "Subiendo…" : "Cambiar foto"}
                     </button>
-                    <button type="button" className="modal-btn" style={{ marginLeft: 8 }} onClick={() => setForm((f) => ({ ...f, photoUrl: "" }))}>
+                    <button
+                      type="button"
+                      className="modal-btn"
+                      style={{ marginLeft: 8 }}
+                      onClick={() => setForm((f) => ({ ...f, photoUrl: "" }))}
+                    >
                       Quitar
                     </button>
                   </div>
                 </>
               ) : (
-                <button type="button" className="modal-btn modal-btn--secondary" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage}>
+                <button
+                  type="button"
+                  className="modal-btn modal-btn--secondary"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingImage}
+                >
                   {uploadingImage ? "Subiendo…" : "Subir foto"}
                 </button>
               )}
             </div>
-            <p style={{ fontSize: "0.74rem", color: "#94a3b8", marginTop: 4 }}>JPEG, PNG, GIF o WebP. Máx. 5 MB.</p>
-            {formErrors.photoUrl && <p className="form-error">{formErrors.photoUrl}</p>}
+            <p style={{ fontSize: "0.74rem", color: "#94a3b8", marginTop: 4 }}>
+              JPEG, PNG, GIF o WebP. Máx. 5 MB.
+            </p>
+            {formErrors.photoUrl && (
+              <p className="form-error">{formErrors.photoUrl}</p>
+            )}
           </div>
           <div className="modal-field">
             <label htmlFor="street">Calle / Dirección</label>
             <input
               id="street"
               value={form.street}
-              onChange={(e) => setForm((f) => ({ ...f, street: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, street: e.target.value }))
+              }
               placeholder="Calle Mayor 1"
             />
           </div>
@@ -741,7 +889,9 @@ export default function LocationsPage() {
                 const province = e.target.value;
                 const municipalities = getMunicipalitiesByProvince(province);
                 const currentMunicipality = form.municipality;
-                const keepMunicipality = currentMunicipality && municipalities.includes(currentMunicipality);
+                const keepMunicipality =
+                  currentMunicipality &&
+                  municipalities.includes(currentMunicipality);
                 setForm((f) => ({
                   ...f,
                   province,
@@ -751,7 +901,9 @@ export default function LocationsPage() {
             >
               <option value="">Seleccione provincia</option>
               {CUBA_PROVINCES.map((p) => (
-                <option key={p} value={p}>{p}</option>
+                <option key={p} value={p}>
+                  {p}
+                </option>
               ))}
             </select>
           </div>
@@ -759,13 +911,25 @@ export default function LocationsPage() {
             <label htmlFor="municipality">Municipio</label>
             <select
               id="municipality"
-              value={form.province ? (getMunicipalitiesByProvince(form.province).includes(form.municipality) ? form.municipality : "") : ""}
-              onChange={(e) => setForm((f) => ({ ...f, municipality: e.target.value }))}
+              value={
+                form.province
+                  ? getMunicipalitiesByProvince(form.province).includes(
+                      form.municipality,
+                    )
+                    ? form.municipality
+                    : ""
+                  : ""
+              }
+              onChange={(e) =>
+                setForm((f) => ({ ...f, municipality: e.target.value }))
+              }
               disabled={!form.province}
             >
               <option value="">Seleccione municipio</option>
               {getMunicipalitiesByProvince(form.province).map((m) => (
-                <option key={m} value={m}>{m}</option>
+                <option key={m} value={m}>
+                  {m}
+                </option>
               ))}
             </select>
           </div>
@@ -775,12 +939,15 @@ export default function LocationsPage() {
               id="whatsAppContact"
               type="tel"
               value={form.whatsAppContact}
-              onChange={(e) => setForm((f) => ({ ...f, whatsAppContact: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, whatsAppContact: e.target.value }))
+              }
               placeholder="5215512345678"
             />
             <p style={{ fontSize: "0.74rem", color: "#94a3b8", marginTop: 4 }}>
-              Código de país + número, sin <code>+</code> ni espacios.&nbsp;
-              Ej: <strong>5215512345678</strong> (México). Se usa para el enlace de pedidos por WhatsApp.
+              Código de país + número, sin <code>+</code> ni espacios.&nbsp; Ej:{" "}
+              <strong>5215512345678</strong> (México). Se usa para el enlace de
+              pedidos por WhatsApp.
             </p>
             {formErrors.whatsAppContact && (
               <p className="form-error">{formErrors.whatsAppContact}</p>
@@ -794,7 +961,8 @@ export default function LocationsPage() {
                 Ubicación en el mapa
               </h3>
               <p className="loc-modal-section__desc">
-                Buscá la dirección de tu tienda para que los clientes puedan encontrarla fácilmente. Este campo es opcional.
+                Buscá la dirección de tu tienda para que los clientes puedan
+                encontrarla fácilmente. Este campo es opcional.
               </p>
             </div>
             <LocationPicker
@@ -820,10 +988,14 @@ export default function LocationsPage() {
                 Horario de atención
               </h3>
               <p className="loc-modal-section__desc">
-                Definí los horarios de apertura y cierre por día. Si no configuras nada, la tienda se considerará sin horario fijo.
+                Definí los horarios de apertura y cierre por día. Si no
+                configuras nada, la tienda se considerará sin horario fijo.
               </p>
             </div>
-            <BusinessHoursEditor value={businessHours} onChange={setBusinessHours} />
+            <BusinessHoursEditor
+              value={businessHours}
+              onChange={setBusinessHours}
+            />
             {formErrors.businessHours && (
               <p className="form-error">{formErrors.businessHours}</p>
             )}
@@ -832,12 +1004,15 @@ export default function LocationsPage() {
           {/* Modalidades de entrega (horario operativo = solo `businessHours` + flags) */}
           <div className="modal-field field-full loc-modal-section">
             <div>
-              <h3 className="loc-modal-section__heading">Modalidades de entrega</h3>
+              <h3 className="loc-modal-section__heading">
+                Modalidades de entrega
+              </h3>
               <p className="loc-modal-section__desc">
-                Indicá si la tienda ofrece domicilio y/o recogida en tienda. El horario de
-                apertura y si está abierta «ahora» en el catálogo público se toman del{" "}
-                <strong>horario de atención</strong> de arriba; estos interruptores solo activan
-                o desactivan cada modalidad.
+                Indicá si la tienda ofrece domicilio y/o recogida en tienda. El
+                horario de apertura y si está abierta «ahora» en el catálogo
+                público se toman del <strong>horario de atención</strong> de
+                arriba; estos interruptores solo activan o desactivan cada
+                modalidad.
               </p>
             </div>
 
@@ -845,8 +1020,8 @@ export default function LocationsPage() {
               <div className="loc-toggle-row__text">
                 <label htmlFor="loc-offers-delivery">Ofrece domicilio</label>
                 <p className="loc-modal-section__desc" style={{ marginTop: 4 }}>
-                  Si está activo, el catálogo puede mostrar la opción de domicilio (según
-                  horario y disponibilidad).
+                  Si está activo, el catálogo puede mostrar la opción de
+                  domicilio (según horario y disponibilidad).
                 </p>
               </div>
               <Switch
@@ -858,9 +1033,12 @@ export default function LocationsPage() {
 
             <div className="loc-toggle-row" style={{ marginTop: 16 }}>
               <div className="loc-toggle-row__text">
-                <label htmlFor="loc-offers-pickup">Ofrece recogida en tienda</label>
+                <label htmlFor="loc-offers-pickup">
+                  Ofrece recogida en tienda
+                </label>
                 <p className="loc-modal-section__desc" style={{ marginTop: 4 }}>
-                  Si está activo, el catálogo puede mostrar la opción de recogida en el local.
+                  Si está activo, el catálogo puede mostrar la opción de
+                  recogida en el local.
                 </p>
               </div>
               <Switch
@@ -888,7 +1066,9 @@ export default function LocationsPage() {
           open={confirmOpen && !!deleting}
           onClose={closeConfirm}
           onConfirm={deleteBlockedByApi ? closeConfirm : handleDelete}
-          title={deleteBlockedByApi ? "No se puede eliminar" : "¿Eliminar ubicación?"}
+          title={
+            deleteBlockedByApi ? "No se puede eliminar" : "¿Eliminar ubicación?"
+          }
           itemName={deleting?.name}
           description={
             deleteBlockedByApi

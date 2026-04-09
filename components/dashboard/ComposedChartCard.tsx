@@ -1,15 +1,15 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import type { ApexAxisChartSeries, ApexOptions } from "apexcharts";
-import { ChartCardMenu } from "./ChartCardMenu";
-import { theme } from "./theme";
+import dynamic from "next/dynamic";
 import {
   apexChartFontFamily,
   apexChartLocaleEs,
   apexNoDataEs,
   formatChartNumber,
 } from "@/lib/apexcharts-es";
+import { ChartCardMenu } from "./ChartCardMenu";
+import { theme } from "./theme";
 
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
@@ -132,7 +132,9 @@ export function ComposedChartCard({
       <div className="dashboard-card__head">
         <div>
           <div className="dashboard-card__title">{title}</div>
-          {subtitle && <div className="dashboard-card__subtitle">{subtitle}</div>}
+          {subtitle && (
+            <div className="dashboard-card__subtitle">{subtitle}</div>
+          )}
         </div>
         <ChartCardMenu />
       </div>
@@ -146,7 +148,12 @@ export function ComposedChartCard({
           flexShrink: 0,
         }}
       >
-        <ReactApexChart options={options} series={series} type="line" height={height} />
+        <ReactApexChart
+          options={options}
+          series={series}
+          type="line"
+          height={height}
+        />
       </div>
     </div>
   );

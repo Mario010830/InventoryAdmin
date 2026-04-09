@@ -2,17 +2,17 @@
 
 import { useState } from "react";
 import { Icon } from "@/components/ui/Icon";
-import { useAppSelector, useAppDispatch } from "@/store/store";
-import { removeItem, updateQuantity, clearCart } from "@/store/cartSlice";
-import { getApiUrl } from "@/lib/auth-api";
-import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
-import type { CreateSaleOrderRequest } from "@/lib/dashboard-types";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 import {
   catalogUiLocale,
   parseApiErrorPayload,
   userFacingBusinessErrorMessage,
 } from "@/lib/apiBusinessErrors";
+import { getApiUrl } from "@/lib/auth-api";
+import type { CreateSaleOrderRequest } from "@/lib/dashboard-types";
+import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
+import { clearCart, removeItem, updateQuantity } from "@/store/cartSlice";
+import { useAppDispatch, useAppSelector } from "@/store/store";
 
 interface CustomerInfo {
   name: string;
@@ -57,17 +57,26 @@ interface ConfirmProps {
   error: string;
 }
 
-function ConfirmOrderModal({ onClose, onConfirm, submitting, error }: ConfirmProps) {
+function ConfirmOrderModal({
+  onClose,
+  onConfirm,
+  submitting,
+  error,
+}: ConfirmProps) {
   const { formatCup } = useDisplayCurrency();
   const cart = useAppSelector((s) => s.cart);
   const total = cart.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
 
   const [cust, setCust] = useState<CustomerInfo>({
-    name: "", phone: "", address: "", notes: "",
+    name: "",
+    phone: "",
+    address: "",
+    notes: "",
   });
   const [errs, setErrs] = useState<Partial<CustomerInfo>>({});
 
-  const upd = (f: keyof CustomerInfo) =>
+  const upd =
+    (f: keyof CustomerInfo) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setCust((p) => ({ ...p, [f]: e.target.value }));
 
@@ -87,7 +96,12 @@ function ConfirmOrderModal({ onClose, onConfirm, submitting, error }: ConfirmPro
             <Icon name="receipt_long" />
           </span>
           <h2 className="confirm-modal__title">Confirmar pedido</h2>
-          <button type="button" className="confirm-modal__x" onClick={onClose} aria-label="Cerrar">
+          <button
+            type="button"
+            className="confirm-modal__x"
+            onClick={onClose}
+            aria-label="Cerrar"
+          >
             <Icon name="close" />
           </button>
         </div>
@@ -113,7 +127,9 @@ function ConfirmOrderModal({ onClose, onConfirm, submitting, error }: ConfirmPro
                   <td>{it.name}</td>
                   <td className="td-right">{it.quantity}</td>
                   <td className="td-right">{formatCup(it.unitPrice)}</td>
-                  <td className="td-right">{formatCup(it.quantity * it.unitPrice)}</td>
+                  <td className="td-right">
+                    {formatCup(it.quantity * it.unitPrice)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -132,21 +148,47 @@ function ConfirmOrderModal({ onClose, onConfirm, submitting, error }: ConfirmPro
           <div className="confirm-fields">
             <div className="confirm-field">
               <label>Nombre *</label>
-              <input value={cust.name} onChange={upd("name")} placeholder="Tu nombre" disabled={submitting} />
-              {errs.name && <span className="confirm-field-err">{errs.name}</span>}
+              <input
+                value={cust.name}
+                onChange={upd("name")}
+                placeholder="Tu nombre"
+                disabled={submitting}
+              />
+              {errs.name && (
+                <span className="confirm-field-err">{errs.name}</span>
+              )}
             </div>
             <div className="confirm-field">
               <label>Teléfono</label>
-              <input type="tel" value={cust.phone} onChange={upd("phone")} placeholder="Número" disabled={submitting} />
+              <input
+                type="tel"
+                value={cust.phone}
+                onChange={upd("phone")}
+                placeholder="Número"
+                disabled={submitting}
+              />
             </div>
             <div className="confirm-field confirm-field--full">
               <label>Dirección *</label>
-              <input value={cust.address} onChange={upd("address")} placeholder="Calle, número, colonia…" disabled={submitting} />
-              {errs.address && <span className="confirm-field-err">{errs.address}</span>}
+              <input
+                value={cust.address}
+                onChange={upd("address")}
+                placeholder="Calle, número, colonia…"
+                disabled={submitting}
+              />
+              {errs.address && (
+                <span className="confirm-field-err">{errs.address}</span>
+              )}
             </div>
             <div className="confirm-field confirm-field--full">
               <label>Notas</label>
-              <textarea value={cust.notes} onChange={upd("notes")} placeholder="Indicaciones especiales" rows={2} disabled={submitting} />
+              <textarea
+                value={cust.notes}
+                onChange={upd("notes")}
+                placeholder="Indicaciones especiales"
+                rows={2}
+                disabled={submitting}
+              />
             </div>
           </div>
 
@@ -154,7 +196,12 @@ function ConfirmOrderModal({ onClose, onConfirm, submitting, error }: ConfirmPro
         </div>
 
         <div className="confirm-modal__foot">
-          <button type="button" className="confirm-btn confirm-btn--back" onClick={onClose} disabled={submitting}>
+          <button
+            type="button"
+            className="confirm-btn confirm-btn--back"
+            onClick={onClose}
+            disabled={submitting}
+          >
             Volver
           </button>
           <button
@@ -203,7 +250,9 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
         customer.phone ? `Teléfono: ${customer.phone}` : "",
         customer.address ? `Dirección: ${customer.address}` : "",
         customer.notes ? `Notas: ${customer.notes}` : "",
-      ].filter(Boolean).join(" | ");
+      ]
+        .filter(Boolean)
+        .join(" | ");
 
       const body: CreateSaleOrderRequest = {
         locationId: cart.locationId,
@@ -248,11 +297,17 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
       const folio = order.folio ?? (order.id ? `#${order.id}` : "nueva");
 
       if (cart.whatsAppContact) {
-        const msg = buildWaMessage(cart.items, cart.locationName, folio, customer, formatCup);
+        const msg = buildWaMessage(
+          cart.items,
+          cart.locationName,
+          folio,
+          customer,
+          formatCup,
+        );
         window.open(
           `https://wa.me/${cart.whatsAppContact}?text=${encodeURIComponent(msg)}`,
           "_blank",
-          "noopener,noreferrer"
+          "noopener,noreferrer",
         );
       }
 
@@ -284,7 +339,11 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
       {/* Slide-over panel */}
       {open && (
         <>
-          <div className="cart-overlay" onClick={() => onOpenChange(false)} aria-hidden />
+          <div
+            className="cart-overlay"
+            onClick={() => onOpenChange(false)}
+            aria-hidden
+          />
 
           <aside className="cart-panel" role="dialog" aria-label="Tu pedido">
             <div className="cart-panel__head">
@@ -293,11 +352,20 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
                 Tu pedido {count > 0 && `(${count})`}
               </span>
               {cart.items.length > 0 && (
-                <button type="button" className="cart-panel__clear" onClick={() => dispatch(clearCart())}>
+                <button
+                  type="button"
+                  className="cart-panel__clear"
+                  onClick={() => dispatch(clearCart())}
+                >
                   Vaciar
                 </button>
               )}
-              <button type="button" className="cart-panel__x" onClick={() => onOpenChange(false)} aria-label="Cerrar">
+              <button
+                type="button"
+                className="cart-panel__x"
+                onClick={() => onOpenChange(false)}
+                aria-label="Cerrar"
+              >
                 <Icon name="close" />
               </button>
             </div>
@@ -312,7 +380,11 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
                 cart.items.map((it) => (
                   <div key={it.productId} className="cart-row">
                     {it.imagenUrl ? (
-                      <img src={getProxiedImageSrc(it.imagenUrl) ?? it.imagenUrl} alt={it.name} className="cart-row__img" />
+                      <img
+                        src={getProxiedImageSrc(it.imagenUrl) ?? it.imagenUrl}
+                        alt={it.name}
+                        className="cart-row__img"
+                      />
                     ) : (
                       <div className="cart-row__no-img">
                         <Icon name="inventory_2" />
@@ -321,28 +393,51 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
 
                     <div className="cart-row__body">
                       <div className="cart-row__name">{it.name}</div>
-                      <div className="cart-row__unit">{formatCup(it.unitPrice)} c/u</div>
+                      <div className="cart-row__unit">
+                        {formatCup(it.unitPrice)} c/u
+                      </div>
                       <div className="cart-row__stepper">
                         <button
                           type="button"
                           className="cart-row__step-btn"
-                          onClick={() => dispatch(updateQuantity({ productId: it.productId, quantity: it.quantity - 1 }))}
+                          onClick={() =>
+                            dispatch(
+                              updateQuantity({
+                                productId: it.productId,
+                                quantity: it.quantity - 1,
+                              }),
+                            )
+                          }
                         >
                           −
                         </button>
-                        <span className="cart-row__step-val">{it.quantity}</span>
+                        <span className="cart-row__step-val">
+                          {it.quantity}
+                        </span>
                         <button
                           type="button"
                           className="cart-row__step-btn"
-                          disabled={it.tipo !== "elaborado" && it.quantity >= it.stockAtLocation}
-                          onClick={() => dispatch(updateQuantity({ productId: it.productId, quantity: it.quantity + 1 }))}
+                          disabled={
+                            it.tipo !== "elaborado" &&
+                            it.quantity >= it.stockAtLocation
+                          }
+                          onClick={() =>
+                            dispatch(
+                              updateQuantity({
+                                productId: it.productId,
+                                quantity: it.quantity + 1,
+                              }),
+                            )
+                          }
                         >
                           +
                         </button>
                       </div>
                     </div>
 
-                    <span className="cart-row__subtotal">{formatCup(it.quantity * it.unitPrice)}</span>
+                    <span className="cart-row__subtotal">
+                      {formatCup(it.quantity * it.unitPrice)}
+                    </span>
 
                     <button
                       type="button"
@@ -360,8 +455,12 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
             {cart.items.length > 0 && (
               <div className="cart-panel__foot">
                 <div className="cart-panel__total">
-                  <span className="cart-panel__total-label">Total estimado</span>
-                  <span className="cart-panel__total-value">{formatCup(total)}</span>
+                  <span className="cart-panel__total-label">
+                    Total estimado
+                  </span>
+                  <span className="cart-panel__total-value">
+                    {formatCup(total)}
+                  </span>
                 </div>
 
                 {cart.whatsAppContact ? (
@@ -401,13 +500,24 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
       )}
 
       {waWarningOpen && (
-        <div className="confirm-overlay" onClick={() => setWaWarningOpen(false)}>
+        <div
+          className="confirm-overlay"
+          onClick={() => setWaWarningOpen(false)}
+        >
           <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
             <div className="confirm-modal__head">
-              <span className="confirm-modal__icon" style={{ background: "var(--st-orange-soft)", color: "var(--st-orange)" }}>
+              <span
+                className="confirm-modal__icon"
+                style={{
+                  background: "var(--st-orange-soft)",
+                  color: "var(--st-orange)",
+                }}
+              >
                 <Icon name="warning_amber" />
               </span>
-              <h2 className="confirm-modal__title">La tienda puede estar cerrada</h2>
+              <h2 className="confirm-modal__title">
+                La tienda puede estar cerrada
+              </h2>
               <button
                 type="button"
                 className="confirm-modal__x"
@@ -423,7 +533,8 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
               </p>
               {(cart.todayOpen || cart.todayClose) && (
                 <p className="store-empty__text" style={{ marginTop: 8 }}>
-                  Horario de hoy: {cart.todayOpen ?? "—"} - {cart.todayClose ?? "—"}
+                  Horario de hoy: {cart.todayOpen ?? "—"} -{" "}
+                  {cart.todayClose ?? "—"}
                 </p>
               )}
             </div>

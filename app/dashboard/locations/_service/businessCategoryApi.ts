@@ -1,9 +1,14 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { getApiUrl, getToken } from "@/lib/auth-api";
 import { parseChartResult } from "@/lib/api-utils";
-import type { BusinessCategoryResponse, UpdateBusinessCategoryRequest } from "@/lib/dashboard-types";
+import { getApiUrl, getToken } from "@/lib/auth-api";
+import type {
+  BusinessCategoryResponse,
+  UpdateBusinessCategoryRequest,
+} from "@/lib/dashboard-types";
 
-function normalizeBusinessCategoryRow(row: Record<string, unknown>): BusinessCategoryResponse {
+function normalizeBusinessCategoryRow(
+  row: Record<string, unknown>,
+): BusinessCategoryResponse {
   const id = Number(row.id ?? row.Id ?? 0);
   const name = String(row.name ?? row.Name ?? "");
   const iconRaw = row.icon ?? row.Icon;
@@ -11,13 +16,15 @@ function normalizeBusinessCategoryRow(row: Record<string, unknown>): BusinessCat
   const activeRaw = row.isActive ?? row.IsActive;
   let isActive = true;
   if (typeof activeRaw === "boolean") isActive = activeRaw;
-  else if (activeRaw != null) isActive = String(activeRaw).toLowerCase() === "true" || activeRaw === 1;
+  else if (activeRaw != null)
+    isActive = String(activeRaw).toLowerCase() === "true" || activeRaw === 1;
   return {
     id,
     name,
     isActive,
     icon: iconRaw != null && iconRaw !== "" ? String(iconRaw) : null,
-    iconUrl: iconUrlRaw != null && iconUrlRaw !== "" ? String(iconUrlRaw) : null,
+    iconUrl:
+      iconUrlRaw != null && iconUrlRaw !== "" ? String(iconUrlRaw) : null,
   };
 }
 
@@ -38,10 +45,18 @@ export const businessCategoryApi = createApi({
     getBusinessCategories: builder.query<BusinessCategoryResponse[], void>({
       query: () => "/business-category",
       transformResponse: (raw: unknown) =>
-        parseChartResult<Record<string, unknown>>(raw).map(normalizeBusinessCategoryRow),
+        parseChartResult<Record<string, unknown>>(raw).map(
+          normalizeBusinessCategoryRow,
+        ),
       providesTags: (result) =>
         result?.length
-          ? [...result.map((c) => ({ type: "BusinessCategory" as const, id: c.id })), { type: "BusinessCategory", id: "LIST" }]
+          ? [
+              ...result.map((c) => ({
+                type: "BusinessCategory" as const,
+                id: c.id,
+              })),
+              { type: "BusinessCategory", id: "LIST" },
+            ]
           : [{ type: "BusinessCategory", id: "LIST" }],
     }),
     updateBusinessCategory: builder.mutation<
@@ -61,4 +76,7 @@ export const businessCategoryApi = createApi({
   }),
 });
 
-export const { useGetBusinessCategoriesQuery, useUpdateBusinessCategoryMutation } = businessCategoryApi;
+export const {
+  useGetBusinessCategoriesQuery,
+  useUpdateBusinessCategoryMutation,
+} = businessCategoryApi;

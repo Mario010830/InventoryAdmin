@@ -13,14 +13,19 @@ import { Icon } from "@/components/ui/Icon";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 import type {
   CreateProductRequest,
-  UpdateProductRequest,
-  ProductTipo,
   ProductCategoryResponse,
+  ProductTipo,
+  UpdateProductRequest,
 } from "@/lib/dashboard-types";
 import {
   IMPORT_EXCEL_MOVEMENT_REASON,
   MOVEMENT_REASON_LABEL,
 } from "@/lib/inventoryMovementUi";
+import {
+  beginSuppressMutationToasts,
+  endSuppressMutationToasts,
+  withSuppressedMutationToasts,
+} from "@/lib/mutationToastControl";
 import { useGetLocationsQuery } from "../locations/_service/locationsApi";
 import {
   useCreateMovementMutation,
@@ -31,11 +36,6 @@ import {
   useGetProductCategoriesQuery,
   useUpdateProductMutation,
 } from "./_service/productsApi";
-import {
-  beginSuppressMutationToasts,
-  endSuppressMutationToasts,
-  withSuppressedMutationToasts,
-} from "@/lib/mutationToastControl";
 import "./product-import-wizard.css";
 
 const EXCEL_IMPORT_TOAST_ID = "excel-product-import";
@@ -311,9 +311,9 @@ export function ProductImportWizard({
   const [productsNeedingTipo, setProductsNeedingTipo] = useState<
     { id: number; name: string }[]
   >([]);
-  const [tipoAssign, setTipoAssign] = useState<Record<number, ProductTipo | "">>(
-    {},
-  );
+  const [tipoAssign, setTipoAssign] = useState<
+    Record<number, ProductTipo | "">
+  >({});
   const [savingTipos, setSavingTipos] = useState(false);
 
   const { data: categoriesResult, isFetching: categoriesLoading } =
@@ -646,7 +646,9 @@ export function ProductImportWizard({
     const needCategoryAfter: { id: number; name: string }[] = [];
     const needTipoAfter: { id: number; name: string }[] = [];
     beginSuppressMutationToasts();
-    toast.loading(`Importando… 0 / ${list.length}`, { id: EXCEL_IMPORT_TOAST_ID });
+    toast.loading(`Importando… 0 / ${list.length}`, {
+      id: EXCEL_IMPORT_TOAST_ID,
+    });
     try {
       for (let i = 0; i < list.length; i++) {
         setImportIndex(i + 1);
@@ -1013,14 +1015,15 @@ export function ProductImportWizard({
                           Tienda / ubicación de esta importación
                         </p>
                         <p className="product-import-wizard__stock-location-card-desc">
-                          <strong>Inventariables:</strong> si mapeas cantidades en
-                          el Excel, las entradas de inventario usan esta ubicación
-                          (razón «
-                          {MOVEMENT_REASON_LABEL[IMPORT_EXCEL_MOVEMENT_REASON] ??
-                            IMPORT_EXCEL_MOVEMENT_REASON}
-                          »). <strong>Elaborados:</strong> al elegir tipo al final,
-                          el producto quedará ofrecido en catálogo solo en esta
-                          tienda.
+                          <strong>Inventariables:</strong> si mapeas cantidades
+                          en el Excel, las entradas de inventario usan esta
+                          ubicación (razón «
+                          {MOVEMENT_REASON_LABEL[
+                            IMPORT_EXCEL_MOVEMENT_REASON
+                          ] ?? IMPORT_EXCEL_MOVEMENT_REASON}
+                          »). <strong>Elaborados:</strong> al elegir tipo al
+                          final, el producto quedará ofrecido en catálogo solo
+                          en esta tienda.
                         </p>
                       </div>
                     </div>
@@ -1150,8 +1153,8 @@ export function ProductImportWizard({
                 {selectedLocationId != null ? (
                   <>
                     {" "}
-                    Los <strong>elaborados</strong> quedarán ofertados en la tienda
-                    elegida en el mapeo.
+                    Los <strong>elaborados</strong> quedarán ofertados en la
+                    tienda elegida en el mapeo.
                   </>
                 ) : (
                   <>
@@ -1418,7 +1421,7 @@ export function ProductImportWizard({
                     (<strong>{selectedLocationLabel}</strong>)
                   </>
                 ) : (
-                  <> (necesitas haber elegido ubicación en el paso anterior)</>
+                  "(necesitas haber elegido ubicación en el paso anterior)"
                 )}
                 . Los <strong>inventariables</strong> siguen usando esa misma
                 ubicación para las entradas de stock del Excel.

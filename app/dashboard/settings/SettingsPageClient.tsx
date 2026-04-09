@@ -1,17 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Switch from "@/components/Switch";
 import "./settings.css";
-import { useAppSelector } from "@/store/store";
-import {
-  useGetGroupedSettingsQuery,
-  useGetMySubscriptionQuery,
-  useUpdateAccountProfileMutation,
-  useUpdateGroupedSettingsMutation,
-} from "./_service/settingsApi";
-import { useGetMyRoleQuery } from "../roles/_service/rolesApi";
-import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
+import { getToken } from "@/lib/auth-api";
 import type {
   CurrencyResponse,
   InventoryValuationMethod,
@@ -19,20 +18,33 @@ import type {
   NotificationFrequency,
   SubscriptionStatus,
 } from "@/lib/dashboard-types";
-import { getToken } from "@/lib/auth-api";
+import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
+import { useAppSelector } from "@/store/store";
+import { useGetMyRoleQuery } from "../roles/_service/rolesApi";
 import {
-  useGetCurrenciesQuery,
   useCreateCurrencyMutation,
-  useUpdateCurrencyMutation,
   useDeleteCurrencyMutation,
+  useGetCurrenciesQuery,
   useSetDefaultDisplayCurrencyMutation,
+  useUpdateCurrencyMutation,
 } from "./_service/currencyApi";
+import {
+  useGetGroupedSettingsQuery,
+  useGetMySubscriptionQuery,
+  useUpdateAccountProfileMutation,
+  useUpdateGroupedSettingsMutation,
+} from "./_service/settingsApi";
 import { SETTINGS_SECTIONS } from "./settingsNav";
 
 function snapCurrencies(rows: CurrencyResponse[], defaultId: number | null) {
   return JSON.stringify({
     rows: [...rows]
-      .map((c) => ({ id: c.id, exchangeRate: c.exchangeRate, isActive: c.isActive, name: c.name }))
+      .map((c) => ({
+        id: c.id,
+        exchangeRate: c.exchangeRate,
+        isActive: c.isActive,
+        name: c.name,
+      }))
       .sort((a, b) => a.id - b.id),
     defaultId,
   });
@@ -46,7 +58,10 @@ function toInputDate(iso: string): string {
 }
 
 function parseEmailsFromString(s: string): string[] {
-  return s.split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean);
+  return s
+    .split(/[,;\n]+/)
+    .map((x) => x.trim())
+    .filter(Boolean);
 }
 
 function joinEmails(emails: string[]): string {
@@ -67,22 +82,44 @@ function formatSubscriptionDate(iso: string): string {
   if (!iso?.trim()) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" });
+  return d.toLocaleDateString("es", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
-function subscriptionStatusBadge(status: SubscriptionStatus): { className: string; label: string } {
+function subscriptionStatusBadge(status: SubscriptionStatus): {
+  className: string;
+  label: string;
+} {
   const base = "settings-plan-flat__badge";
   switch (status) {
     case "active":
-      return { className: `${base} settings-plan-flat__badge--ok`, label: "Activo" };
+      return {
+        className: `${base} settings-plan-flat__badge--ok`,
+        label: "Activo",
+      };
     case "pending":
-      return { className: `${base} settings-plan-flat__badge--pending`, label: "Pendiente" };
+      return {
+        className: `${base} settings-plan-flat__badge--pending`,
+        label: "Pendiente",
+      };
     case "expired":
-      return { className: `${base} settings-plan-flat__badge--bad`, label: "Vencida" };
+      return {
+        className: `${base} settings-plan-flat__badge--bad`,
+        label: "Vencida",
+      };
     case "cancelled":
-      return { className: `${base} settings-plan-flat__badge--muted`, label: "Cancelada" };
+      return {
+        className: `${base} settings-plan-flat__badge--muted`,
+        label: "Cancelada",
+      };
     default:
-      return { className: `${base} settings-plan-flat__badge--pending`, label: "Pendiente" };
+      return {
+        className: `${base} settings-plan-flat__badge--pending`,
+        label: "Pendiente",
+      };
   }
 }
 
@@ -92,7 +129,15 @@ function formatLimitStat(value: number | null): string {
   return String(value);
 }
 
-function SettingsSection({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+function SettingsSection({
+  id,
+  title,
+  children,
+}: {
+  id: string;
+  title: string;
+  children: ReactNode;
+}) {
   return (
     <section id={id} className="settings-section">
       <h2 className="settings-section__title">{title}</h2>
@@ -107,8 +152,10 @@ export default function SettingsPageClient() {
   const { has } = useUserPermissionCodes();
 
   const { data, isLoading, refetch } = useGetGroupedSettingsQuery();
-  const [updateGroupedSettings, { isLoading: savingGrouped }] = useUpdateGroupedSettingsMutation();
-  const [updateAccountProfile, { isLoading: savingProfile }] = useUpdateAccountProfileMutation();
+  const [updateGroupedSettings, { isLoading: savingGrouped }] =
+    useUpdateGroupedSettingsMutation();
+  const [updateAccountProfile, { isLoading: savingProfile }] =
+    useUpdateAccountProfileMutation();
 
   const {
     data: subscription,
@@ -154,7 +201,8 @@ export default function SettingsPageClient() {
         allowNegativeStock: invDto.allowNegativeStock ?? false,
         defaultUnitOfMeasure: invDto.defaultUnitOfMeasure ?? "unit",
         defaultMinimumStock: invDto.defaultMinimumStock ?? 0,
-        inventoryValuationMethod: (invDto.inventoryValuationMethod ?? "FIFO") as InventoryValuationMethod,
+        inventoryValuationMethod: (invDto.inventoryValuationMethod ??
+          "FIFO") as InventoryValuationMethod,
       });
     }
     if (notDto) {
@@ -162,7 +210,8 @@ export default function SettingsPageClient() {
         alertOnLowStock: notDto.alertOnLowStock ?? true,
         lowStockRecipients: notDto.lowStockRecipients ?? "",
         criticalStockThreshold: notDto.criticalStockThreshold ?? 0,
-        notificationFrequency: (notDto.notificationFrequency ?? "immediate") as NotificationFrequency,
+        notificationFrequency: (notDto.notificationFrequency ??
+          "immediate") as NotificationFrequency,
       });
       setEmailChips(parseEmailsFromString(notDto.lowStockRecipients ?? ""));
     }
@@ -175,7 +224,8 @@ export default function SettingsPageClient() {
               allowNegativeStock: invDto.allowNegativeStock ?? false,
               defaultUnitOfMeasure: invDto.defaultUnitOfMeasure ?? "unit",
               defaultMinimumStock: invDto.defaultMinimumStock ?? 0,
-              inventoryValuationMethod: (invDto.inventoryValuationMethod ?? "FIFO") as InventoryValuationMethod,
+              inventoryValuationMethod: (invDto.inventoryValuationMethod ??
+                "FIFO") as InventoryValuationMethod,
             }
           : {
               roundingDecimals: 2,
@@ -184,7 +234,7 @@ export default function SettingsPageClient() {
               defaultUnitOfMeasure: "unit",
               defaultMinimumStock: 0,
               inventoryValuationMethod: "FIFO" as InventoryValuationMethod,
-            }
+            },
       ),
       not: JSON.stringify(
         notDto
@@ -192,14 +242,15 @@ export default function SettingsPageClient() {
               alertOnLowStock: notDto.alertOnLowStock ?? true,
               lowStockRecipients: notDto.lowStockRecipients ?? "",
               criticalStockThreshold: notDto.criticalStockThreshold ?? 0,
-              notificationFrequency: (notDto.notificationFrequency ?? "immediate") as NotificationFrequency,
+              notificationFrequency: (notDto.notificationFrequency ??
+                "immediate") as NotificationFrequency,
             }
           : {
               alertOnLowStock: true,
               lowStockRecipients: "",
               criticalStockThreshold: 0,
               notificationFrequency: "immediate" as NotificationFrequency,
-            }
+            },
       ),
     };
   }, [data]);
@@ -211,7 +262,10 @@ export default function SettingsPageClient() {
 
   const notificationsDirty = useMemo(() => {
     if (!groupedBaseline.current) return false;
-    const not = { ...notifications, lowStockRecipients: joinEmails(emailChips) };
+    const not = {
+      ...notifications,
+      lowStockRecipients: joinEmails(emailChips),
+    };
     return JSON.stringify(not) !== groupedBaseline.current.not;
   }, [notifications, emailChips]);
 
@@ -232,10 +286,14 @@ export default function SettingsPageClient() {
     refetch: refetchCurrencies,
   } = useGetCurrenciesQuery(undefined, { skip: skipCurrencies });
 
-  const [createCurrency, { isLoading: creatingCurrency }] = useCreateCurrencyMutation();
-  const [updateCurrencyApi, { isLoading: updatingCurrency }] = useUpdateCurrencyMutation();
-  const [deleteCurrencyApi, { isLoading: deletingCurrency }] = useDeleteCurrencyMutation();
-  const [setDefaultDisplayCurrency, { isLoading: settingDefault }] = useSetDefaultDisplayCurrencyMutation();
+  const [createCurrency, { isLoading: creatingCurrency }] =
+    useCreateCurrencyMutation();
+  const [updateCurrencyApi, { isLoading: updatingCurrency }] =
+    useUpdateCurrencyMutation();
+  const [deleteCurrencyApi, { isLoading: deletingCurrency }] =
+    useDeleteCurrencyMutation();
+  const [setDefaultDisplayCurrency, { isLoading: settingDefault }] =
+    useSetDefaultDisplayCurrencyMutation();
 
   const [currencyRows, setCurrencyRows] = useState<CurrencyResponse[]>([]);
   const [defaultDisplayId, setDefaultDisplayId] = useState<number | null>(null);
@@ -258,7 +316,10 @@ export default function SettingsPageClient() {
 
   const currenciesDirty = useMemo(() => {
     if (!getToken() || !currencyBaselineSnapshot) return false;
-    return snapCurrencies(currencyRows, defaultDisplayId) !== currencyBaselineSnapshot;
+    return (
+      snapCurrencies(currencyRows, defaultDisplayId) !==
+      currencyBaselineSnapshot
+    );
   }, [currencyRows, defaultDisplayId, currencyBaselineSnapshot]);
 
   const [showAddCurrency, setShowAddCurrency] = useState(false);
@@ -296,15 +357,20 @@ export default function SettingsPageClient() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const securityDirty =
-    currentPassword.trim().length > 0 || newPassword.trim().length > 0 || confirmPassword.trim().length > 0;
+  const _securityDirty =
+    currentPassword.trim().length > 0 ||
+    newPassword.trim().length > 0 ||
+    confirmPassword.trim().length > 0;
 
   const pwdStrength = passwordStrengthBars(newPassword);
 
   const hasGlobalDirty = groupedSectionDirty || currenciesDirty || profileDirty;
 
   const syncGroupedBaseline = useCallback(() => {
-    const not = { ...notifications, lowStockRecipients: joinEmails(emailChips) };
+    const not = {
+      ...notifications,
+      lowStockRecipients: joinEmails(emailChips),
+    };
     groupedBaseline.current = {
       inv: JSON.stringify(inventory),
       not: JSON.stringify(not),
@@ -324,13 +390,19 @@ export default function SettingsPageClient() {
       ) {
         await updateCurrencyApi({
           id: row.id,
-          body: { exchangeRate: row.exchangeRate, isActive: row.isActive, name: row.name },
+          body: {
+            exchangeRate: row.exchangeRate,
+            isActive: row.isActive,
+            name: row.name,
+          },
         }).unwrap();
       }
     }
     const origDefault = list.find((c) => c.isDefaultDisplay)?.id ?? null;
     if (defaultDisplayId != null && defaultDisplayId !== origDefault) {
-      await setDefaultDisplayCurrency({ currencyId: defaultDisplayId }).unwrap();
+      await setDefaultDisplayCurrency({
+        currencyId: defaultDisplayId,
+      }).unwrap();
     }
     await refetchCurrencies();
   }, [
@@ -344,7 +416,10 @@ export default function SettingsPageClient() {
 
   const handleGlobalSave = async () => {
     if (groupedSectionDirty) {
-      const not = { ...notifications, lowStockRecipients: joinEmails(emailChips) };
+      const not = {
+        ...notifications,
+        lowStockRecipients: joinEmails(emailChips),
+      };
       await updateGroupedSettings({
         inventory,
         notifications: not,
@@ -374,7 +449,10 @@ export default function SettingsPageClient() {
   };
 
   const saveNotificationsOnly = async () => {
-    const not = { ...notifications, lowStockRecipients: joinEmails(emailChips) };
+    const not = {
+      ...notifications,
+      lowStockRecipients: joinEmails(emailChips),
+    };
     await updateGroupedSettings({ notifications: not }).unwrap();
     syncGroupedBaseline();
     await refetch();
@@ -408,7 +486,10 @@ export default function SettingsPageClient() {
   };
 
   const pushEmailChip = (raw: string) => {
-    const parts = raw.split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean);
+    const parts = raw
+      .split(/[,;\n]+/)
+      .map((x) => x.trim())
+      .filter(Boolean);
     if (parts.length === 0) return;
     setEmailChips((prev) => {
       const next = new Set(prev);
@@ -435,11 +516,20 @@ export default function SettingsPageClient() {
   };
 
   const removeCurrency = (id: number) => {
-    void deleteCurrencyApi(id).unwrap().then(() => refetchCurrencies());
+    void deleteCurrencyApi(id)
+      .unwrap()
+      .then(() => refetchCurrencies());
   };
 
-  const updateCurrencyRow = (id: number, patch: Partial<Pick<CurrencyResponse, "exchangeRate" | "isActive" | "name">>) => {
-    setCurrencyRows((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  const updateCurrencyRow = (
+    id: number,
+    patch: Partial<
+      Pick<CurrencyResponse, "exchangeRate" | "isActive" | "name">
+    >,
+  ) => {
+    setCurrencyRows((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+    );
   };
 
   useEffect(() => {
@@ -447,7 +537,9 @@ export default function SettingsPageClient() {
     if (!hash) return;
     setActiveSection(hash);
     requestAnimationFrame(() => {
-      document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document
+        .getElementById(hash)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }, []);
 
@@ -463,7 +555,10 @@ export default function SettingsPageClient() {
   const subscriptionPlanUi = (sub: MySubscriptionDto) => {
     const badge = subscriptionStatusBadge(sub.status);
     const features: { key: string; label: string }[] = [
-      { key: "p", label: `Hasta ${formatLimitStat(sub.productsLimit)} productos` },
+      {
+        key: "p",
+        label: `Hasta ${formatLimitStat(sub.productsLimit)} productos`,
+      },
       { key: "u", label: `${formatLimitStat(sub.usersLimit)} usuarios` },
       { key: "l", label: `${formatLimitStat(sub.locationsLimit)} ubicaciones` },
       { key: "s", label: "Soporte por email" },
@@ -475,13 +570,16 @@ export default function SettingsPageClient() {
             <h3 className="settings-plan-flat__name">{sub.planName}</h3>
             <p className="settings-plan-flat__meta">
               Próxima renovación:{" "}
-              <span className="settings-plan-flat__meta-strong">{formatSubscriptionDate(sub.endDate)}</span>
+              <span className="settings-plan-flat__meta-strong">
+                {formatSubscriptionDate(sub.endDate)}
+              </span>
             </p>
           </div>
           <span className={badge.className}>{badge.label}</span>
         </div>
         <p className="settings-plan-flat__price">
-          Precio por período: <span className="settings-plan-flat__meta-strong">—</span>
+          Precio por período:{" "}
+          <span className="settings-plan-flat__meta-strong">—</span>
         </p>
         <ul className="settings-plan-flat__features">
           {features.map((f) => (
@@ -489,7 +587,10 @@ export default function SettingsPageClient() {
           ))}
         </ul>
         <div className="settings-plan-flat__actions">
-          <button type="button" className="settings-btn settings-btn--primary-outline">
+          <button
+            type="button"
+            className="settings-btn settings-btn--primary-outline"
+          >
             Cambiar plan
           </button>
         </div>
@@ -511,529 +612,656 @@ export default function SettingsPageClient() {
       <div className="settings-page__inner">
         <div className="settings-page__intro">
           <h1 className="settings-page__title">Configuración</h1>
-          <p className="settings-page__subtitle">Ajustes del sistema y de tu cuenta</p>
+          <p className="settings-page__subtitle">
+            Ajustes del sistema y de tu cuenta
+          </p>
         </div>
 
         <div className="settings-layout">
-        <aside className="settings-side-nav" aria-label="Secciones de configuración">
-          {SETTINGS_SECTIONS.map((section) => (
-            <a
-              key={section.id}
-              href={`#${section.id}`}
-              className={`settings-side-nav__item ${activeSection === section.id ? "settings-side-nav__item--active" : ""}`}
-              onClick={() => setActiveSection(section.id)}
-            >
-              {section.label}
-            </a>
-          ))}
-        </aside>
-        <div className="settings-stack">
-        <SettingsSection id="inventario" title="Inventario">
-          <div className="settings-field-grid settings-field-grid--stack">
-            <div className="settings-field">
-              <label htmlFor="inv-round">Decimales de redondeo</label>
-              <input
-                id="inv-round"
-                className="settings-input--num"
-                type="number"
-                min={0}
-                max={6}
-                value={inventory.roundingDecimals}
-                onChange={(e) => setInventory((s) => ({ ...s, roundingDecimals: Number(e.target.value) }))}
-              />
-            </div>
-            <div className="settings-field">
-              <label htmlFor="inv-price">Decimales de precio</label>
-              <input
-                id="inv-price"
-                className="settings-input--num"
-                type="number"
-                min={0}
-                max={6}
-                value={inventory.priceRoundingDecimals}
-                onChange={(e) => setInventory((s) => ({ ...s, priceRoundingDecimals: Number(e.target.value) }))}
-              />
-            </div>
-            <div className="settings-field">
-              <label htmlFor="inv-uom">Unidad de medida por defecto</label>
-              <input
-                id="inv-uom"
-                className="settings-input--short"
-                type="text"
-                value={inventory.defaultUnitOfMeasure}
-                onChange={(e) => setInventory((s) => ({ ...s, defaultUnitOfMeasure: e.target.value }))}
-              />
-            </div>
-            <div className="settings-field">
-              <label htmlFor="inv-min">Stock mínimo global</label>
-              <input
-                id="inv-min"
-                className="settings-input--num"
-                type="number"
-                min={0}
-                value={inventory.defaultMinimumStock ?? 0}
-                onChange={(e) => setInventory((s) => ({ ...s, defaultMinimumStock: Number(e.target.value) || 0 }))}
-              />
-              <p className="settings-helper">Se aplica a productos sin stock mínimo propio</p>
-            </div>
-            <div className="settings-field settings-field--full">
-              <div className="settings-toggle-row">
-                <Switch
-                  checked={inventory.allowNegativeStock}
-                  onChange={(checked) => setInventory((s) => ({ ...s, allowNegativeStock: checked }))}
-                />
-                <label>Permitir stock negativo</label>
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="settings-btn settings-btn--primary settings-section__save"
-            disabled={!inventoryDirty || savingGrouped}
-            onClick={() => void saveInventoryOnly()}
+          <aside
+            className="settings-side-nav"
+            aria-label="Secciones de configuración"
           >
-            {savingGrouped ? "Guardando…" : "Guardar"}
-          </button>
-        </SettingsSection>
-
-        <SettingsSection id="monedas" title="Monedas y tipo de cambio">
-          {currenciesError ? (
-            <div style={{ fontSize: "0.875rem", color: "#475569" }}>
-              <p>No se pudieron cargar las monedas.</p>
-              <button type="button" className="settings-btn settings-btn--primary-outline" onClick={() => void refetchCurrencies()}>
-                Reintentar
-              </button>
-            </div>
-          ) : currenciesLoading ? (
-            <div className="settings-loading" style={{ padding: 24 }}>
-              <div className="dt-state__spinner" />
-              <span>Cargando monedas…</span>
-            </div>
-          ) : (
-            <>
-              <div className="settings-field settings-field--full" style={{ marginBottom: 16 }}>
-                <label htmlFor="disp-cur">Moneda de visualización por defecto</label>
-                <select
-                  id="disp-cur"
-                  className="settings-input--dropdown"
-                  value={defaultDisplayId ?? ""}
-                  disabled={!canUpdateCurrency}
-                  onChange={(e) => setDefaultDisplayId(Number(e.target.value))}
-                >
-                  {currencyRows
-                    .filter((c) => c.isActive)
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.code} — {c.name}
-                      </option>
-                    ))}
-                </select>
-                <p className="settings-helper">Controla en qué moneda ven los usuarios los precios por defecto en la app</p>
-              </div>
-
-              <div className="settings-base-currency">
-                <span className="settings-base-currency__code">
-                  {currencyRows.find((c) => c.isBase)?.code ?? "CUP"}
-                </span>
-                <span className="settings-base-currency__note">Moneda base del sistema (no editable)</span>
-              </div>
-
-              <div className="settings-table-wrap">
-                <table className="settings-table">
-                  <thead>
-                    <tr>
-                      <th>Moneda</th>
-                      <th>Tasa de cambio (vs CUP)</th>
-                      <th>Activa</th>
-                      <th>Última actualización</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currencyRows.map((c) => (
-                      <tr key={c.id}>
-                        <td>
-                          <strong>{c.code}</strong>
-                          <span style={{ color: "#64748b" }}> · {c.name}</span>
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.0001"
-                            value={c.exchangeRate}
-                            disabled={c.isBase || !canUpdateCurrency}
-                            onChange={(e) =>
-                              updateCurrencyRow(c.id, { exchangeRate: Number(e.target.value) })
-                            }
-                          />
-                        </td>
-                        <td>
-                          <Switch
-                            checked={c.isActive}
-                            disabled={c.isBase || !canUpdateCurrency}
-                            onChange={(checked) => updateCurrencyRow(c.id, { isActive: checked })}
-                          />
-                        </td>
-                        <td style={{ fontSize: "0.8rem", color: "#475569" }}>
-                          {new Date(c.updatedAt).toLocaleString("es")}
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            className="settings-btn settings-btn--danger-ghost"
-                            disabled={c.isBase || !canDeleteCurrency || deletingCurrency}
-                            onClick={() => {
-                              if (c.isBase) return;
-                              if (!window.confirm(`¿Eliminar la moneda ${c.code}?`)) return;
-                              removeCurrency(c.id);
-                            }}
-                            aria-label={`Eliminar ${c.code}`}
-                          >
-                            Eliminar
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <button
-                type="button"
-                className="settings-btn settings-btn--primary-outline"
-                style={{ marginTop: 12 }}
-                disabled={!canCreateCurrency || creatingCurrency}
-                onClick={() => setShowAddCurrency((v) => !v)}
+            {SETTINGS_SECTIONS.map((section) => (
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                className={`settings-side-nav__item ${activeSection === section.id ? "settings-side-nav__item--active" : ""}`}
+                onClick={() => setActiveSection(section.id)}
               >
-                Agregar moneda
-              </button>
-
-              {showAddCurrency ? (
-                <div className="settings-inline-form">
-                  <div className="settings-field">
-                    <label>Código</label>
-                    <input
-                      className="settings-input--short"
-                      value={newCur.code}
-                      onChange={(e) => setNewCur((s) => ({ ...s, code: e.target.value }))}
-                      placeholder="USD"
+                {section.label}
+              </a>
+            ))}
+          </aside>
+          <div className="settings-stack">
+            <SettingsSection id="inventario" title="Inventario">
+              <div className="settings-field-grid settings-field-grid--stack">
+                <div className="settings-field">
+                  <label htmlFor="inv-round">Decimales de redondeo</label>
+                  <input
+                    id="inv-round"
+                    className="settings-input--num"
+                    type="number"
+                    min={0}
+                    max={6}
+                    value={inventory.roundingDecimals}
+                    onChange={(e) =>
+                      setInventory((s) => ({
+                        ...s,
+                        roundingDecimals: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </div>
+                <div className="settings-field">
+                  <label htmlFor="inv-price">Decimales de precio</label>
+                  <input
+                    id="inv-price"
+                    className="settings-input--num"
+                    type="number"
+                    min={0}
+                    max={6}
+                    value={inventory.priceRoundingDecimals}
+                    onChange={(e) =>
+                      setInventory((s) => ({
+                        ...s,
+                        priceRoundingDecimals: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </div>
+                <div className="settings-field">
+                  <label htmlFor="inv-uom">Unidad de medida por defecto</label>
+                  <input
+                    id="inv-uom"
+                    className="settings-input--short"
+                    type="text"
+                    value={inventory.defaultUnitOfMeasure}
+                    onChange={(e) =>
+                      setInventory((s) => ({
+                        ...s,
+                        defaultUnitOfMeasure: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="settings-field">
+                  <label htmlFor="inv-min">Stock mínimo global</label>
+                  <input
+                    id="inv-min"
+                    className="settings-input--num"
+                    type="number"
+                    min={0}
+                    value={inventory.defaultMinimumStock ?? 0}
+                    onChange={(e) =>
+                      setInventory((s) => ({
+                        ...s,
+                        defaultMinimumStock: Number(e.target.value) || 0,
+                      }))
+                    }
+                  />
+                  <p className="settings-helper">
+                    Se aplica a productos sin stock mínimo propio
+                  </p>
+                </div>
+                <div className="settings-field settings-field--full">
+                  <div className="settings-toggle-row">
+                    <Switch
+                      checked={inventory.allowNegativeStock}
+                      onChange={(checked) =>
+                        setInventory((s) => ({
+                          ...s,
+                          allowNegativeStock: checked,
+                        }))
+                      }
                     />
-                  </div>
-                  <div className="settings-field">
-                    <label>Nombre</label>
-                    <input
-                      className="settings-input--short"
-                      value={newCur.name}
-                      onChange={(e) => setNewCur((s) => ({ ...s, name: e.target.value }))}
-                      placeholder="Dólar estadounidense"
-                    />
-                  </div>
-                  <div className="settings-field">
-                    <label>Tasa inicial</label>
-                    <input
-                      className="settings-input--num"
-                      value={newCur.rate}
-                      onChange={(e) => setNewCur((s) => ({ ...s, rate: e.target.value }))}
-                      placeholder="120"
-                    />
-                  </div>
-                  <div className="settings-field" style={{ alignSelf: "end" }}>
-                    <button
-                      type="button"
-                      className="settings-btn settings-btn--primary"
-                      disabled={creatingCurrency}
-                      onClick={() => void addCurrencyRow()}
-                    >
-                      {creatingCurrency ? "Añadiendo…" : "Añadir"}
-                    </button>
+                    <label>Permitir stock negativo</label>
                   </div>
                 </div>
-              ) : null}
+              </div>
+              <button
+                type="button"
+                className="settings-btn settings-btn--primary settings-section__save"
+                disabled={!inventoryDirty || savingGrouped}
+                onClick={() => void saveInventoryOnly()}
+              >
+                {savingGrouped ? "Guardando…" : "Guardar"}
+              </button>
+            </SettingsSection>
 
-              <p className="settings-helper" style={{ marginTop: 12 }}>
-                Las tasas se actualizan manualmente. Los precios se almacenan en CUP y se convierten en pantalla.
-              </p>
+            <SettingsSection id="monedas" title="Monedas y tipo de cambio">
+              {currenciesError ? (
+                <div style={{ fontSize: "0.875rem", color: "#475569" }}>
+                  <p>No se pudieron cargar las monedas.</p>
+                  <button
+                    type="button"
+                    className="settings-btn settings-btn--primary-outline"
+                    onClick={() => void refetchCurrencies()}
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              ) : currenciesLoading ? (
+                <div className="settings-loading" style={{ padding: 24 }}>
+                  <div className="dt-state__spinner" />
+                  <span>Cargando monedas…</span>
+                </div>
+              ) : (
+                <>
+                  <div
+                    className="settings-field settings-field--full"
+                    style={{ marginBottom: 16 }}
+                  >
+                    <label htmlFor="disp-cur">
+                      Moneda de visualización por defecto
+                    </label>
+                    <select
+                      id="disp-cur"
+                      className="settings-input--dropdown"
+                      value={defaultDisplayId ?? ""}
+                      disabled={!canUpdateCurrency}
+                      onChange={(e) =>
+                        setDefaultDisplayId(Number(e.target.value))
+                      }
+                    >
+                      {currencyRows
+                        .filter((c) => c.isActive)
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.code} — {c.name}
+                          </option>
+                        ))}
+                    </select>
+                    <p className="settings-helper">
+                      Controla en qué moneda ven los usuarios los precios por
+                      defecto en la app
+                    </p>
+                  </div>
+
+                  <div className="settings-base-currency">
+                    <span className="settings-base-currency__code">
+                      {currencyRows.find((c) => c.isBase)?.code ?? "CUP"}
+                    </span>
+                    <span className="settings-base-currency__note">
+                      Moneda base del sistema (no editable)
+                    </span>
+                  </div>
+
+                  <div className="settings-table-wrap">
+                    <table className="settings-table">
+                      <thead>
+                        <tr>
+                          <th>Moneda</th>
+                          <th>Tasa de cambio (vs CUP)</th>
+                          <th>Activa</th>
+                          <th>Última actualización</th>
+                          <th />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currencyRows.map((c) => (
+                          <tr key={c.id}>
+                            <td>
+                              <strong>{c.code}</strong>
+                              <span style={{ color: "#64748b" }}>
+                                {" "}
+                                · {c.name}
+                              </span>
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                min={0}
+                                step="0.0001"
+                                value={c.exchangeRate}
+                                disabled={c.isBase || !canUpdateCurrency}
+                                onChange={(e) =>
+                                  updateCurrencyRow(c.id, {
+                                    exchangeRate: Number(e.target.value),
+                                  })
+                                }
+                              />
+                            </td>
+                            <td>
+                              <Switch
+                                checked={c.isActive}
+                                disabled={c.isBase || !canUpdateCurrency}
+                                onChange={(checked) =>
+                                  updateCurrencyRow(c.id, { isActive: checked })
+                                }
+                              />
+                            </td>
+                            <td
+                              style={{ fontSize: "0.8rem", color: "#475569" }}
+                            >
+                              {new Date(c.updatedAt).toLocaleString("es")}
+                            </td>
+                            <td>
+                              <button
+                                type="button"
+                                className="settings-btn settings-btn--danger-ghost"
+                                disabled={
+                                  c.isBase ||
+                                  !canDeleteCurrency ||
+                                  deletingCurrency
+                                }
+                                onClick={() => {
+                                  if (c.isBase) return;
+                                  if (
+                                    !window.confirm(
+                                      `¿Eliminar la moneda ${c.code}?`,
+                                    )
+                                  )
+                                    return;
+                                  removeCurrency(c.id);
+                                }}
+                                aria-label={`Eliminar ${c.code}`}
+                              >
+                                Eliminar
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="settings-btn settings-btn--primary-outline"
+                    style={{ marginTop: 12 }}
+                    disabled={!canCreateCurrency || creatingCurrency}
+                    onClick={() => setShowAddCurrency((v) => !v)}
+                  >
+                    Agregar moneda
+                  </button>
+
+                  {showAddCurrency ? (
+                    <div className="settings-inline-form">
+                      <div className="settings-field">
+                        <label>Código</label>
+                        <input
+                          className="settings-input--short"
+                          value={newCur.code}
+                          onChange={(e) =>
+                            setNewCur((s) => ({ ...s, code: e.target.value }))
+                          }
+                          placeholder="USD"
+                        />
+                      </div>
+                      <div className="settings-field">
+                        <label>Nombre</label>
+                        <input
+                          className="settings-input--short"
+                          value={newCur.name}
+                          onChange={(e) =>
+                            setNewCur((s) => ({ ...s, name: e.target.value }))
+                          }
+                          placeholder="Dólar estadounidense"
+                        />
+                      </div>
+                      <div className="settings-field">
+                        <label>Tasa inicial</label>
+                        <input
+                          className="settings-input--num"
+                          value={newCur.rate}
+                          onChange={(e) =>
+                            setNewCur((s) => ({ ...s, rate: e.target.value }))
+                          }
+                          placeholder="120"
+                        />
+                      </div>
+                      <div
+                        className="settings-field"
+                        style={{ alignSelf: "end" }}
+                      >
+                        <button
+                          type="button"
+                          className="settings-btn settings-btn--primary"
+                          disabled={creatingCurrency}
+                          onClick={() => void addCurrencyRow()}
+                        >
+                          {creatingCurrency ? "Añadiendo…" : "Añadir"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <p className="settings-helper" style={{ marginTop: 12 }}>
+                    Las tasas se actualizan manualmente. Los precios se
+                    almacenan en CUP y se convierten en pantalla.
+                  </p>
+                  <button
+                    type="button"
+                    className="settings-btn settings-btn--primary settings-section__save"
+                    disabled={
+                      !canReadCurrencies ||
+                      !currenciesDirty ||
+                      updatingCurrency ||
+                      settingDefault ||
+                      currenciesFetching
+                    }
+                    onClick={saveCurrenciesOnly}
+                  >
+                    {updatingCurrency || settingDefault
+                      ? "Guardando…"
+                      : "Guardar"}
+                  </button>
+                </>
+              )}
+            </SettingsSection>
+
+            <SettingsSection id="notificaciones" title="Notificaciones">
+              <div className="settings-field-grid">
+                <div className="settings-field settings-field--full">
+                  <div className="settings-toggle-row">
+                    <Switch
+                      checked={notifications.alertOnLowStock}
+                      onChange={(checked) =>
+                        setNotifications((s) => ({
+                          ...s,
+                          alertOnLowStock: checked,
+                        }))
+                      }
+                    />
+                    <label>Alertar por stock bajo</label>
+                  </div>
+                </div>
+                <div className="settings-field settings-field--full">
+                  <label>Destinatarios</label>
+                  <div
+                    className="settings-chips"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === ",") {
+                        e.preventDefault();
+                        pushEmailChip(emailInput);
+                      }
+                    }}
+                  >
+                    {emailChips.map((em) => (
+                      <span key={em} className="settings-chip">
+                        {em}
+                        <button
+                          type="button"
+                          aria-label={`Quitar ${em}`}
+                          onClick={() =>
+                            setEmailChips((prev) =>
+                              prev.filter((x) => x !== em),
+                            )
+                          }
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    <input
+                      type="email"
+                      placeholder="correo@ejemplo.com"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      onBlur={() => {
+                        if (emailInput.trim()) pushEmailChip(emailInput);
+                      }}
+                    />
+                  </div>
+                  <p className="settings-helper">
+                    Separa los emails con Enter o coma
+                  </p>
+                </div>
+                <div className="settings-field settings-field--full">
+                  <div className="settings-field-grid settings-field-grid--2">
+                    <div className="settings-field">
+                      <label htmlFor="crit-th">Umbral de stock crítico</label>
+                      <input
+                        id="crit-th"
+                        className="settings-input--num"
+                        type="number"
+                        min={0}
+                        value={notifications.criticalStockThreshold ?? 0}
+                        onChange={(e) =>
+                          setNotifications((s) => ({
+                            ...s,
+                            criticalStockThreshold: Number(e.target.value) || 0,
+                          }))
+                        }
+                      />
+                      <p className="settings-helper">
+                        Notificar cuando el stock caiga por debajo de este
+                        número
+                      </p>
+                    </div>
+                    <div className="settings-field">
+                      <label htmlFor="notif-freq">
+                        Frecuencia de notificación
+                      </label>
+                      <select
+                        id="notif-freq"
+                        className="settings-input--dropdown"
+                        value={notifications.notificationFrequency}
+                        onChange={(e) =>
+                          setNotifications((s) => ({
+                            ...s,
+                            notificationFrequency: e.target
+                              .value as NotificationFrequency,
+                          }))
+                        }
+                      >
+                        <option value="immediate">Inmediata</option>
+                        <option value="daily">Diaria</option>
+                        <option value="weekly">Semanal</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="settings-btn settings-btn--primary settings-section__save"
+                disabled={!notificationsDirty || savingGrouped}
+                onClick={() => void saveNotificationsOnly()}
+              >
+                {savingGrouped ? "Guardando…" : "Guardar"}
+              </button>
+            </SettingsSection>
+
+            <SettingsSection id="seguridad" title="Seguridad">
+              <h3 className="settings-subhead">Cambiar contraseña</h3>
+              <div className="settings-field-grid">
+                <div className="settings-field settings-field--full">
+                  <label htmlFor="pwd-cur">Contraseña actual</label>
+                  <input
+                    id="pwd-cur"
+                    className="settings-input--full"
+                    type="password"
+                    autoComplete="current-password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
+                </div>
+                <div className="settings-field settings-field--full">
+                  <label htmlFor="pwd-new">Nueva contraseña</label>
+                  <input
+                    id="pwd-new"
+                    className="settings-input--full"
+                    type="password"
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  <div className="pwd-strength" aria-hidden>
+                    {[0, 1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className={`pwd-strength__bar ${i < pwdStrength ? "pwd-strength__bar--on" : ""}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="settings-field settings-field--full">
+                  <label htmlFor="pwd-confirm">
+                    Confirmar nueva contraseña
+                  </label>
+                  <input
+                    id="pwd-confirm"
+                    className="settings-input--full"
+                    type="password"
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
+              </div>
               <button
                 type="button"
                 className="settings-btn settings-btn--primary settings-section__save"
                 disabled={
-                  !canReadCurrencies ||
-                  !currenciesDirty ||
-                  updatingCurrency ||
-                  settingDefault ||
-                  currenciesFetching
+                  savingProfile ||
+                  !currentPassword ||
+                  !newPassword ||
+                  newPassword !== confirmPassword
                 }
-                onClick={saveCurrenciesOnly}
+                onClick={() => void updatePassword()}
               >
-                {updatingCurrency || settingDefault ? "Guardando…" : "Guardar"}
+                {savingProfile ? "Guardando…" : "Guardar"}
               </button>
-            </>
-          )}
-        </SettingsSection>
 
-        <SettingsSection id="notificaciones" title="Notificaciones">
-          <div className="settings-field-grid">
-            <div className="settings-field settings-field--full">
-              <div className="settings-toggle-row">
-                <Switch
-                  checked={notifications.alertOnLowStock}
-                  onChange={(checked) => setNotifications((s) => ({ ...s, alertOnLowStock: checked }))}
-                />
-                <label>Alertar por stock bajo</label>
+              <h3 className="settings-subhead settings-subhead--spaced">
+                Sesiones activas
+              </h3>
+              <div className="settings-sessions-placeholder">
+                {/* TODO: GET /account/sessions cuando exista en el backend */}
+                No hay sesiones listadas (integración pendiente).
               </div>
-            </div>
-            <div className="settings-field settings-field--full">
-              <label>Destinatarios</label>
-              <div
-                className="settings-chips"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === ",") {
-                    e.preventDefault();
-                    pushEmailChip(emailInput);
+              <button
+                type="button"
+                className="settings-btn settings-btn--danger-ghost mt-2"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "¿Cerrar todas las sesiones excepto la actual?",
+                    )
+                  ) {
+                    /* TODO: POST revocar sesiones */
                   }
                 }}
               >
-                {emailChips.map((em) => (
-                  <span key={em} className="settings-chip">
-                    {em}
-                    <button
-                      type="button"
-                      aria-label={`Quitar ${em}`}
-                      onClick={() => setEmailChips((prev) => prev.filter((x) => x !== em))}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-                <input
-                  type="email"
-                  placeholder="correo@ejemplo.com"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  onBlur={() => {
-                    if (emailInput.trim()) pushEmailChip(emailInput);
-                  }}
-                />
-              </div>
-              <p className="settings-helper">Separa los emails con Enter o coma</p>
-            </div>
-            <div className="settings-field settings-field--full">
+                Cerrar todas las sesiones
+              </button>
+            </SettingsSection>
+
+            <SettingsSection id="perfil" title="Perfil de cuenta">
               <div className="settings-field-grid settings-field-grid--2">
-                <div className="settings-field">
-                  <label htmlFor="crit-th">Umbral de stock crítico</label>
+                <div className="settings-field settings-field--full">
+                  <label htmlFor="pf-name">Nombre completo</label>
                   <input
-                    id="crit-th"
-                    className="settings-input--num"
-                    type="number"
-                    min={0}
-                    value={notifications.criticalStockThreshold ?? 0}
-                    onChange={(e) =>
-                      setNotifications((s) => ({ ...s, criticalStockThreshold: Number(e.target.value) || 0 }))
-                    }
+                    id="pf-name"
+                    className="settings-input--full"
+                    type="text"
+                    value={profileFullName}
+                    onChange={(e) => setProfileFullName(e.target.value)}
                   />
-                  <p className="settings-helper">Notificar cuando el stock caiga por debajo de este número</p>
                 </div>
                 <div className="settings-field">
-                  <label htmlFor="notif-freq">Frecuencia de notificación</label>
+                  <label htmlFor="pf-gender">Género</label>
                   <select
-                    id="notif-freq"
+                    id="pf-gender"
                     className="settings-input--dropdown"
-                    value={notifications.notificationFrequency}
-                    onChange={(e) =>
-                      setNotifications((s) => ({
-                        ...s,
-                        notificationFrequency: e.target.value as NotificationFrequency,
-                      }))
-                    }
+                    value={profileGender}
+                    onChange={(e) => setProfileGender(e.target.value)}
                   >
-                    <option value="immediate">Inmediata</option>
-                    <option value="daily">Diaria</option>
-                    <option value="weekly">Semanal</option>
+                    <option value="1">Masculino</option>
+                    <option value="2">Femenino</option>
+                    <option value="0">Prefiero no decir</option>
                   </select>
                 </div>
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="settings-btn settings-btn--primary settings-section__save"
-            disabled={!notificationsDirty || savingGrouped}
-            onClick={() => void saveNotificationsOnly()}
-          >
-            {savingGrouped ? "Guardando…" : "Guardar"}
-          </button>
-        </SettingsSection>
-
-        <SettingsSection id="seguridad" title="Seguridad">
-          <h3 className="settings-subhead">Cambiar contraseña</h3>
-          <div className="settings-field-grid">
-            <div className="settings-field settings-field--full">
-              <label htmlFor="pwd-cur">Contraseña actual</label>
-              <input
-                id="pwd-cur"
-                className="settings-input--full"
-                type="password"
-                autoComplete="current-password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-              />
-            </div>
-            <div className="settings-field settings-field--full">
-              <label htmlFor="pwd-new">Nueva contraseña</label>
-              <input
-                id="pwd-new"
-                className="settings-input--full"
-                type="password"
-                autoComplete="new-password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
-              <div className="pwd-strength" aria-hidden>
-                {[0, 1, 2, 3].map((i) => (
-                  <div key={i} className={`pwd-strength__bar ${i < pwdStrength ? "pwd-strength__bar--on" : ""}`} />
-                ))}
-              </div>
-            </div>
-            <div className="settings-field settings-field--full">
-              <label htmlFor="pwd-confirm">Confirmar nueva contraseña</label>
-              <input
-                id="pwd-confirm"
-                className="settings-input--full"
-                type="password"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
-            </div>
-          </div>
-          <button
-            type="button"
-            className="settings-btn settings-btn--primary settings-section__save"
-            disabled={
-              savingProfile ||
-              !currentPassword ||
-              !newPassword ||
-              newPassword !== confirmPassword
-            }
-            onClick={() => void updatePassword()}
-          >
-            {savingProfile ? "Guardando…" : "Guardar"}
-          </button>
-
-          <h3 className="settings-subhead settings-subhead--spaced">Sesiones activas</h3>
-          <div className="settings-sessions-placeholder">
-            {/* TODO: GET /account/sessions cuando exista en el backend */}
-            No hay sesiones listadas (integración pendiente).
-          </div>
-          <button
-            type="button"
-            className="settings-btn settings-btn--danger-ghost mt-2"
-            onClick={() => {
-              if (window.confirm("¿Cerrar todas las sesiones excepto la actual?")) {
-                /* TODO: POST revocar sesiones */
-              }
-            }}
-          >
-            Cerrar todas las sesiones
-          </button>
-        </SettingsSection>
-
-        <SettingsSection id="perfil" title="Perfil de cuenta">
-          <div className="settings-field-grid settings-field-grid--2">
-            <div className="settings-field settings-field--full">
-              <label htmlFor="pf-name">Nombre completo</label>
-              <input
-                id="pf-name"
-                className="settings-input--full"
-                type="text"
-                value={profileFullName}
-                onChange={(e) => setProfileFullName(e.target.value)}
-              />
-            </div>
-            <div className="settings-field">
-              <label htmlFor="pf-gender">Género</label>
-              <select
-                id="pf-gender"
-                className="settings-input--dropdown"
-                value={profileGender}
-                onChange={(e) => setProfileGender(e.target.value)}
-              >
-                <option value="1">Masculino</option>
-                <option value="2">Femenino</option>
-                <option value="0">Prefiero no decir</option>
-              </select>
-            </div>
-            <div className="settings-field">
-              <label htmlFor="pf-birth">Fecha de nacimiento</label>
-              <input
-                id="pf-birth"
-                className="settings-input--short"
-                type="date"
-                value={profileBirth}
-                onChange={(e) => setProfileBirth(e.target.value)}
-              />
-            </div>
-            <div className="settings-field">
-              <label>Rol actual</label>
-              <span className="settings-badge-role">{roleName}</span>
-            </div>
-            <div className="settings-field settings-field--full">
-              <label>Ubicación asignada</label>
-              {user != null && user.locationId != null && user.locationId !== 0 ? (
-                <div className="settings-readonly">
-                  {user.location?.name ?? "—"}{" "}
-                  <span className="text-slate-400">(ID: {user.locationId})</span>
+                <div className="settings-field">
+                  <label htmlFor="pf-birth">Fecha de nacimiento</label>
+                  <input
+                    id="pf-birth"
+                    className="settings-input--short"
+                    type="date"
+                    value={profileBirth}
+                    onChange={(e) => setProfileBirth(e.target.value)}
+                  />
                 </div>
-              ) : (
-                <span className="settings-location-muted">Sin ubicación</span>
-              )}
-            </div>
-          </div>
-          <button
-            type="button"
-            className="settings-btn settings-btn--primary settings-section__save"
-            disabled={!profileDirty || savingProfile}
-            onClick={() => void saveProfileOnly()}
-          >
-            {savingProfile ? "Guardando…" : "Guardar"}
-          </button>
-        </SettingsSection>
-
-        <SettingsSection id="suscripcion" title="Suscripción">
-          {subLoading ? (
-            <div className="settings-loading">
-              <div className="dt-state__spinner" />
-            </div>
-          ) : subError ? (
-            <div className="text-center text-sm text-slate-600">
-              <p>No se pudo cargar la suscripción.</p>
-              <button type="button" className="settings-btn settings-btn--primary-outline mt-2" onClick={() => void refetchSub()}>
-                Reintentar
+                <div className="settings-field">
+                  <label>Rol actual</label>
+                  <span className="settings-badge-role">{roleName}</span>
+                </div>
+                <div className="settings-field settings-field--full">
+                  <label>Ubicación asignada</label>
+                  {user != null &&
+                  user.locationId != null &&
+                  user.locationId !== 0 ? (
+                    <div className="settings-readonly">
+                      {user.location?.name ?? "—"}{" "}
+                      <span className="text-slate-400">
+                        (ID: {user.locationId})
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="settings-location-muted">
+                      Sin ubicación
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="settings-btn settings-btn--primary settings-section__save"
+                disabled={!profileDirty || savingProfile}
+                onClick={() => void saveProfileOnly()}
+              >
+                {savingProfile ? "Guardando…" : "Guardar"}
               </button>
-            </div>
-          ) : !subscription ? (
-            <p className="text-sm text-slate-600">No hay información de suscripción disponible.</p>
-          ) : (
-            subscriptionPlanUi(subscription)
-          )}
+            </SettingsSection>
 
-          <div className="settings-danger-zone">
-            <button
-              type="button"
-              className="settings-btn settings-btn--danger-ghost"
-              onClick={() => {
-                if (window.confirm("¿Seguro que deseas cancelar la suscripción? Esta acción puede ser irreversible.")) {
-                  /* TODO: integrar cancelación con API de facturación */
-                }
-              }}
-            >
-              Cancelar suscripción
-            </button>
-            <p className="settings-helper mt-2">{/* TODO: billing API */}</p>
+            <SettingsSection id="suscripcion" title="Suscripción">
+              {subLoading ? (
+                <div className="settings-loading">
+                  <div className="dt-state__spinner" />
+                </div>
+              ) : subError ? (
+                <div className="text-center text-sm text-slate-600">
+                  <p>No se pudo cargar la suscripción.</p>
+                  <button
+                    type="button"
+                    className="settings-btn settings-btn--primary-outline mt-2"
+                    onClick={() => void refetchSub()}
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              ) : !subscription ? (
+                <p className="text-sm text-slate-600">
+                  No hay información de suscripción disponible.
+                </p>
+              ) : (
+                subscriptionPlanUi(subscription)
+              )}
+
+              <div className="settings-danger-zone">
+                <button
+                  type="button"
+                  className="settings-btn settings-btn--danger-ghost"
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        "¿Seguro que deseas cancelar la suscripción? Esta acción puede ser irreversible.",
+                      )
+                    ) {
+                      /* TODO: integrar cancelación con API de facturación */
+                    }
+                  }}
+                >
+                  Cancelar suscripción
+                </button>
+                <p className="settings-helper mt-2">
+                  {/* TODO: billing API */}
+                </p>
+              </div>
+            </SettingsSection>
           </div>
-        </SettingsSection>
-        </div>
         </div>
       </div>
 

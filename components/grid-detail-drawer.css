@@ -103,7 +103,9 @@
   background: transparent;
   color: #64748b;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .gd-drawer-icon-btn:hover {
@@ -155,7 +157,10 @@
   background: #ffffff;
   color: #334155;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .gd-drawer-nav-btn:hover:not(:disabled) {

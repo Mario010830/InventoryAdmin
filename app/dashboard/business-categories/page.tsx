@@ -1,14 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { Pencil } from "lucide-react";
-import Switch from "@/components/Switch";
-import { FormModal } from "@/components/FormModal";
-import { BusinessCategoryLucideGlyph } from "@/components/dashboard/BusinessCategoryLucideGlyph";
+import { useMemo, useState } from "react";
 import {
   useGetBusinessCategoriesQuery,
   useUpdateBusinessCategoryMutation,
 } from "@/app/dashboard/locations/_service/businessCategoryApi";
+import { BusinessCategoryLucideGlyph } from "@/components/dashboard/BusinessCategoryLucideGlyph";
+import { FormModal } from "@/components/FormModal";
+import Switch from "@/components/Switch";
 import type { BusinessCategoryResponse } from "@/lib/dashboard-types";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 import "../products/products-modal.css";
@@ -19,10 +19,14 @@ export default function BusinessCategoriesPage() {
   const canRead = has("setting.read");
   const canUpdate = has("setting.update");
 
-  const { data: categories = [], isLoading } = useGetBusinessCategoriesQuery(undefined, {
-    skip: !canRead,
-  });
-  const [updateCategory, { isLoading: saving }] = useUpdateBusinessCategoryMutation();
+  const { data: categories = [], isLoading } = useGetBusinessCategoriesQuery(
+    undefined,
+    {
+      skip: !canRead,
+    },
+  );
+  const [updateCategory, { isLoading: saving }] =
+    useUpdateBusinessCategoryMutation();
 
   const sorted = useMemo(
     () => [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")),
@@ -69,7 +73,9 @@ export default function BusinessCategoriesPage() {
   if (!canRead) {
     return (
       <div className="business-cat-admin-page">
-        <p className="business-cat-admin-page__denied">No tienes permiso para ver esta sección.</p>
+        <p className="business-cat-admin-page__denied">
+          No tienes permiso para ver esta sección.
+        </p>
       </div>
     );
   }
@@ -77,9 +83,12 @@ export default function BusinessCategoriesPage() {
   return (
     <div className="business-cat-admin-page">
       <header className="business-cat-admin-page__header">
-        <h1 className="business-cat-admin-page__title">Categorías de negocio</h1>
+        <h1 className="business-cat-admin-page__title">
+          Categorías de negocio
+        </h1>
         <p className="business-cat-admin-page__subtitle">
-          Iconos y nombres en ubicaciones. Activá o desactivá cada categoría según corresponda.
+          Iconos y nombres en ubicaciones. Activá o desactivá cada categoría
+          según corresponda.
         </p>
       </header>
 
@@ -92,7 +101,11 @@ export default function BusinessCategoriesPage() {
             return (
               <article key={c.id} className="business-cat-admin-card">
                 <div className="business-cat-admin-card__icon" aria-hidden>
-                  <BusinessCategoryLucideGlyph categoryName={c.name} size={32} strokeWidth={1.75} />
+                  <BusinessCategoryLucideGlyph
+                    categoryName={c.name}
+                    size={32}
+                    strokeWidth={1.75}
+                  />
                 </div>
                 <h2 className="business-cat-admin-card__name">{c.name}</h2>
                 <div className="business-cat-admin-card__row">
@@ -101,7 +114,10 @@ export default function BusinessCategoriesPage() {
                     checked={active}
                     onChange={(next) => {
                       if (!canUpdate || saving) return;
-                      void updateCategory({ id: c.id, body: { isActive: next } }).unwrap();
+                      void updateCategory({
+                        id: c.id,
+                        body: { isActive: next },
+                      }).unwrap();
                     }}
                     disabled={!canUpdate || saving}
                   />

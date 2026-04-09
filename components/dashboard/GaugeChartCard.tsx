@@ -35,7 +35,13 @@ function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
   return { x: cx + r * Math.cos(rad), y: cy - r * Math.sin(rad) };
 }
 
-function describeArc(cx: number, cy: number, r: number, startDeg: number, endDeg: number) {
+function describeArc(
+  cx: number,
+  cy: number,
+  r: number,
+  startDeg: number,
+  endDeg: number,
+) {
   const start = polarToCartesian(cx, cy, r, startDeg);
   const end = polarToCartesian(cx, cy, r, endDeg);
   const large = Math.abs(endDeg - startDeg) > 180 ? 1 : 0;
@@ -91,12 +97,34 @@ export function GaugeChartCard({
       }}
     >
       <div>
-        <div style={{ fontSize: 16, fontWeight: 600, color: COLORS.text }}>{title}</div>
-        {subtitle && <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 2 }}>{subtitle}</div>}
+        <div style={{ fontSize: 16, fontWeight: 600, color: COLORS.text }}>
+          {title}
+        </div>
+        {subtitle && (
+          <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 2 }}>
+            {subtitle}
+          </div>
+        )}
       </div>
 
-      <div style={{ width: "100%", flex: 1, minHeight: 140, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <svg width="100%" height={height - 120} viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`} preserveAspectRatio="xMidYMid meet" style={{ overflow: "visible" }}>
+      <div
+        style={{
+          width: "100%",
+          flex: 1,
+          minHeight: 140,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <svg
+          width="100%"
+          height={height - 120}
+          viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ overflow: "visible" }}
+        >
           {trackSegments.map((seg, i) => (
             <path
               key={i}
@@ -122,30 +150,102 @@ export function GaugeChartCard({
             strokeWidth={STROKE}
             strokeLinecap="round"
           />
-          <text x={CX} y={CY - 4} textAnchor="middle" style={{ fontSize: 26, fontWeight: 700, fill: COLORS.text, fontFamily: "system-ui, sans-serif" }}>
+          <text
+            x={CX}
+            y={CY - 4}
+            textAnchor="middle"
+            style={{
+              fontSize: 26,
+              fontWeight: 700,
+              fill: COLORS.text,
+              fontFamily: "system-ui, sans-serif",
+            }}
+          >
             {Math.round(clamped)}%
           </text>
-          <text x={CX} y={CY + 12} textAnchor="middle" style={{ fontSize: 11, fill: fillColor, fontFamily: "system-ui, sans-serif" }}>
+          <text
+            x={CX}
+            y={CY + 12}
+            textAnchor="middle"
+            style={{
+              fontSize: 11,
+              fill: fillColor,
+              fontFamily: "system-ui, sans-serif",
+            }}
+          >
             {status}
           </text>
         </svg>
 
-        <div style={{ display: "flex", gap: 12, marginTop: 8, fontSize: 10, color: COLORS.textMuted }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            marginTop: 8,
+            fontSize: 10,
+            color: COLORS.textMuted,
+          }}
+        >
           <span style={{ color: COLORS.bien }}>Bien &gt;60%</span>
           <span style={{ color: COLORS.bajo }}>Bajo 30-60%</span>
           <span style={{ color: COLORS.critico }}>Crítico &lt;30%</span>
         </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 12, width: "100%", justifyContent: "center", flexWrap: "wrap" }}>
-          <div style={{ background: "rgba(34,197,94,0.2)", borderRadius: 8, padding: "10px 16px", minWidth: 72, textAlign: "center" }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.bien }}>{breakdown?.enRango ?? "—"}</div>
-            <div style={{ fontSize: 11, color: COLORS.textMuted }}>En rango</div>
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            marginTop: 12,
+            width: "100%",
+            justifyContent: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <div
+            style={{
+              background: "rgba(34,197,94,0.2)",
+              borderRadius: 8,
+              padding: "10px 16px",
+              minWidth: 72,
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.bien }}>
+              {breakdown?.enRango ?? "—"}
+            </div>
+            <div style={{ fontSize: 11, color: COLORS.textMuted }}>
+              En rango
+            </div>
           </div>
-          <div style={{ background: "rgba(245,158,11,0.2)", borderRadius: 8, padding: "10px 16px", minWidth: 72, textAlign: "center" }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.bajo }}>{breakdown?.bajo ?? "—"}</div>
-            <div style={{ fontSize: 11, color: COLORS.textMuted }}>Stock bajo</div>
+          <div
+            style={{
+              background: "rgba(245,158,11,0.2)",
+              borderRadius: 8,
+              padding: "10px 16px",
+              minWidth: 72,
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.bajo }}>
+              {breakdown?.bajo ?? "—"}
+            </div>
+            <div style={{ fontSize: 11, color: COLORS.textMuted }}>
+              Stock bajo
+            </div>
           </div>
-          <div style={{ background: "rgba(239,68,68,0.2)", borderRadius: 8, padding: "10px 16px", minWidth: 72, textAlign: "center" }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.critico }}>{breakdown?.critico ?? "—"}</div>
+          <div
+            style={{
+              background: "rgba(239,68,68,0.2)",
+              borderRadius: 8,
+              padding: "10px 16px",
+              minWidth: 72,
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{ fontSize: 18, fontWeight: 700, color: COLORS.critico }}
+            >
+              {breakdown?.critico ?? "—"}
+            </div>
             <div style={{ fontSize: 11, color: COLORS.textMuted }}>Crítico</div>
           </div>
         </div>

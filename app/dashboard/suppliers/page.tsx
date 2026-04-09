@@ -1,37 +1,45 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { useDebouncedValue } from "@/lib/useDebouncedValue";
-import {
-  useLoadAllRemainingPages,
-  SEARCH_TABLE_CHUNK_PAGE_SIZE,
-  TABLE_SEARCH_DEBOUNCE_MS,
-} from "@/lib/useLoadAllRemainingPages";
-import type { SupplierResponse, CreateSupplierRequest } from "@/lib/dashboard-types";
-import { DataTable } from "@/components/DataTable";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DataTableColumn } from "@/components/DataTable";
-import {
-  useGetSuppliersQuery,
-  useCreateSupplierMutation,
-  useUpdateSupplierMutation,
-  useDeleteSupplierMutation,
-} from "./_service/suppliersApi";
+import { DataTable } from "@/components/DataTable";
 import { DeleteModal } from "@/components/DeleteModal";
+import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
 import { FormModal } from "@/components/FormModal";
 import Switch from "@/components/Switch";
-import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
+import type {
+  CreateSupplierRequest,
+  SupplierResponse,
+} from "@/lib/dashboard-types";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
+import {
+  SEARCH_TABLE_CHUNK_PAGE_SIZE,
+  TABLE_SEARCH_DEBOUNCE_MS,
+  useLoadAllRemainingPages,
+} from "@/lib/useLoadAllRemainingPages";
+import {
+  useCreateSupplierMutation,
+  useDeleteSupplierMutation,
+  useGetSuppliersQuery,
+  useUpdateSupplierMutation,
+} from "./_service/suppliersApi";
 import "../products/products-modal.css";
-import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 import { toast } from "sonner";
-import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
 import { SupplierDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
+import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
+import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 
 const COLUMNS: DataTableColumn<SupplierResponse>[] = [
   { key: "name", label: "Nombre" },
   { key: "contactPerson", label: "Contacto" },
   { key: "phone", label: "Teléfono" },
   { key: "email", label: "Email" },
-  { key: "isActive", label: "Estado", type: "boolean", booleanLabels: { true: "Activo", false: "Inactivo" } },
+  {
+    key: "isActive",
+    label: "Estado",
+    type: "boolean",
+    booleanLabels: { true: "Activo", false: "Inactivo" },
+  },
   { key: "createdAt", label: "Creado", type: "date" },
 ];
 
@@ -47,9 +55,12 @@ const initialForm = {
 
 export default function SuppliersPage() {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, _setPageSize] = useState(10);
   const [filterText, setFilterText] = useState("");
-  const debouncedFilterText = useDebouncedValue(filterText, TABLE_SEARCH_DEBOUNCE_MS);
+  const debouncedFilterText = useDebouncedValue(
+    filterText,
+    TABLE_SEARCH_DEBOUNCE_MS,
+  );
   const [filterActive, setFilterActive] = useState("");
   const perPage = Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
   const loadNextPage = useCallback(() => setPage((p) => p + 1), []);
@@ -70,7 +81,11 @@ export default function SuppliersPage() {
   const canEditSupplier = hasPermission("supplier.update");
   const canDeleteSupplier = hasPermission("supplier.delete");
 
-  const { data: result, isLoading, isFetching } = useGetSuppliersQuery({ page, perPage });
+  const {
+    data: result,
+    isLoading,
+    isFetching,
+  } = useGetSuppliersQuery({ page, perPage });
   const [createSupplier] = useCreateSupplierMutation();
   const [updateSupplier] = useUpdateSupplierMutation();
   const [deleteSupplier] = useDeleteSupplierMutation();
@@ -94,10 +109,13 @@ export default function SuppliersPage() {
   });
 
   useEffect(() => {
-    if (!filtersChanged.current) { filtersChanged.current = true; return; }
+    if (!filtersChanged.current) {
+      filtersChanged.current = true;
+      return;
+    }
     setPage(1);
     setAllRows([]);
-  }, [debouncedFilterText, filterActive]);
+  }, []);
 
   const loadedRows =
     page === 1 && allRows.length === 0 ? (result?.data ?? []) : allRows;
@@ -113,8 +131,12 @@ export default function SuppliersPage() {
     if (q) {
       rows = rows.filter(
         (row) =>
-          String(row.name ?? "").toLowerCase().includes(q) ||
-          String(row.contactPerson ?? "").toLowerCase().includes(q),
+          String(row.name ?? "")
+            .toLowerCase()
+            .includes(q) ||
+          String(row.contactPerson ?? "")
+            .toLowerCase()
+            .includes(q),
       );
     }
     if (filterActive === "yes") rows = rows.filter((r) => r.isActive);
@@ -125,8 +147,7 @@ export default function SuppliersPage() {
   const gridFiltersActive = filterText.trim() !== "" || filterActive !== "";
 
   const allPagesLoaded =
-    result?.pagination != null &&
-    page >= (result.pagination.totalPages ?? 1);
+    result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
 
   const openCreate = () => {
     setEditing(null);
@@ -184,7 +205,9 @@ export default function SuppliersPage() {
       }
       closeForm();
     } catch (err) {
-      setFormErrors({ submit: err instanceof Error ? err.message : "Error al guardar" });
+      setFormErrors({
+        submit: err instanceof Error ? err.message : "Error al guardar",
+      });
     } finally {
       setFormSubmitting(false);
     }
@@ -223,7 +246,9 @@ export default function SuppliersPage() {
       toast.success(`${ids.length} proveedor(es) eliminado(s).`, { id: tid });
       setAllRows((prev) => prev.filter((r) => !ids.includes(r.id)));
     } catch {
-      toast.error("No se pudieron eliminar todos los proveedores.", { id: tid });
+      toast.error("No se pudieron eliminar todos los proveedores.", {
+        id: tid,
+      });
     }
   };
 
@@ -236,7 +261,9 @@ export default function SuppliersPage() {
           primaryColumnKey: "name",
           bulkEntityLabel: "proveedores",
         }}
-        onBulkDeleteSelected={canDeleteSupplier ? handleBulkDeleteSuppliers : undefined}
+        onBulkDeleteSelected={
+          canDeleteSupplier ? handleBulkDeleteSuppliers : undefined
+        }
         filters={
           <GridFilterBar onClear={clearGridFilters}>
             <div className="grid-filter-bar__field">
@@ -275,14 +302,27 @@ export default function SuppliersPage() {
         onAdd={openCreate}
         addDisabled={!canCreateSupplier}
         actions={[
-          { icon: "edit", label: "Editar", onClick: openEdit, disabled: () => !canEditSupplier },
-          { icon: "delete_outline", label: "Eliminar", onClick: openDelete, variant: "danger", disabled: () => !canDeleteSupplier },
+          {
+            icon: "edit",
+            label: "Editar",
+            onClick: openEdit,
+            disabled: () => !canEditSupplier,
+          },
+          {
+            icon: "delete_outline",
+            label: "Eliminar",
+            onClick: openDelete,
+            variant: "danger",
+            disabled: () => !canDeleteSupplier,
+          },
         ]}
         detailDrawer={{
           entityLabelPlural: "proveedores",
           getTitle: (row) => row.name,
           getStatusBadge: (row) => (
-            <span className={`dt-tag ${row.isActive ? "dt-tag--green" : "dt-tag--red"}`}>
+            <span
+              className={`dt-tag ${row.isActive ? "dt-tag--green" : "dt-tag--red"}`}
+            >
               {row.isActive ? "Activo" : "Inactivo"}
             </span>
           ),
@@ -328,7 +368,9 @@ export default function SuppliersPage() {
             <input
               id="contactPerson"
               value={form.contactPerson}
-              onChange={(e) => setForm((f) => ({ ...f, contactPerson: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, contactPerson: e.target.value }))
+              }
               placeholder="Nombre"
             />
           </div>
@@ -337,7 +379,9 @@ export default function SuppliersPage() {
             <input
               id="phone"
               value={form.phone}
-              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, phone: e.target.value }))
+              }
               placeholder="Teléfono"
             />
           </div>
@@ -347,7 +391,9 @@ export default function SuppliersPage() {
               id="email"
               type="email"
               value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, email: e.target.value }))
+              }
               placeholder="email@ejemplo.com"
             />
           </div>
@@ -356,7 +402,9 @@ export default function SuppliersPage() {
             <input
               id="address"
               value={form.address}
-              onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, address: e.target.value }))
+              }
               placeholder="Dirección"
             />
           </div>
@@ -365,7 +413,9 @@ export default function SuppliersPage() {
             <textarea
               id="notes"
               value={form.notes}
-              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, notes: e.target.value }))
+              }
               placeholder="Notas"
               rows={3}
             />
@@ -373,7 +423,9 @@ export default function SuppliersPage() {
           <div className="modal-field field-full modal-toggle">
             <Switch
               checked={form.isActive}
-              onChange={(checked) => setForm((f) => ({ ...f, isActive: checked }))}
+              onChange={(checked) =>
+                setForm((f) => ({ ...f, isActive: checked }))
+              }
             />
             <label htmlFor="isActive">Activo</label>
           </div>

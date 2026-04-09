@@ -1,34 +1,34 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { useDebouncedValue } from "@/lib/useDebouncedValue";
-import {
-  useLoadAllRemainingPages,
-  SEARCH_TABLE_CHUNK_PAGE_SIZE,
-  TABLE_SEARCH_DEBOUNCE_MS,
-} from "@/lib/useLoadAllRemainingPages";
-import type { UserResponse } from "@/lib/auth-types";
-import type { CreateUserRequest } from "@/lib/dashboard-types";
-import { DataTable } from "@/components/DataTable";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DataTableColumn } from "@/components/DataTable";
-import {
-  useGetUsersQuery,
-  useCreateUserMutation,
-  useUpdateUserMutation,
-  useDeleteUserMutation,
-} from "./_service/usersApi";
-import { useGetLocationsQuery } from "../locations/_service/locationsApi";
-import { useGetRolesQuery } from "../roles/_service/rolesApi";
+import { DataTable } from "@/components/DataTable";
 import { DeleteModal } from "@/components/DeleteModal";
 import { FormModal } from "@/components/FormModal";
+import type { UserResponse } from "@/lib/auth-types";
+import type { CreateUserRequest } from "@/lib/dashboard-types";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
+import {
+  SEARCH_TABLE_CHUNK_PAGE_SIZE,
+  TABLE_SEARCH_DEBOUNCE_MS,
+  useLoadAllRemainingPages,
+} from "@/lib/useLoadAllRemainingPages";
 import { useAppSelector } from "@/store/store";
+import { useGetLocationsQuery } from "../locations/_service/locationsApi";
+import { useGetRolesQuery } from "../roles/_service/rolesApi";
+import {
+  useCreateUserMutation,
+  useDeleteUserMutation,
+  useGetUsersQuery,
+  useUpdateUserMutation,
+} from "./_service/usersApi";
 import "../products/products-modal.css";
-import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 import { toast } from "sonner";
-import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
+import { UsersBulkToolbar } from "@/components/DataTableBulkToolbar";
 import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
 import { UserDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
-import { UsersBulkToolbar } from "@/components/DataTableBulkToolbar";
+import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
+import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 
 const initialForm = {
   fullName: "",
@@ -42,9 +42,12 @@ const initialForm = {
 
 export default function UsersPage() {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, _setPageSize] = useState(10);
   const [filterText, setFilterText] = useState("");
-  const debouncedFilterText = useDebouncedValue(filterText, TABLE_SEARCH_DEBOUNCE_MS);
+  const debouncedFilterText = useDebouncedValue(
+    filterText,
+    TABLE_SEARCH_DEBOUNCE_MS,
+  );
   const [filterRoleId, setFilterRoleId] = useState("");
   const [filterUserStatus, setFilterUserStatus] = useState("");
   const perPage = Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
@@ -61,8 +64,7 @@ export default function UsersPage() {
 
   const user = useAppSelector((s) => s.auth);
   const organizationId = user?.organizationId ?? 0;
-  const isAdmin =
-    user?.roleId === 2;
+  const isAdmin = user?.roleId === 2;
 
   // ─── Permissions ──────────────────────────────────────────────────────────
 
@@ -71,7 +73,11 @@ export default function UsersPage() {
   const canEditUser = hasPermission("user.update");
   const canDeleteUser = hasPermission("user.delete");
 
-  const { data: result, isLoading, isFetching } = useGetUsersQuery({
+  const {
+    data: result,
+    isLoading,
+    isFetching,
+  } = useGetUsersQuery({
     page,
     perPage,
   });
@@ -95,11 +101,14 @@ export default function UsersPage() {
     {
       key: "status",
       label: "Estado",
-      sortValue: (row) => (String(row.status ?? "").toUpperCase() === "ACTIVE" ? 1 : 0),
+      sortValue: (row) =>
+        String(row.status ?? "").toUpperCase() === "ACTIVE" ? 1 : 0,
       render: (row) => {
         const isActive = String(row.status ?? "").toUpperCase() === "ACTIVE";
         return (
-          <span className={`dt-tag ${isActive ? "dt-tag--green" : "dt-tag--red"}`}>
+          <span
+            className={`dt-tag ${isActive ? "dt-tag--green" : "dt-tag--red"}`}
+          >
             {isActive ? "Activo" : "Inactivo"}
           </span>
         );
@@ -139,10 +148,13 @@ export default function UsersPage() {
   });
 
   useEffect(() => {
-    if (!filtersChanged.current) { filtersChanged.current = true; return; }
+    if (!filtersChanged.current) {
+      filtersChanged.current = true;
+      return;
+    }
     setPage(1);
     setAllRows([]);
-  }, [debouncedFilterText, filterRoleId, filterUserStatus]);
+  }, []);
 
   const loadedRows =
     page === 1 && allRows.length === 0 ? (result?.data ?? []) : allRows;
@@ -159,8 +171,12 @@ export default function UsersPage() {
     if (q) {
       rows = rows.filter(
         (r) =>
-          String(r.fullName ?? "").toLowerCase().includes(q) ||
-          String(r.email ?? "").toLowerCase().includes(q),
+          String(r.fullName ?? "")
+            .toLowerCase()
+            .includes(q) ||
+          String(r.email ?? "")
+            .toLowerCase()
+            .includes(q),
       );
     }
     if (filterRoleId !== "") {
@@ -168,20 +184,23 @@ export default function UsersPage() {
       rows = rows.filter((r) => r.roleId === rid);
     }
     if (filterUserStatus === "active") {
-      rows = rows.filter((r) => String(r.status ?? "").toUpperCase() === "ACTIVE");
+      rows = rows.filter(
+        (r) => String(r.status ?? "").toUpperCase() === "ACTIVE",
+      );
     }
     if (filterUserStatus === "inactive") {
-      rows = rows.filter((r) => String(r.status ?? "").toUpperCase() !== "ACTIVE");
+      rows = rows.filter(
+        (r) => String(r.status ?? "").toUpperCase() !== "ACTIVE",
+      );
     }
     return rows;
   }, [loadedRows, debouncedFilterText, filterRoleId, filterUserStatus]);
 
-  const gridFiltersActive =
+  const _gridFiltersActive =
     filterText.trim() !== "" || filterRoleId !== "" || filterUserStatus !== "";
 
   const allPagesLoaded =
-    result?.pagination != null &&
-    page >= (result.pagination.totalPages ?? 1);
+    result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
 
   const openCreate = () => {
     setEditing(null);
@@ -287,12 +306,16 @@ export default function UsersPage() {
   };
 
   const activeStatusId = useMemo(() => {
-    const row = loadedRows.find((r) => String(r.status ?? "").toUpperCase() === "ACTIVE");
+    const row = loadedRows.find(
+      (r) => String(r.status ?? "").toUpperCase() === "ACTIVE",
+    );
     return row?.statusId;
   }, [loadedRows]);
 
   const inactiveStatusId = useMemo(() => {
-    const row = loadedRows.find((r) => String(r.status ?? "").toUpperCase() !== "ACTIVE");
+    const row = loadedRows.find(
+      (r) => String(r.status ?? "").toUpperCase() !== "ACTIVE",
+    );
     return row?.statusId;
   }, [loadedRows]);
 
@@ -355,10 +378,16 @@ export default function UsersPage() {
             count={ctx.count}
             onClear={ctx.clearSelection}
             onDeleteSelected={
-              canDeleteUser ? () => void handleBulkDeleteUsers(ctx.selectedIds) : undefined
+              canDeleteUser
+                ? () => void handleBulkDeleteUsers(ctx.selectedIds)
+                : undefined
             }
-            onActivate={() => void handleBulkSetUserStatus(true, ctx.selectedIds)}
-            onDeactivate={() => void handleBulkSetUserStatus(false, ctx.selectedIds)}
+            onActivate={() =>
+              void handleBulkSetUserStatus(true, ctx.selectedIds)
+            }
+            onDeactivate={() =>
+              void handleBulkSetUserStatus(false, ctx.selectedIds)
+            }
             exportSelectedCsv={ctx.exportSelectedCsv}
             exportSelectedXlsx={ctx.exportSelectedXlsx}
             showDelete={canDeleteUser}
@@ -390,7 +419,10 @@ export default function UsersPage() {
                   className="grid-filter-bar__control--medium"
                   options={[
                     { value: "", label: "Todos" },
-                    ...roles.map((ro) => ({ value: String(ro.id), label: ro.name })),
+                    ...roles.map((ro) => ({
+                      value: String(ro.id),
+                      label: ro.name,
+                    })),
                   ]}
                 />
               </div>
@@ -421,8 +453,19 @@ export default function UsersPage() {
         onAdd={openCreate}
         addDisabled={!canCreateUser}
         actions={[
-          { icon: "edit", label: "Editar", onClick: openEdit, disabled: () => !canEditUser },
-          { icon: "delete_outline", label: "Eliminar", onClick: openDelete, variant: "danger", disabled: () => !canDeleteUser },
+          {
+            icon: "edit",
+            label: "Editar",
+            onClick: openEdit,
+            disabled: () => !canEditUser,
+          },
+          {
+            icon: "delete_outline",
+            label: "Eliminar",
+            onClick: openDelete,
+            variant: "danger",
+            disabled: () => !canDeleteUser,
+          },
         ]}
         detailDrawer={{
           entityLabelPlural: "usuarios",
@@ -430,7 +473,9 @@ export default function UsersPage() {
           getStatusBadge: (row) => {
             const active = String(row.status ?? "").toUpperCase() === "ACTIVE";
             return (
-              <span className={`dt-tag ${active ? "dt-tag--green" : "dt-tag--red"}`}>
+              <span
+                className={`dt-tag ${active ? "dt-tag--green" : "dt-tag--red"}`}
+              >
                 {active ? "Activo" : "Inactivo"}
               </span>
             );

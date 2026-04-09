@@ -33,10 +33,24 @@ export function CompactKpiStrip({ items }: { items: CompactKpiItem[] }) {
             boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 600, color: theme.secondaryText, marginBottom: 4 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: theme.secondaryText,
+              marginBottom: 4,
+            }}
+          >
             {it.label}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: theme.primaryText, lineHeight: 1.15 }}>
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 800,
+              color: theme.primaryText,
+              lineHeight: 1.15,
+            }}
+          >
             {it.value}
           </div>
         </div>

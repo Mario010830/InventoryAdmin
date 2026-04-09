@@ -1,14 +1,14 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { getApiUrl, getToken } from "@/lib/auth-api";
 import { parsePaginated } from "@/lib/api-utils";
+import { getApiUrl, getToken } from "@/lib/auth-api";
+import type { ApiResponse } from "@/lib/auth-types";
 import type {
-  RoleResponse,
-  PermissionResponse,
   CreateRoleRequest,
-  UpdateRoleRequest,
   PaginationInfo,
+  PermissionResponse,
+  RoleResponse,
+  UpdateRoleRequest,
 } from "@/lib/dashboard-types";
-import { ApiResponse } from "@/lib/auth-types";
 
 export interface PaginatedResult<T> {
   data: T[];
@@ -76,11 +76,17 @@ export const rolesApi = createApi({
     }),
     updateRole: builder.mutation<void, UpdateRoleArgs>({
       query: ({ id, body }) => ({ url: `/role?id=${id}`, method: "PUT", body }),
-      invalidatesTags: (_r, _e, { id }) => [{ type: "Role", id }, { type: "Role", id: "LIST" }],
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "Role", id },
+        { type: "Role", id: "LIST" },
+      ],
     }),
     deleteRole: builder.mutation<void, number>({
       query: (id) => ({ url: `/role?id=${id}`, method: "DELETE" }),
-      invalidatesTags: (_r, _e, id) => [{ type: "Role", id }, { type: "Role", id: "LIST" }],
+      invalidatesTags: (_r, _e, id) => [
+        { type: "Role", id },
+        { type: "Role", id: "LIST" },
+      ],
     }),
   }),
 });

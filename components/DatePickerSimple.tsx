@@ -14,7 +14,8 @@ import { Icon } from "./ui/Icon";
 function parseLocalDate(dateStr: string): Date | undefined {
   if (!dateStr?.trim()) return undefined;
   const parts = dateStr.split("-").map(Number);
-  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return undefined;
+  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n)))
+    return undefined;
   const [y, m, d] = parts;
   return new Date(y, m - 1, d);
 }

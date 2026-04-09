@@ -1,8 +1,7 @@
 import type { ApexOptions } from "apexcharts";
 
 /** Typography aligned with `src/components/charts/*` (Outfit + Inter fallback). */
-export const apexChartFontFamily =
-  "'Outfit', 'Inter', system-ui, sans-serif";
+export const apexChartFontFamily = "'Outfit', 'Inter', system-ui, sans-serif";
 
 export const apexNoDataEs: ApexOptions["noData"] = {
   text: "Sin datos",

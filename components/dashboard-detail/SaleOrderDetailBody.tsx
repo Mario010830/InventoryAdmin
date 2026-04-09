@@ -1,8 +1,8 @@
 "use client";
 
 import { useGetOrderByIdQuery } from "@/app/dashboard/sales/_service/salesApi";
-import type { SaleOrderResponse } from "@/lib/dashboard-types";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
+import type { SaleOrderResponse } from "@/lib/dashboard-types";
 import { formatDetailDate } from "@/lib/formatDetailDate";
 import { DetailField, DetailSection } from "./DetailPrimitives";
 import { StatusBadgeInline } from "./StatusBadgeInline";
@@ -12,10 +12,14 @@ export function SaleOrderDetailBody({ row }: { row: SaleOrderResponse }) {
   const { data: full, isLoading } = useGetOrderByIdQuery(row.id);
 
   const order = full ?? row;
-  const items = order.items?.length ? order.items : row.items ?? [];
+  const items = order.items?.length ? order.items : (row.items ?? []);
 
   if (isLoading && !full) {
-    return <p className="gd-detail-field__value" style={{ color: "#64748b" }}>Cargando detalle…</p>;
+    return (
+      <p className="gd-detail-field__value" style={{ color: "#64748b" }}>
+        Cargando detalle…
+      </p>
+    );
   }
 
   const sellerLabel =
@@ -55,12 +59,18 @@ export function SaleOrderDetailBody({ row }: { row: SaleOrderResponse }) {
         />
         <div className="gd-detail-section__grid gd-detail-section__grid--two">
           <DetailField label="Subtotal" value={formatCup(order.subtotal)} />
-          <DetailField label="Total" value={<strong>{formatCup(order.total)}</strong>} />
+          <DetailField
+            label="Total"
+            value={<strong>{formatCup(order.total)}</strong>}
+          />
         </div>
       </DetailSection>
       <DetailSection title="Fechas">
         <div className="gd-detail-section__grid gd-detail-section__grid--two">
-          <DetailField label="Fecha de venta" value={formatDetailDate(order.createdAt)} />
+          <DetailField
+            label="Fecha de venta"
+            value={formatDetailDate(order.createdAt)}
+          />
           <DetailField label="Creado por" value={sellerLabel} />
         </div>
       </DetailSection>

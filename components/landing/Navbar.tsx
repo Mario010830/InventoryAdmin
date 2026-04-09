@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 
 function scrollToSection(sectionId: string) {

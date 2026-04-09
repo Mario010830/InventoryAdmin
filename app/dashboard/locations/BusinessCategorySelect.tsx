@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
 import { ChevronDown, CircleOff } from "lucide-react";
-import type { BusinessCategoryResponse } from "@/lib/dashboard-types";
+import { useEffect, useId, useRef, useState } from "react";
 import { BusinessCategoryLucideGlyph } from "@/components/dashboard/BusinessCategoryLucideGlyph";
+import type { BusinessCategoryResponse } from "@/lib/dashboard-types";
 
 export function BusinessCategorySelect({
   value,
@@ -47,21 +47,35 @@ export function BusinessCategorySelect({
         onClick={() => !busy && setOpen((o) => !o)}
       >
         {loading ? (
-          <span className="business-cat-select__muted">Cargando categorías…</span>
+          <span className="business-cat-select__muted">
+            Cargando categorías…
+          </span>
         ) : selected ? (
           <>
-            <span className="business-cat-select__icon-wrap business-cat-select__icon-wrap--lucide" aria-hidden>
-              <BusinessCategoryLucideGlyph categoryName={selected.name} size={16} strokeWidth={2} />
+            <span
+              className="business-cat-select__icon-wrap business-cat-select__icon-wrap--lucide"
+              aria-hidden
+            >
+              <BusinessCategoryLucideGlyph
+                categoryName={selected.name}
+                size={16}
+                strokeWidth={2}
+              />
             </span>
             <span className="business-cat-select__text">{selected.name}</span>
           </>
         ) : (
           <span className="business-cat-select__muted">Sin especificar</span>
         )}
-        <ChevronDown className="business-cat-select__chevron" size={18} strokeWidth={2} aria-hidden />
+        <ChevronDown
+          className="business-cat-select__chevron"
+          size={18}
+          strokeWidth={2}
+          aria-hidden
+        />
       </button>
       {open && !busy && (
-        <ul className="business-cat-select__menu" role="listbox" aria-label="Tipo de negocio">
+        <ul className="business-cat-select__menu" aria-label="Tipo de negocio">
           <li role="presentation">
             <button
               type="button"
@@ -73,7 +87,10 @@ export function BusinessCategorySelect({
                 setOpen(false);
               }}
             >
-              <span className="business-cat-select__icon-wrap business-cat-select__icon-wrap--muted business-cat-select__icon-wrap--lucide" aria-hidden>
+              <span
+                className="business-cat-select__icon-wrap business-cat-select__icon-wrap--muted business-cat-select__icon-wrap--lucide"
+                aria-hidden
+              >
                 <CircleOff size={16} strokeWidth={2} />
               </span>
               <span>Sin especificar</span>
@@ -93,8 +110,15 @@ export function BusinessCategorySelect({
                     setOpen(false);
                   }}
                 >
-                  <span className="business-cat-select__icon-wrap business-cat-select__icon-wrap--lucide" aria-hidden>
-                    <BusinessCategoryLucideGlyph categoryName={c.name} size={16} strokeWidth={2} />
+                  <span
+                    className="business-cat-select__icon-wrap business-cat-select__icon-wrap--lucide"
+                    aria-hidden
+                  >
+                    <BusinessCategoryLucideGlyph
+                      categoryName={c.name}
+                      size={16}
+                      strokeWidth={2}
+                    />
                   </span>
                   <span>{c.name}</span>
                 </button>

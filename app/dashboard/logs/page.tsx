@@ -1,21 +1,21 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { DataTableColumn } from "@/components/DataTable";
+import { DataTable } from "@/components/DataTable";
+import type { LogResponse } from "@/lib/dashboard-types";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
-  useLoadAllRemainingPages,
   SEARCH_TABLE_CHUNK_PAGE_SIZE,
   TABLE_SEARCH_DEBOUNCE_MS,
+  useLoadAllRemainingPages,
 } from "@/lib/useLoadAllRemainingPages";
-import type { LogResponse } from "@/lib/dashboard-types";
-import { DataTable } from "@/components/DataTable";
-import type { DataTableColumn } from "@/components/DataTable";
 import { useGetLogsQuery } from "./_service/logsApi";
 import "../products/products-modal.css";
-import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
 import { DatePickerSimple } from "@/components/DatePickerSimple";
-import { useGetUsersQuery } from "../users/_service/usersApi";
+import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
 import { LogDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
+import { useGetUsersQuery } from "../users/_service/usersApi";
 
 const COLUMNS: DataTableColumn<LogResponse>[] = [
   { key: "id", label: "ID", width: "60px" },
@@ -45,9 +45,12 @@ function matchesActionKind(row: LogResponse, kind: string): boolean {
 
 export default function LogsPage() {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, _setPageSize] = useState(15);
   const [filterText, setFilterText] = useState("");
-  const debouncedFilterText = useDebouncedValue(filterText, TABLE_SEARCH_DEBOUNCE_MS);
+  const debouncedFilterText = useDebouncedValue(
+    filterText,
+    TABLE_SEARCH_DEBOUNCE_MS,
+  );
   const [actionKind, setActionKind] = useState("");
   const [filterUserId, setFilterUserId] = useState("");
   const [logDateFrom, setLogDateFrom] = useState("");
@@ -56,7 +59,11 @@ export default function LogsPage() {
   const loadNextPage = useCallback(() => setPage((p) => p + 1), []);
   const filtersChanged = useRef(false);
 
-  const { data: result, isLoading, isFetching } = useGetLogsQuery({
+  const {
+    data: result,
+    isLoading,
+    isFetching,
+  } = useGetLogsQuery({
     page,
     perPage,
     sortOrder: "desc",
@@ -87,9 +94,10 @@ export default function LogsPage() {
     }
     setPage(1);
     setAllRows([]);
-  }, [debouncedFilterText, actionKind, filterUserId, logDateFrom, logDateTo]);
+  }, []);
 
-  const loadedRows = page === 1 && allRows.length === 0 ? (result?.data ?? []) : allRows;
+  const loadedRows =
+    page === 1 && allRows.length === 0 ? (result?.data ?? []) : allRows;
 
   const { data: usersPage } = useGetUsersQuery({ page: 1, perPage: 500 });
 
@@ -123,8 +131,9 @@ export default function LogsPage() {
     if (q) {
       rows = rows.filter(
         (r) =>
-          String(r.description ?? "").toLowerCase().includes(q) ||
-          String(r.userId ?? "").includes(q),
+          String(r.description ?? "")
+            .toLowerCase()
+            .includes(q) || String(r.userId ?? "").includes(q),
       );
     }
     if (actionKind) rows = rows.filter((r) => matchesActionKind(r, actionKind));
@@ -142,7 +151,14 @@ export default function LogsPage() {
       rows = rows.filter((r) => new Date(r.createdAt).getTime() <= t.getTime());
     }
     return rows;
-  }, [loadedRows, debouncedFilterText, actionKind, filterUserId, logDateFrom, logDateTo]);
+  }, [
+    loadedRows,
+    debouncedFilterText,
+    actionKind,
+    filterUserId,
+    logDateFrom,
+    logDateTo,
+  ]);
 
   const gridFiltersActive =
     filterText.trim() !== "" ||
@@ -152,117 +168,114 @@ export default function LogsPage() {
     logDateTo !== "";
 
   const allPagesLoaded =
-    result?.pagination != null &&
-    page >= (result.pagination.totalPages ?? 1);
+    result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
 
   return (
-    <>
-      <DataTable
-        gridConfig={{
-          storageKey: "dashboard-logs",
-          exportFilenamePrefix: "logs",
-          primaryColumnKey: "description",
-          bulkEntityLabel: "registros",
-        }}
-        filters={
-          <GridFilterBar onClear={clearGridFilters}>
+    <DataTable
+      gridConfig={{
+        storageKey: "dashboard-logs",
+        exportFilenamePrefix: "logs",
+        primaryColumnKey: "description",
+        bulkEntityLabel: "registros",
+      }}
+      filters={
+        <GridFilterBar onClear={clearGridFilters}>
+          <div className="grid-filter-bar__field">
+            <span className="grid-filter-bar__label">Buscar</span>
+            <input
+              type="search"
+              className={`grid-filter-bar__control grid-filter-bar__control--wide ${filterText.trim() ? "grid-filter-bar__control--active" : ""}`}
+              placeholder="Descripción, usuario…"
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+            />
+          </div>
+          <div className="grid-filter-bar__field">
+            <span className="grid-filter-bar__label">Tipo de acción</span>
+            <GridFilterSelect
+              aria-label="Tipo de acción"
+              value={actionKind}
+              onChange={setActionKind}
+              active={actionKind !== ""}
+              className="grid-filter-bar__control--medium"
+              options={[
+                { value: "", label: "Todas" },
+                { value: "create", label: "Creación" },
+                { value: "edit", label: "Edición" },
+                { value: "delete", label: "Eliminación" },
+                { value: "login", label: "Login" },
+              ]}
+            />
+          </div>
+          {userIdsInData.length > 0 ? (
             <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Buscar</span>
-              <input
-                type="search"
-                className={`grid-filter-bar__control grid-filter-bar__control--wide ${filterText.trim() ? "grid-filter-bar__control--active" : ""}`}
-                placeholder="Descripción, usuario…"
-                value={filterText}
-                onChange={(e) => setFilterText(e.target.value)}
-              />
-            </div>
-            <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Tipo de acción</span>
+              <span className="grid-filter-bar__label">Usuario</span>
               <GridFilterSelect
-                aria-label="Tipo de acción"
-                value={actionKind}
-                onChange={setActionKind}
-                active={actionKind !== ""}
+                aria-label="Usuario"
+                value={filterUserId}
+                onChange={setFilterUserId}
+                active={filterUserId !== ""}
                 className="grid-filter-bar__control--medium"
                 options={[
-                  { value: "", label: "Todas" },
-                  { value: "create", label: "Creación" },
-                  { value: "edit", label: "Edición" },
-                  { value: "delete", label: "Eliminación" },
-                  { value: "login", label: "Login" },
+                  { value: "", label: "Todos" },
+                  ...userIdsInData.map((id) => ({
+                    value: String(id),
+                    label: userIdToName.get(id) ?? String(id),
+                  })),
                 ]}
               />
             </div>
-            {userIdsInData.length > 0 ? (
-              <div className="grid-filter-bar__field">
-                <span className="grid-filter-bar__label">Usuario</span>
-                <GridFilterSelect
-                  aria-label="Usuario"
-                  value={filterUserId}
-                  onChange={setFilterUserId}
-                  active={filterUserId !== ""}
-                  className="grid-filter-bar__control--medium"
-                  options={[
-                    { value: "", label: "Todos" },
-                    ...userIdsInData.map((id) => ({
-                      value: String(id),
-                      label: userIdToName.get(id) ?? String(id),
-                    })),
-                  ]}
-                />
-              </div>
-            ) : null}
-            <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Desde</span>
-              <DatePickerSimple
-                date={logDateFrom}
-                setDate={setLogDateFrom}
-                emptyLabel="Seleccionar"
-                buttonClassName={`grid-filter-bar__date-trigger grid-filter-bar__control--medium ${logDateFrom ? "grid-filter-bar__control--active" : ""}`}
-              />
-            </div>
-            <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Hasta</span>
-              <DatePickerSimple
-                date={logDateTo}
-                setDate={setLogDateTo}
-                emptyLabel="Seleccionar"
-                buttonClassName={`grid-filter-bar__date-trigger grid-filter-bar__control--medium ${logDateTo ? "grid-filter-bar__control--active" : ""}`}
-              />
-            </div>
-          </GridFilterBar>
-        }
-        data={filteredData}
-        columns={COLUMNS}
-        loading={allRows.length === 0 && (isLoading || isFetching)}
-        title="Logs del sistema"
-        titleIcon="receipt_long"
-        infiniteScroll
-        hasMore={!allPagesLoaded}
-        loadingMore={isFetching && !allPagesLoaded}
-        emptyIcon="receipt_long"
-        emptyTitle="Sin registros"
-        emptyDesc={
-          gridFiltersActive && loadedRows.length > 0
-            ? "Ningún log coincide con los filtros."
-            : "No hay logs"
-        }
-        detailDrawer={{
-          entityLabelPlural: "registros",
-          getTitle: (row) => `Log #${row.id}`,
-          render: (row) => (
-            <LogDetailBody
-              row={row}
-              userLabel={
-                row.userId != null && row.userId > 0
-                  ? userIdToName.get(row.userId) ?? String(row.userId)
-                  : "—"
-              }
+          ) : null}
+          <div className="grid-filter-bar__field">
+            <span className="grid-filter-bar__label">Desde</span>
+            <DatePickerSimple
+              date={logDateFrom}
+              setDate={setLogDateFrom}
+              emptyLabel="Seleccionar"
+              buttonClassName={`grid-filter-bar__date-trigger grid-filter-bar__control--medium ${logDateFrom ? "grid-filter-bar__control--active" : ""}`}
             />
-          ),
-          showEditButton: false,
-        }}
-      />
-    </>
+          </div>
+          <div className="grid-filter-bar__field">
+            <span className="grid-filter-bar__label">Hasta</span>
+            <DatePickerSimple
+              date={logDateTo}
+              setDate={setLogDateTo}
+              emptyLabel="Seleccionar"
+              buttonClassName={`grid-filter-bar__date-trigger grid-filter-bar__control--medium ${logDateTo ? "grid-filter-bar__control--active" : ""}`}
+            />
+          </div>
+        </GridFilterBar>
+      }
+      data={filteredData}
+      columns={COLUMNS}
+      loading={allRows.length === 0 && (isLoading || isFetching)}
+      title="Logs del sistema"
+      titleIcon="receipt_long"
+      infiniteScroll
+      hasMore={!allPagesLoaded}
+      loadingMore={isFetching && !allPagesLoaded}
+      emptyIcon="receipt_long"
+      emptyTitle="Sin registros"
+      emptyDesc={
+        gridFiltersActive && loadedRows.length > 0
+          ? "Ningún log coincide con los filtros."
+          : "No hay logs"
+      }
+      detailDrawer={{
+        entityLabelPlural: "registros",
+        getTitle: (row) => `Log #${row.id}`,
+        render: (row) => (
+          <LogDetailBody
+            row={row}
+            userLabel={
+              row.userId != null && row.userId > 0
+                ? (userIdToName.get(row.userId) ?? String(row.userId))
+                : "—"
+            }
+          />
+        ),
+        showEditButton: false,
+      }}
+    />
   );
 }

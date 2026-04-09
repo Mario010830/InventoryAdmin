@@ -1,13 +1,7 @@
 "use client";
 
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
 import { useRouter } from "next/navigation";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Icon } from "@/components/ui/Icon";
 import type {
@@ -16,11 +10,15 @@ import type {
   ElYerroPreviewResult,
   ProductTipo,
 } from "@/lib/dashboard-types";
-import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import {
   IMPORT_ELYERRO_MOVEMENT_REASON,
   MOVEMENT_REASON_LABEL,
 } from "@/lib/inventoryMovementUi";
+import {
+  beginSuppressMutationToasts,
+  endSuppressMutationToasts,
+} from "@/lib/mutationToastControl";
+import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import { useGetLocationsQuery } from "../locations/_service/locationsApi";
 import {
   useCreateMovementMutation,
@@ -34,10 +32,6 @@ import {
   useLazyGetProductsQuery,
   useUpdateProductMutation,
 } from "./_service/productsApi";
-import {
-  beginSuppressMutationToasts,
-  endSuppressMutationToasts,
-} from "@/lib/mutationToastControl";
 import "./product-import-wizard.css";
 
 const ELYERRO_FINISH_TOAST_ID = "elyerro-import-finish";
@@ -85,35 +79,26 @@ function extractElYerroImportedRow(
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
   let idRaw: unknown =
-    o.id ??
-    o.Id ??
-    o.productId ??
-    o.ProductId ??
-    o.productoId ??
-    o.ProductoId;
-  let name = String(
-    o.name ?? o.Name ?? o.nombre ?? o.Nombre ?? "",
-  ).trim();
+    o.id ?? o.Id ?? o.productId ?? o.ProductId ?? o.productoId ?? o.ProductoId;
+  let name = String(o.name ?? o.Name ?? o.nombre ?? o.Nombre ?? "").trim();
   if (idRaw == null || idRaw === "") {
     const nested =
-      o.product ??
-      o.Product ??
-      o.producto ??
-      o.Producto ??
-      o.item ??
-      o.Item;
+      o.product ?? o.Product ?? o.producto ?? o.Producto ?? o.item ?? o.Item;
     if (nested && typeof nested === "object") {
       const n = nested as Record<string, unknown>;
-      idRaw = n.id ?? n.Id ?? n.productId ?? n.ProductId ?? n.productoId ?? n.ProductoId;
+      idRaw =
+        n.id ??
+        n.Id ??
+        n.productId ??
+        n.ProductId ??
+        n.productoId ??
+        n.ProductoId;
       if (!name) {
-        name = String(
-          n.name ?? n.Name ?? n.nombre ?? n.Nombre ?? "",
-        ).trim();
+        name = String(n.name ?? n.Name ?? n.nombre ?? n.Nombre ?? "").trim();
       }
     }
   }
-  const id =
-    typeof idRaw === "string" ? Number(idRaw.trim()) : Number(idRaw);
+  const id = typeof idRaw === "string" ? Number(idRaw.trim()) : Number(idRaw);
   if (!Number.isFinite(id) || id <= 0) return null;
   return { id, name: name || `Producto #${id}` };
 }
@@ -430,8 +415,9 @@ export function ElYerroImportWizard({
   );
 
   const urlTrimmed = businessUrl.trim();
-  const urlLooksOk =
-    /^https:\/\/(www\.)?elyerromenu\.com\/b\/.+/i.test(urlTrimmed);
+  const urlLooksOk = /^https:\/\/(www\.)?elyerromenu\.com\/b\/.+/i.test(
+    urlTrimmed,
+  );
 
   const step1Ready = Boolean(urlTrimmed) && urlLooksOk;
 
@@ -474,12 +460,9 @@ export function ElYerroImportWizard({
           catLabel,
           nombre: p.nombre || "—",
           precio:
-            p.precio != null
-              ? `${p.precio} ${p.moneda ?? ""}`.trim()
-              : "—",
+            p.precio != null ? `${p.precio} ${p.moneda ?? ""}`.trim() : "—",
           disponible: p.disponible,
-          warn:
-            Boolean(importarSoloDisponibles && !p.disponible),
+          warn: Boolean(importarSoloDisponibles && !p.disponible),
         });
         if (out.length >= PREVIEW_TABLE_MAX) return out;
       }
@@ -890,7 +873,10 @@ export function ElYerroImportWizard({
               </p>
 
               {preview.errores.length > 0 ? (
-                <div className="product-import-wizard__elyerro-errors" role="alert">
+                <div
+                  className="product-import-wizard__elyerro-errors"
+                  role="alert"
+                >
                   <strong>Errores parciales al obtener el menú</strong>
                   <ul>
                     {preview.errores.map((err, idx) => (
@@ -914,7 +900,8 @@ export function ElYerroImportWizard({
                     </p>
                     <p className="product-import-wizard__stock-location-card-desc">
                       Mismo criterio que en la importación por Excel: solo
-                      disponibles y cómo tratar duplicados por nombre y categoría.
+                      disponibles y cómo tratar duplicados por nombre y
+                      categoría.
                     </p>
                   </div>
                 </div>
@@ -965,7 +952,9 @@ export function ElYerroImportWizard({
                       <tr
                         key={`${row.catLabel}-${row.nombre}-${i}`}
                         className={
-                          row.warn ? "product-import-wizard__row-warn" : undefined
+                          row.warn
+                            ? "product-import-wizard__row-warn"
+                            : undefined
                         }
                       >
                         <td>{i + 1}</td>
@@ -1169,8 +1158,8 @@ export function ElYerroImportWizard({
                 </p>
               ) : importResult.totalImportados > 0 ? (
                 <p className="product-import-wizard__meta-warn product-import-wizard__meta--block">
-                  No se pudo obtener la lista de productos recién importados (ni en
-                  la respuesta del servidor ni desde el catálogo). Usa «Ir al
+                  No se pudo obtener la lista de productos recién importados (ni
+                  en la respuesta del servidor ni desde el catálogo). Usa «Ir al
                   listado de productos» para asignar tipo y stock allí.
                 </p>
               ) : null}
@@ -1408,48 +1397,45 @@ export function ElYerroImportWizard({
               </button>
             </>
           )}
-          {step === 3 && (
-            <>
-              {elyerroImportedProducts.length > 0 ? (
-                <>
-                  <button
-                    type="button"
-                    className="product-import-wizard__btn product-import-wizard__btn--ghost"
-                    onClick={handleClose}
-                  >
-                    Cerrar
-                  </button>
-                  <button
-                    type="button"
-                    className="product-import-wizard__btn product-import-wizard__btn--primary"
-                    onClick={() => setStep(4)}
-                  >
-                    Continuar: tipo y stock
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    className="product-import-wizard__btn product-import-wizard__btn--ghost"
-                    onClick={handleClose}
-                  >
-                    Cerrar
-                  </button>
-                  <button
-                    type="button"
-                    className="product-import-wizard__btn product-import-wizard__btn--primary"
-                    onClick={() => {
-                      onClose();
-                      router.push("/dashboard/products");
-                    }}
-                  >
-                    Ir al listado de productos
-                  </button>
-                </>
-              )}
-            </>
-          )}
+          {step === 3 &&
+            (elyerroImportedProducts.length > 0 ? (
+              <>
+                <button
+                  type="button"
+                  className="product-import-wizard__btn product-import-wizard__btn--ghost"
+                  onClick={handleClose}
+                >
+                  Cerrar
+                </button>
+                <button
+                  type="button"
+                  className="product-import-wizard__btn product-import-wizard__btn--primary"
+                  onClick={() => setStep(4)}
+                >
+                  Continuar: tipo y stock
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="product-import-wizard__btn product-import-wizard__btn--ghost"
+                  onClick={handleClose}
+                >
+                  Cerrar
+                </button>
+                <button
+                  type="button"
+                  className="product-import-wizard__btn product-import-wizard__btn--primary"
+                  onClick={() => {
+                    onClose();
+                    router.push("/dashboard/products");
+                  }}
+                >
+                  Ir al listado de productos
+                </button>
+              </>
+            ))}
           {step === 4 && (
             <>
               <button

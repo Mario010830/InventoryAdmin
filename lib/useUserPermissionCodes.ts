@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { useAppSelector } from "@/store/store";
 import { useGetMyRoleQuery } from "@/app/dashboard/roles/_service/rolesApi";
 import { PERMISSIONS } from "@/lib/utils";
+import { useAppSelector } from "@/store/store";
 
 /**
  * Devuelve los códigos de permiso del usuario actual según su rol.
@@ -15,7 +15,9 @@ export function useUserPermissionCodes(): {
   has: (code: string) => boolean;
 } {
   const user = useAppSelector((state) => state.auth);
-  const { data: role, isLoading } = useGetMyRoleQuery(undefined, { skip: !user });
+  const { data: role, isLoading } = useGetMyRoleQuery(undefined, {
+    skip: !user,
+  });
 
   const permissionCodes = useMemo(() => {
     if (!role?.result) return new Set<string>();
@@ -29,7 +31,7 @@ export function useUserPermissionCodes(): {
   const has = useMemo(
     () => (code: string) =>
       permissionCodes.has("admin") || permissionCodes.has(code),
-    [permissionCodes]
+    [permissionCodes],
   );
 
   return { permissionCodes, isLoading, has };

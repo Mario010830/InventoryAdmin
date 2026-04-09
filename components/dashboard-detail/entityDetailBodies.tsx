@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/Icon";
+import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 import type { LocationResponse, UserResponse } from "@/lib/auth-types";
 import type {
   ContactResponse,
@@ -12,12 +14,18 @@ import type {
   RoleResponse,
   SupplierResponse,
 } from "@/lib/dashboard-types";
-import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
-import { displayDash, formatDetailDate, formatDetailDateTime } from "@/lib/formatDetailDate";
-import { formatMovementReason, movementTypeLabel } from "@/lib/inventoryMovementUi";
+import {
+  displayDash,
+  formatDetailDate,
+  formatDetailDateTime,
+} from "@/lib/formatDetailDate";
+import {
+  formatMovementReason,
+  movementTypeLabel,
+} from "@/lib/inventoryMovementUi";
 import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
-import { Icon } from "@/components/ui/Icon";
 import { BoolBadge, DetailField, DetailSection } from "./DetailPrimitives";
+
 function marginPercent(row: ProductResponse): string {
   const p = Number(row.precio);
   const c = Number(row.costo);
@@ -39,7 +47,7 @@ export function ProductDetailBody({
   const { formatCup } = useDisplayCurrency();
   const stock = row.totalStock;
   const imgSrc = row.imagenUrl?.trim()
-    ? getProxiedImageSrc(row.imagenUrl) ?? row.imagenUrl
+    ? (getProxiedImageSrc(row.imagenUrl) ?? row.imagenUrl)
     : null;
   return (
     <>
@@ -64,7 +72,9 @@ export function ProductDetailBody({
           <DetailField label="Nombre" value={displayDash(row.name)} />
           <DetailField
             label="Descripción"
-            value={displayDash(row.description?.trim() ? row.description : null)}
+            value={displayDash(
+              row.description?.trim() ? row.description : null,
+            )}
           />
           <DetailField label="Categoría" value={displayDash(categoryName)} />
         </div>
@@ -80,15 +90,27 @@ export function ProductDetailBody({
         <div className="gd-detail-section__grid gd-detail-section__grid--two">
           <DetailField
             label="Disponible"
-            value={<BoolBadge value={row.isAvailable} trueLabel="Sí" falseLabel="No" />}
+            value={
+              <BoolBadge
+                value={row.isAvailable}
+                trueLabel="Sí"
+                falseLabel="No"
+              />
+            }
           />
           <DetailField
             label="En venta"
-            value={<BoolBadge value={row.isForSale} trueLabel="Sí" falseLabel="No" />}
+            value={
+              <BoolBadge value={row.isForSale} trueLabel="Sí" falseLabel="No" />
+            }
           />
           <DetailField
             label="Stock actual"
-            value={stock != null && Number.isFinite(Number(stock)) ? String(stock) : "—"}
+            value={
+              stock != null && Number.isFinite(Number(stock))
+                ? String(stock)
+                : "—"
+            }
           />
           <DetailField
             label="Tipo"
@@ -112,7 +134,8 @@ export function ProductDetailBody({
                 : row.offerLocationIds
                     .map(
                       (id) =>
-                        locations.find((l) => l.id === id)?.name?.trim() || `Tienda #${id}`,
+                        locations.find((l) => l.id === id)?.name?.trim() ||
+                        `Tienda #${id}`,
                     )
                     .join(", ")
             }
@@ -122,7 +145,10 @@ export function ProductDetailBody({
       <DetailSection title="Fechas">
         <div className="gd-detail-section__grid gd-detail-section__grid--two">
           <DetailField label="Creado" value={formatDetailDate(row.createdAt)} />
-          <DetailField label="Última actualización" value={formatDetailDate(row.modifiedAt)} />
+          <DetailField
+            label="Última actualización"
+            value={formatDetailDate(row.modifiedAt)}
+          />
         </div>
       </DetailSection>
     </>
@@ -152,7 +178,10 @@ export function CategoryDetailBody({
         value={productCount != null ? String(productCount) : "—"}
       />
       <DetailField label="Creado" value={formatDetailDate(row.createdAt)} />
-      <DetailField label="Última actualización" value={formatDetailDate(row.modifiedAt)} />
+      <DetailField
+        label="Última actualización"
+        value={formatDetailDate(row.modifiedAt)}
+      />
     </>
   );
 }
@@ -170,14 +199,22 @@ export function ContactDetailBody({
         <div className="gd-detail-section__grid gd-detail-section__grid--two">
           <DetailField label="Nombre" value={displayDash(row.name)} />
           <DetailField label="Empresa" value={displayDash(row.company)} />
-          <DetailField label="Persona de contacto" value={displayDash(row.contactPerson)} />
+          <DetailField
+            label="Persona de contacto"
+            value={displayDash(row.contactPerson)}
+          />
           <DetailField label="Email" value={displayDash(row.email)} />
           <DetailField label="Teléfono" value={displayDash(row.phone)} />
           <DetailField label="Origen" value={displayDash(row.origin)} />
           <DetailField label="Dirección" value={displayDash(row.address)} />
           <DetailField
             label="Asignado a"
-            value={displayDash(assignedUserName ?? (row.assignedUserId != null ? `Usuario #${row.assignedUserId}` : null))}
+            value={displayDash(
+              assignedUserName ??
+                (row.assignedUserId != null
+                  ? `Usuario #${row.assignedUserId}`
+                  : null),
+            )}
           />
         </div>
       </DetailSection>
@@ -189,13 +226,18 @@ export function ContactDetailBody({
       <DetailSection title="Estado">
         <DetailField
           label="Activo"
-          value={<BoolBadge value={row.isActive} trueLabel="Sí" falseLabel="No" />}
+          value={
+            <BoolBadge value={row.isActive} trueLabel="Sí" falseLabel="No" />
+          }
         />
       </DetailSection>
       <DetailSection title="Fechas">
         <div className="gd-detail-section__grid gd-detail-section__grid--two">
           <DetailField label="Creado" value={formatDetailDate(row.createdAt)} />
-          <DetailField label="Última actualización" value={formatDetailDate(row.modifiedAt)} />
+          <DetailField
+            label="Última actualización"
+            value={formatDetailDate(row.modifiedAt)}
+          />
         </div>
       </DetailSection>
     </>
@@ -216,14 +258,22 @@ export function LeadDetailBody({
         <div className="gd-detail-section__grid gd-detail-section__grid--two">
           <DetailField label="Nombre" value={displayDash(row.name)} />
           <DetailField label="Empresa" value={displayDash(row.company)} />
-          <DetailField label="Persona de contacto" value={displayDash(row.contactPerson)} />
+          <DetailField
+            label="Persona de contacto"
+            value={displayDash(row.contactPerson)}
+          />
           <DetailField label="Email" value={displayDash(row.email)} />
           <DetailField label="Teléfono" value={displayDash(row.phone)} />
           <DetailField label="Origen" value={displayDash(row.origin)} />
           <DetailField label="Estado" value={displayDash(row.status)} />
           <DetailField
             label="Asignado a"
-            value={displayDash(assignedUserName ?? (row.assignedUserId != null ? `Usuario #${row.assignedUserId}` : null))}
+            value={displayDash(
+              assignedUserName ??
+                (row.assignedUserId != null
+                  ? `Usuario #${row.assignedUserId}`
+                  : null),
+            )}
           />
         </div>
       </DetailSection>
@@ -235,7 +285,9 @@ export function LeadDetailBody({
           />
           <DetailField
             label="Fecha de conversión"
-            value={row.convertedAt ? formatDetailDateTime(row.convertedAt) : "—"}
+            value={
+              row.convertedAt ? formatDetailDateTime(row.convertedAt) : "—"
+            }
           />
         </DetailSection>
       ) : null}
@@ -247,7 +299,10 @@ export function LeadDetailBody({
       <DetailSection title="Fechas">
         <div className="gd-detail-section__grid gd-detail-section__grid--two">
           <DetailField label="Creado" value={formatDetailDate(row.createdAt)} />
-          <DetailField label="Última actualización" value={formatDetailDate(row.modifiedAt)} />
+          <DetailField
+            label="Última actualización"
+            value={formatDetailDate(row.modifiedAt)}
+          />
         </div>
       </DetailSection>
     </>
@@ -260,7 +315,10 @@ export function SupplierDetailBody({ row }: { row: SupplierResponse }) {
       <DetailSection title="General">
         <div className="gd-detail-section__grid gd-detail-section__grid--two">
           <DetailField label="Nombre" value={displayDash(row.name)} />
-          <DetailField label="Contacto" value={displayDash(row.contactPerson)} />
+          <DetailField
+            label="Contacto"
+            value={displayDash(row.contactPerson)}
+          />
           <DetailField label="Email" value={displayDash(row.email)} />
           <DetailField label="Teléfono" value={displayDash(row.phone)} />
         </div>
@@ -270,7 +328,11 @@ export function SupplierDetailBody({ row }: { row: SupplierResponse }) {
           <DetailField
             label="Estado"
             value={
-              <BoolBadge value={row.isActive} trueLabel="Activo" falseLabel="Inactivo" />
+              <BoolBadge
+                value={row.isActive}
+                trueLabel="Activo"
+                falseLabel="Inactivo"
+              />
             }
           />
           <DetailField label="País" value="—" />
@@ -279,7 +341,10 @@ export function SupplierDetailBody({ row }: { row: SupplierResponse }) {
       <DetailSection title="Fechas">
         <div className="gd-detail-section__grid gd-detail-section__grid--two">
           <DetailField label="Creado" value={formatDetailDate(row.createdAt)} />
-          <DetailField label="Última actualización" value={formatDetailDate(row.modifiedAt)} />
+          <DetailField
+            label="Última actualización"
+            value={formatDetailDate(row.modifiedAt)}
+          />
         </div>
       </DetailSection>
     </>
@@ -288,7 +353,7 @@ export function SupplierDetailBody({ row }: { row: SupplierResponse }) {
 
 export function LocationDetailBody({ row }: { row: LocationResponse }) {
   const photo = row.photoUrl?.trim();
-  const imgSrc = photo ? getProxiedImageSrc(photo) ?? photo : null;
+  const imgSrc = photo ? (getProxiedImageSrc(photo) ?? photo) : null;
   return (
     <>
       {imgSrc ? (
@@ -335,7 +400,10 @@ export function LocationDetailBody({ row }: { row: LocationResponse }) {
         value={<span className="dt-tag dt-tag--green">Activo</span>}
       />
       <DetailField label="Creado" value={formatDetailDate(row.createdAt)} />
-      <DetailField label="Última actualización" value={formatDetailDate(row.modifiedAt)} />
+      <DetailField
+        label="Última actualización"
+        value={formatDetailDate(row.modifiedAt)}
+      />
     </>
   );
 }
@@ -349,21 +417,25 @@ export function InventoryDetailBody({
 }) {
   const max = row.maximumStock;
   return (
-    <>
-      <div className="gd-detail-section__grid gd-detail-section__grid--two">
-        <DetailField label="Producto" value={displayDash(row.productName)} />
-        <DetailField label="Categoría" value={displayDash(categoryName)} />
-        <DetailField label="Ubicación" value={displayDash(row.locationName)} />
-        <DetailField label="Stock actual" value={String(row.currentStock)} />
-        <DetailField label="Stock mínimo" value={String(row.minimumStock)} />
-        <DetailField
-          label="Stock máximo"
-          value={max != null && Number.isFinite(max) ? String(max) : "—"}
-        />
-        <DetailField label="Última actualización" value={formatDetailDate(row.modifiedAt)} />
-        <DetailField label="Actualizado por" value={displayDash(row.modifiedByUserName)} />
-      </div>
-    </>
+    <div className="gd-detail-section__grid gd-detail-section__grid--two">
+      <DetailField label="Producto" value={displayDash(row.productName)} />
+      <DetailField label="Categoría" value={displayDash(categoryName)} />
+      <DetailField label="Ubicación" value={displayDash(row.locationName)} />
+      <DetailField label="Stock actual" value={String(row.currentStock)} />
+      <DetailField label="Stock mínimo" value={String(row.minimumStock)} />
+      <DetailField
+        label="Stock máximo"
+        value={max != null && Number.isFinite(max) ? String(max) : "—"}
+      />
+      <DetailField
+        label="Última actualización"
+        value={formatDetailDate(row.modifiedAt)}
+      />
+      <DetailField
+        label="Actualizado por"
+        value={displayDash(row.modifiedByUserName)}
+      />
+    </div>
   );
 }
 
@@ -424,12 +496,15 @@ export function MovementDetailBody({
       </DetailSection>
       <DetailSection title="Contexto">
         <div className="gd-detail-section__grid gd-detail-section__grid--two">
-          <DetailField label="Ubicación" value={displayDash(row.locationName)} />
           <DetailField
-            label="Razón"
-            value={formatMovementReason(row.reason)}
+            label="Ubicación"
+            value={displayDash(row.locationName)}
           />
-          <DetailField label="Usuario" value={movementUserLabel(row, userIdToName)} />
+          <DetailField label="Razón" value={formatMovementReason(row.reason)} />
+          <DetailField
+            label="Usuario"
+            value={movementUserLabel(row, userIdToName)}
+          />
           <DetailField label="Fecha" value={formatDetailDate(row.createdAt)} />
         </div>
       </DetailSection>
@@ -458,9 +533,14 @@ export function UserDetailBody({
       <DetailField label="Rol" value={displayDash(roleName)} />
       <DetailField
         label="Estado"
-        value={<BoolBadge value={active} trueLabel="Activo" falseLabel="Inactivo" />}
+        value={
+          <BoolBadge value={active} trueLabel="Activo" falseLabel="Inactivo" />
+        }
       />
-      <DetailField label="Último acceso" value={last ? formatDetailDateTime(String(last)) : "—"} />
+      <DetailField
+        label="Último acceso"
+        value={last ? formatDetailDateTime(String(last)) : "—"}
+      />
       <DetailField label="Creado" value="—" />
       <DetailField label="Última actualización" value="—" />
     </>
@@ -486,12 +566,17 @@ export function RoleDetailBody({
       <DetailField
         label="Estado"
         value={
-          <span className={`dt-tag ${row.isSystem ? "dt-tag--red" : "dt-tag--green"}`}>
+          <span
+            className={`dt-tag ${row.isSystem ? "dt-tag--red" : "dt-tag--green"}`}
+          >
             {row.isSystem ? "Sistema" : "Personalizado"}
           </span>
         }
       />
-      <DetailField label="Total usuarios con este rol" value={String(userCount)} />
+      <DetailField
+        label="Total usuarios con este rol"
+        value={String(userCount)}
+      />
       <DetailField
         label="Permisos asignados"
         value={
@@ -525,7 +610,10 @@ export function LogDetailBody({
       <DetailField label="Tipo de acción" value={displayDash(row.logType)} />
       <DetailField label="Descripción" value={displayDash(row.description)} />
       <DetailField label="Usuario" value={displayDash(userLabel)} />
-      <DetailField label="Fecha y hora exacta" value={formatDetailDateTime(row.createdAt)} />
+      <DetailField
+        label="Fecha y hora exacta"
+        value={formatDetailDateTime(row.createdAt)}
+      />
       <DetailField label="IP" value={ip ? displayDash(ip) : "—"} />
     </>
   );

@@ -14,5 +14,12 @@ export function BusinessCategoryLucideGlyph({
   strokeWidth?: number;
 }) {
   const Icon = getBusinessCategoryLucideComponent(categoryName);
-  return <Icon size={size} className={className} strokeWidth={strokeWidth} aria-hidden />;
+  return (
+    <Icon
+      size={size}
+      className={className}
+      strokeWidth={strokeWidth}
+      aria-hidden
+    />
+  );
 }

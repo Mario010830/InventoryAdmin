@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { useAppDispatch, useAppSelector } from "@/store/store";
-import { loginSuccessfull } from "@/app/login/_slices/authSlice";
 import type { AuthState } from "@/app/login/_slices/authSlice";
-import { getToken, getStoredUser } from "@/lib/auth-api";
+import { loginSuccessfull } from "@/app/login/_slices/authSlice";
+import { getStoredUser, getToken } from "@/lib/auth-api";
+import { useAppDispatch, useAppSelector } from "@/store/store";
 
 /**
  * Restores auth into Redux from localStorage when there is a token but no auth

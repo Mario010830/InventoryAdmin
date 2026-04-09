@@ -1,15 +1,15 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import type { ApexOptions } from "apexcharts";
-import { ChartCardMenu } from "./ChartCardMenu";
-import { theme } from "./theme";
+import dynamic from "next/dynamic";
 import {
   apexChartFontFamily,
   apexChartLocaleEs,
   apexNoDataEs,
   formatChartNumber,
 } from "@/lib/apexcharts-es";
+import { ChartCardMenu } from "./ChartCardMenu";
+import { theme } from "./theme";
 
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
@@ -33,7 +33,10 @@ function toNumberOrNull(value: unknown): number | null {
   return null;
 }
 
-function resolvePointValue(point: { value?: number; [key: string]: unknown }): number {
+function resolvePointValue(point: {
+  value?: number;
+  [key: string]: unknown;
+}): number {
   const candidates = [
     point.value,
     point.count,
@@ -136,7 +139,9 @@ export function LineChartCard({
       <div className="dashboard-card__head">
         <div>
           <div className="dashboard-card__title">{title}</div>
-          {subtitle && <div className="dashboard-card__subtitle">{subtitle}</div>}
+          {subtitle && (
+            <div className="dashboard-card__subtitle">{subtitle}</div>
+          )}
         </div>
         <ChartCardMenu />
       </div>

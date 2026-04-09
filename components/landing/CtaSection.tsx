@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Icon } from "@/components/ui/Icon";
 import { PricingPlanCards } from "@/components/pricing";
+import { Icon } from "@/components/ui/Icon";
 
 export function CtaSection() {
   return (

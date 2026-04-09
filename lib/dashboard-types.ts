@@ -7,7 +7,6 @@ export interface PaginationInfo {
   hasNextPage: boolean;
 }
 
-
 export type ProductTipo = "inventariable" | "elaborado";
 
 export interface Tag {
@@ -112,7 +111,8 @@ export interface ElYerroImportPreviewRequest {
   categoriasAImportar?: string[] | null;
 }
 
-export interface ElYerroImportExecuteRequest extends ElYerroImportPreviewRequest {
+export interface ElYerroImportExecuteRequest
+  extends ElYerroImportPreviewRequest {
   importarSoloDisponibles?: boolean;
   actualizarSiExiste?: boolean;
 }
@@ -589,11 +589,10 @@ export interface PublicLocation {
   /** Horarios completos enviados por el backend (sin procesar) */
   businessHours?: Record<
     string,
-    | {
-        open: string;
-        close: string;
-      }
-    | null
+    {
+      open: string;
+      close: string;
+    } | null
   > | null;
   /** Coordenadas crudas enviadas como objeto */
   coordinates?: {

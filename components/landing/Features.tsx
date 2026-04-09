@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, type MouseEvent } from "react";
 import { motion, useInView } from "framer-motion";
+import { type MouseEvent, useRef } from "react";
 import { Icon } from "@/components/ui/Icon";
 
 const FEATURES = [
@@ -84,7 +84,8 @@ function handleTilt(e: MouseEvent<HTMLDivElement>) {
 }
 
 function handleTiltReset(e: MouseEvent<HTMLDivElement>) {
-  e.currentTarget.style.transform = "perspective(600px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)";
+  e.currentTarget.style.transform =
+    "perspective(600px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)";
 }
 
 export function Features() {

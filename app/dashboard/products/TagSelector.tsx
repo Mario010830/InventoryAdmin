@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
-import { useGetTagsQuery } from "./_service/productsApi";
-import type { Tag } from "@/lib/dashboard-types";
 import { TAG_GROUPS } from "@/constants/tags";
+import type { Tag } from "@/lib/dashboard-types";
+import { useGetTagsQuery } from "./_service/productsApi";
 
 interface TagSelectorProps {
   value: number[];
@@ -46,10 +46,7 @@ export function TagSelector({ value, onChange }: TagSelectorProps) {
 
   const [search, setSearch] = useState("");
 
-  const grouped = useMemo(
-    () => buildGroupedTags(apiTags),
-    [apiTags],
-  );
+  const grouped = useMemo(() => buildGroupedTags(apiTags), [apiTags]);
 
   const toggleTag = useCallback(
     (id: number) => {
@@ -81,9 +78,7 @@ export function TagSelector({ value, onChange }: TagSelectorProps) {
   if (isLoading) {
     return (
       <div className="tag-selector-v2">
-        <div className="tag-selector-v2__loading">
-          Cargando etiquetas…
-        </div>
+        <div className="tag-selector-v2__loading">Cargando etiquetas…</div>
       </div>
     );
   }
@@ -174,10 +169,7 @@ export function TagSelector({ value, onChange }: TagSelectorProps) {
               Seleccionadas:{" "}
             </span>
             {selectedTags.slice(0, 3).map((t) => (
-              <span
-                key={t.id}
-                className="tag-selector-v2__footer-pill"
-              >
+              <span key={t.id} className="tag-selector-v2__footer-pill">
                 {t.name}
               </span>
             ))}

@@ -57,28 +57,45 @@ export function ListCard({
             <Icon name={icon} />
           </div>
         )}
-        <h3 className="dashboard-card__title">
-          {title}
-        </h3>
+        <h3 className="dashboard-card__title">{title}</h3>
       </div>
 
-      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 0, flex: 1 }}>
+      <ul
+        style={{
+          listStyle: "none",
+          margin: 0,
+          padding: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: 0,
+          flex: 1,
+        }}
+      >
         {visible.map((item, i) => (
           <li
             key={i}
             style={{
               padding: "10px 0",
-              borderBottom: i < visible.length - 1 ? `1px solid ${theme.divider}` : "none",
+              borderBottom:
+                i < visible.length - 1 ? `1px solid ${theme.divider}` : "none",
               display: "flex",
               flexDirection: "column",
               gap: 2,
             }}
           >
-            <span style={{ fontSize: 14, fontWeight: 500, color: theme.primaryText }}>
+            <span
+              style={{
+                fontSize: 14,
+                fontWeight: 500,
+                color: theme.primaryText,
+              }}
+            >
               {item.primary}
             </span>
             {item.secondary != null && item.secondary !== "" && (
-              <span style={{ fontSize: 12, color: theme.secondaryText }}>{item.secondary}</span>
+              <span style={{ fontSize: 12, color: theme.secondaryText }}>
+                {item.secondary}
+              </span>
             )}
           </li>
         ))}

@@ -22,8 +22,12 @@ export function useFavorites() {
   // Initial load
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setFavoriteLocations(safeParseArray(window.localStorage.getItem(LOCATIONS_KEY)));
-    setFavoriteProducts(safeParseArray(window.localStorage.getItem(PRODUCTS_KEY)));
+    setFavoriteLocations(
+      safeParseArray(window.localStorage.getItem(LOCATIONS_KEY)),
+    );
+    setFavoriteProducts(
+      safeParseArray(window.localStorage.getItem(PRODUCTS_KEY)),
+    );
   }, []);
 
   // Storage event sync (multi-tab)
@@ -82,4 +86,3 @@ export function useFavorites() {
     isFavoriteProduct,
   };
 }
-

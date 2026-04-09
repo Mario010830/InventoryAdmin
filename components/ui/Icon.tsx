@@ -1,6 +1,5 @@
 "use client";
 
-import type { ComponentProps } from "react";
 import {
   ArrowDown,
   ArrowLeft,
@@ -16,8 +15,6 @@ import {
   Calendar,
   Check,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   CircleAlert,
   CircleCheck,
   Columns3,
@@ -37,15 +34,16 @@ import {
   Lock,
   LogIn,
   LogOut,
+  type LucideIcon,
   Mail,
   Map,
   MapPin,
-  MessageCircle,
   Menu,
+  MessageCircle,
   MinusCircle,
   Package,
-  Pencil,
   PanelLeftOpen,
+  Pencil,
   PlayCircle,
   Plus,
   PlusCircle,
@@ -56,17 +54,17 @@ import {
   Search,
   SearchX,
   Send,
+  ShieldCheck,
+  ShoppingCart,
   SlidersHorizontal,
   Star,
   Store,
-  ShoppingCart,
-  ShieldCheck,
   Table2,
   Tag,
   ToggleRight,
-  TriangleAlert,
   Trash2,
   TrendingUp,
+  TriangleAlert,
   Truck,
   Upload,
   UserRound,
@@ -75,8 +73,8 @@ import {
   Warehouse,
   WifiOff,
   X,
-  type LucideIcon,
 } from "lucide-react";
+import type { ComponentProps } from "react";
 
 const ICON_MAP: Record<string, LucideIcon> = {
   add: Plus,

@@ -1,23 +1,23 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { Icon } from "@/components/ui/Icon";
-import { useAppSelector, useAppDispatch } from "@/store/store";
-import { addItem, updateQuantity, setLocation } from "@/store/cartSlice";
+import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
+import { useFuseSearch } from "@/hooks/useFuseSearch";
+import type { PublicCatalogItem } from "@/lib/dashboard-types";
+import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
+import { useFavorites } from "@/lib/useFavorites";
+import { addItem, setLocation, updateQuantity } from "@/store/cartSlice";
+import { useAppDispatch, useAppSelector } from "@/store/store";
 import {
   useGetPublicCatalogQuery,
   useGetPublicLocationsQuery,
   useGetPublicTagsQuery,
 } from "../_service/catalogApi";
 import { useCatalogCtx } from "../layout";
-import { useFavorites } from "@/lib/useFavorites";
-import { FavoriteButton } from "@/components/FavoriteButton";
-import { useFuseSearch } from "@/hooks/useFuseSearch";
-import type { PublicCatalogItem } from "@/lib/dashboard-types";
-import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
-import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 
 const PRODUCT_FUSE_KEYS = [
   { name: "name" as const, weight: 0.5 },
@@ -31,7 +31,12 @@ function hexToRgb(hex: string): string {
   return `${parseInt(h.substring(0, 2), 16)}, ${parseInt(h.substring(2, 4), 16)}, ${parseInt(h.substring(4, 6), 16)}`;
 }
 
-type SortKey = "default" | "price-asc" | "price-desc" | "name-asc" | "name-desc";
+type SortKey =
+  | "default"
+  | "price-asc"
+  | "price-desc"
+  | "name-asc"
+  | "name-desc";
 type ViewMode = "grid" | "list";
 
 const LOW_STOCK_THRESHOLD = 5;
@@ -115,7 +120,13 @@ function FilterBody({
   categories: { name: string; color: string; count: number }[];
   cat: string | null;
   setCat: (v: string | null) => void;
-  tags: { id: number; name: string; slug: string; color: string; count: number }[];
+  tags: {
+    id: number;
+    name: string;
+    slug: string;
+    color: string;
+    count: number;
+  }[];
   selectedTagSlugs: string[];
   setSelectedTagSlugs: (v: string[] | ((prev: string[]) => string[])) => void;
   sort: SortKey;
@@ -156,7 +167,10 @@ function FilterBody({
                 className={`filter-cat${cat === c.name ? " filter-cat--active" : ""}`}
                 onClick={() => setCat(cat === c.name ? null : c.name)}
               >
-                <span className="filter-cat__dot" style={{ background: c.color }} />
+                <span
+                  className="filter-cat__dot"
+                  style={{ background: c.color }}
+                />
                 {c.name}
                 <span className="filter-cat__count">{c.count}</span>
               </button>
@@ -184,7 +198,10 @@ function FilterBody({
                 className={`filter-cat${selectedTagSlugs.includes(t.slug) ? " filter-cat--active" : ""}`}
                 onClick={() => toggleTag(t.slug)}
               >
-                <span className="filter-cat__dot" style={{ background: t.color }} />
+                <span
+                  className="filter-cat__dot"
+                  style={{ background: t.color }}
+                />
                 {t.name}
                 <span className="filter-cat__count">{t.count}</span>
               </button>
@@ -194,9 +211,7 @@ function FilterBody({
                 type="button"
                 className="filter-cat filter-cat--more"
                 onClick={() =>
-                  setVisibleTagCount((prev) =>
-                    Math.min(prev + 6, tags.length),
-                  )
+                  setVisibleTagCount((prev) => Math.min(prev + 6, tags.length))
                 }
               >
                 Ver más
@@ -282,7 +297,9 @@ function QuickView({
 }) {
   const isElaborado = item.tipo === "elaborado";
   const sold = isElaborado ? false : item.stockAtLocation === 0;
-  const low = isElaborado ? false : !sold && item.stockAtLocation <= LOW_STOCK_THRESHOLD;
+  const low = isElaborado
+    ? false
+    : !sold && item.stockAtLocation <= LOW_STOCK_THRESHOLD;
   const cc = item.categoryColor ?? "#3b82f6";
 
   return (
@@ -294,9 +311,15 @@ function QuickView({
 
         <div className="quickview__img-side">
           {item.imagenUrl ? (
-            <img src={getProxiedImageSrc(item.imagenUrl) ?? item.imagenUrl} alt={item.name} className="quickview__img" />
+            <img
+              src={getProxiedImageSrc(item.imagenUrl) ?? item.imagenUrl}
+              alt={item.name}
+              className="quickview__img"
+            />
           ) : (
-            <div className="quickview__no-img"><Icon name="inventory_2" /></div>
+            <div className="quickview__no-img">
+              <Icon name="inventory_2" />
+            </div>
           )}
         </div>
 
@@ -314,7 +337,9 @@ function QuickView({
             </span>
           )}
           <h2 className="quickview__name">{item.name}</h2>
-          {item.description && <p className="quickview__desc">{item.description}</p>}
+          {item.description && (
+            <p className="quickview__desc">{item.description}</p>
+          )}
           <div className="quickview__price">{formatPrice(item.precio)}</div>
 
           {sold ? (
@@ -327,11 +352,13 @@ function QuickView({
             </div>
           ) : low ? (
             <div className="quickview__stock quickview__stock--low">
-              <Icon name="warning" /> ¡Solo quedan {item.stockAtLocation} unidades!
+              <Icon name="warning" /> ¡Solo quedan {item.stockAtLocation}{" "}
+              unidades!
             </div>
           ) : (
             <div className="quickview__stock quickview__stock--ok">
-              <Icon name="check_circle" /> En stock ({item.stockAtLocation} disponibles)
+              <Icon name="check_circle" /> En stock ({item.stockAtLocation}{" "}
+              disponibles)
             </div>
           )}
 
@@ -345,7 +372,10 @@ function QuickView({
             <button
               type="button"
               className="quickview__add-btn"
-              onClick={() => { onAdd(); onClose(); }}
+              onClick={() => {
+                onAdd();
+                onClose();
+              }}
               disabled={sold}
             >
               <Icon name="add_shopping_cart" />
@@ -374,30 +404,31 @@ function Card({
 }) {
   const dispatch = useAppDispatch();
   const inCart = useAppSelector((s) =>
-    s.cart.items.find((i) => i.productId === item.id)
+    s.cart.items.find((i) => i.productId === item.id),
   );
   const [addAnimating, setAddAnimating] = useState(false);
   const isElaborado = item.tipo === "elaborado";
   const sold = isElaborado ? false : item.stockAtLocation === 0;
-  const low = isElaborado ? false : !sold && item.stockAtLocation <= LOW_STOCK_THRESHOLD;
+  const low = isElaborado
+    ? false
+    : !sold && item.stockAtLocation <= LOW_STOCK_THRESHOLD;
   const cc = item.categoryColor ?? "#3b82f6";
 
-  const add = () =>
-    {
-      dispatch(
-        addItem({
-          productId: item.id,
-          name: item.name,
-          unitPrice: item.precio,
-          quantity: 1,
-          imagenUrl: item.imagenUrl,
-          stockAtLocation: item.stockAtLocation,
-          tipo: item.tipo,
-        })
-      );
-      setAddAnimating(true);
-      window.setTimeout(() => setAddAnimating(false), 200);
-    };
+  const add = () => {
+    dispatch(
+      addItem({
+        productId: item.id,
+        name: item.name,
+        unitPrice: item.precio,
+        quantity: 1,
+        imagenUrl: item.imagenUrl,
+        stockAtLocation: item.stockAtLocation,
+        tipo: item.tipo,
+      }),
+    );
+    setAddAnimating(true);
+    window.setTimeout(() => setAddAnimating(false), 200);
+  };
 
   const qty = (q: number) =>
     dispatch(updateQuantity({ productId: item.id, quantity: q }));
@@ -406,9 +437,16 @@ function Card({
     <div className={`p-card${sold ? " p-card--sold" : ""}`}>
       <div className="p-card__img-area" onClick={() => onQuickView(item)}>
         {item.imagenUrl ? (
-          <img src={getProxiedImageSrc(item.imagenUrl) ?? item.imagenUrl} alt={item.name} className="p-card__img" loading="lazy" />
+          <img
+            src={getProxiedImageSrc(item.imagenUrl) ?? item.imagenUrl}
+            alt={item.name}
+            className="p-card__img"
+            loading="lazy"
+          />
         ) : (
-          <div className="p-card__no-img"><Icon name="inventory_2" /></div>
+          <div className="p-card__no-img">
+            <Icon name="inventory_2" />
+          </div>
         )}
         <div className="p-card__img-top">
           {item.categoryName && (
@@ -440,27 +478,44 @@ function Card({
       </div>
 
       <div className="p-card__info">
-        <div className="p-card__name" onClick={() => onQuickView(item)}>{item.name}</div>
+        <div className="p-card__name" onClick={() => onQuickView(item)}>
+          {item.name}
+        </div>
         {item.description && <p className="p-card__desc">{item.description}</p>}
 
         <div className="p-card__price-row">
-          <span className="p-card__price">
-            {formatPrice(item.precio)}
-          </span>
+          <span className="p-card__price">{formatPrice(item.precio)}</span>
         </div>
 
         {sold ? (
           <div className="p-card__avail p-card__avail--no">No disponible</div>
         ) : (
-          <div className="p-card__avail p-card__avail--yes">{isElaborado ? "Disponible" : "En stock"}</div>
+          <div className="p-card__avail p-card__avail--yes">
+            {isElaborado ? "Disponible" : "En stock"}
+          </div>
         )}
 
-        {!sold && (
-          inCart ? (
+        {!sold &&
+          (inCart ? (
             <div className="p-card__qty p-card__qty--active">
-              <button type="button" className="p-card__qty-btn" onClick={() => qty(inCart.quantity - 1)}>−</button>
+              <button
+                type="button"
+                className="p-card__qty-btn"
+                onClick={() => qty(inCart.quantity - 1)}
+              >
+                −
+              </button>
               <span className="p-card__qty-val">{inCart.quantity}</span>
-              <button type="button" className="p-card__qty-btn" disabled={!isElaborado && inCart.quantity >= item.stockAtLocation} onClick={() => qty(inCart.quantity + 1)}>+</button>
+              <button
+                type="button"
+                className="p-card__qty-btn"
+                disabled={
+                  !isElaborado && inCart.quantity >= item.stockAtLocation
+                }
+                onClick={() => qty(inCart.quantity + 1)}
+              >
+                +
+              </button>
             </div>
           ) : (
             <button
@@ -470,8 +525,7 @@ function Card({
             >
               <Icon name="add_shopping_cart" /> Agregar
             </button>
-          )
-        )}
+          ))}
       </div>
     </div>
   );
@@ -484,22 +538,26 @@ export default function CatalogProductsPage() {
   const locationId = Number(params.locationId);
   const dispatch = useAppDispatch();
   const { search } = useCatalogCtx();
-  const {
-    favoriteProducts,
-    toggleFavoriteProduct,
-    isFavoriteProduct,
-  } = useFavorites();
+  const { favoriteProducts, toggleFavoriteProduct, isFavoriteProduct } =
+    useFavorites();
 
   const [cat, setCat] = useState<string | null>(null);
   const [selectedTagSlugs, setSelectedTagSlugs] = useState<string[]>([]);
   const [sort, setSort] = useState<SortKey>("default");
   const [hideOutOfStock, setHideOutOfStock] = useState(false);
   const [view, setView] = useState<ViewMode>("grid");
-  const [quickViewItem, setQuickViewItem] = useState<PublicCatalogItem | null>(null);
+  const [quickViewItem, setQuickViewItem] = useState<PublicCatalogItem | null>(
+    null,
+  );
   const [mobileFilters, setMobileFilters] = useState(false);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 0]);
 
-  const { data: products, isLoading, isError, refetch } = useGetPublicCatalogQuery(locationId);
+  const {
+    data: products,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetPublicCatalogQuery(locationId);
   const { data: locations } = useGetPublicLocationsQuery();
   const { data: publicTagsRaw } = useGetPublicTagsQuery();
   const publicTags = publicTagsRaw ?? [];
@@ -525,7 +583,7 @@ export default function CatalogProductsPage() {
         }),
       );
     }
-  }, [loc?.id, loc?.isOpenNow, loc?.todayOpen, loc?.todayClose, dispatch]);
+  }, [loc, dispatch]);
 
   const filteredBySearch = useFuseSearch(
     products ?? [],
@@ -554,19 +612,34 @@ export default function CatalogProductsPage() {
       if (!p.categoryName) continue;
       const existing = m.get(p.categoryName);
       if (existing) existing.count++;
-      else m.set(p.categoryName, { name: p.categoryName, color: p.categoryColor ?? "#3b82f6", count: 1 });
+      else
+        m.set(p.categoryName, {
+          name: p.categoryName,
+          color: p.categoryColor ?? "#3b82f6",
+          count: 1,
+        });
     }
     return Array.from(m.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [filteredBySearch]);
 
   const tagsWithCount = useMemo(() => {
     const countBySlug = new Map<string, number>();
-    const slugToTag = new Map<string, { id: number; name: string; color: string; slug: string }>();
+    const slugToTag = new Map<
+      string,
+      { id: number; name: string; color: string; slug: string }
+    >();
     for (const t of tagsStable) {
-      slugToTag.set(t.slug, { id: t.id, name: t.name, color: t.color ?? "#3b82f6", slug: t.slug });
+      slugToTag.set(t.slug, {
+        id: t.id,
+        name: t.name,
+        color: t.color ?? "#3b82f6",
+        slug: t.slug,
+      });
     }
     for (const p of filteredBySearch) {
-      const slugs = (p.tagIds ?? []).map((id) => tagsStable.find((t) => t.id === id)?.slug).filter(Boolean) as string[];
+      const slugs = (p.tagIds ?? [])
+        .map((id) => tagsStable.find((t) => t.id === id)?.slug)
+        .filter(Boolean) as string[];
       for (const slug of slugs) {
         countBySlug.set(slug, (countBySlug.get(slug) ?? 0) + 1);
       }
@@ -588,16 +661,33 @@ export default function CatalogProductsPage() {
         return productSlugs.some((s) => selectedTagSlugs.includes(s));
       });
     }
-    if (hideOutOfStock) r = r.filter((p) => p.tipo === "elaborado" || p.stockAtLocation > 0);
+    if (hideOutOfStock)
+      r = r.filter((p) => p.tipo === "elaborado" || p.stockAtLocation > 0);
     r = r.filter((p) => p.precio >= priceRange[0] && p.precio <= priceRange[1]);
     switch (sort) {
-      case "price-asc":  r.sort((a, b) => a.precio - b.precio); break;
-      case "price-desc": r.sort((a, b) => b.precio - a.precio); break;
-      case "name-asc":   r.sort((a, b) => a.name.localeCompare(b.name)); break;
-      case "name-desc":  r.sort((a, b) => b.name.localeCompare(a.name)); break;
+      case "price-asc":
+        r.sort((a, b) => a.precio - b.precio);
+        break;
+      case "price-desc":
+        r.sort((a, b) => b.precio - a.precio);
+        break;
+      case "name-asc":
+        r.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case "name-desc":
+        r.sort((a, b) => b.name.localeCompare(a.name));
+        break;
     }
     return r;
-  }, [filteredBySearch, cat, selectedTagSlugs, hideOutOfStock, sort, priceRange, tagsStable]);
+  }, [
+    filteredBySearch,
+    cat,
+    selectedTagSlugs,
+    hideOutOfStock,
+    sort,
+    priceRange,
+    tagsStable,
+  ]);
 
   /** Agrupación por categoría para presentación (solo render). */
   const sectionsByCategory = useMemo(() => {
@@ -614,7 +704,10 @@ export default function CatalogProductsPage() {
         acc[key].products.push(product);
         return acc;
       },
-      {} as Record<string, { name: string; color: string; products: PublicCatalogItem[] }>,
+      {} as Record<
+        string,
+        { name: string; color: string; products: PublicCatalogItem[] }
+      >,
     );
     const sections = Object.values(grouped);
     sections.sort((a, b) => {
@@ -642,7 +735,7 @@ export default function CatalogProductsPage() {
           imagenUrl: item.imagenUrl,
           stockAtLocation: item.stockAtLocation,
           tipo: item.tipo,
-        })
+        }),
       );
     },
     [dispatch],
@@ -687,25 +780,35 @@ export default function CatalogProductsPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <h1 className="prod-topbar__title">{loc?.name ?? "Catálogo"}</h1>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 12,
+              alignItems: "center",
+            }}
+          >
             {loc && (loc.todayOpen || loc.todayClose) && (
               <span className="prod-topbar__schedule">
                 Hoy: {loc.todayOpen ?? "—"} - {loc.todayClose ?? "—"}
               </span>
             )}
-            {lat != null && lng != null && !Number.isNaN(lat) && !Number.isNaN(lng) && (
-              <a
-                href={`https://www.google.com/maps?q=${lat},${lng}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="prod-topbar__maps"
-              >
-                <span className="prod-topbar__maps-icon">
-                  <Icon name="location_on" />
-                </span>
-                <span>Ver en Google Maps</span>
-              </a>
-            )}
+            {lat != null &&
+              lng != null &&
+              !Number.isNaN(lat) &&
+              !Number.isNaN(lng) && (
+                <a
+                  href={`https://www.google.com/maps?q=${lat},${lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="prod-topbar__maps"
+                >
+                  <span className="prod-topbar__maps-icon">
+                    <Icon name="location_on" />
+                  </span>
+                  <span>Ver en Google Maps</span>
+                </a>
+              )}
           </div>
         </div>
 
@@ -750,9 +853,17 @@ export default function CatalogProductsPage() {
 
           {isError && (
             <div className="store-empty">
-              <div className="store-empty__icon"><Icon name="wifi_off" /></div>
-              <p className="store-empty__text">No pudimos cargar el catálogo.</p>
-              <button type="button" className="store-empty__btn" onClick={refetch}>
+              <div className="store-empty__icon">
+                <Icon name="wifi_off" />
+              </div>
+              <p className="store-empty__text">
+                No pudimos cargar el catálogo.
+              </p>
+              <button
+                type="button"
+                className="store-empty__btn"
+                onClick={refetch}
+              >
                 <Icon name="refresh" /> Reintentar
               </button>
             </div>
@@ -760,15 +871,21 @@ export default function CatalogProductsPage() {
 
           {!isLoading && !isError && products && products.length === 0 && (
             <div className="store-empty">
-              <div className="store-empty__icon"><Icon name="inventory_2" /></div>
+              <div className="store-empty__icon">
+                <Icon name="inventory_2" />
+              </div>
               <p className="store-empty__text">Este local no tiene productos</p>
             </div>
           )}
 
           {hasProducts && filtered.length === 0 && (
             <div className="store-empty">
-              <div className="store-empty__icon"><Icon name="search_off" /></div>
-              <p className="store-empty__text">No se encontraron productos con esos filtros</p>
+              <div className="store-empty__icon">
+                <Icon name="search_off" />
+              </div>
+              <p className="store-empty__text">
+                No se encontraron productos con esos filtros
+              </p>
             </div>
           )}
 
@@ -791,7 +908,9 @@ export default function CatalogProductsPage() {
                     item={item}
                     onQuickView={setQuickViewItem}
                     isFavorite={true}
-                    onToggleFavorite={() => toggleFavoriteProduct(String(item.id))}
+                    onToggleFavorite={() =>
+                      toggleFavoriteProduct(String(item.id))
+                    }
                     formatPrice={formatCup}
                   />
                 ))}
@@ -799,43 +918,53 @@ export default function CatalogProductsPage() {
             </div>
           )}
 
-          {hasProducts && filtered.length > 0 && (
-            <>
-              {sectionsByCategory.map((section) => (
-                <section key={section.name} className="catalog-section">
-                  <div className="catalog-section-header">
-                    <span
-                      className="catalog-section-header__dot"
-                      style={{ backgroundColor: section.color }}
+          {hasProducts &&
+            filtered.length > 0 &&
+            sectionsByCategory.map((section) => (
+              <section key={section.name} className="catalog-section">
+                <div className="catalog-section-header">
+                  <span
+                    className="catalog-section-header__dot"
+                    style={{ backgroundColor: section.color }}
+                  />
+                  <span className="catalog-section-header__name">
+                    {section.name}
+                  </span>
+                  <span className="catalog-section-header__count">
+                    {section.products.length}
+                  </span>
+                </div>
+                <div
+                  className={`prod-grid${view === "list" ? " prod-grid--list" : ""}`}
+                >
+                  {section.products.map((item) => (
+                    <Card
+                      key={item.id}
+                      item={item}
+                      onQuickView={setQuickViewItem}
+                      isFavorite={isFavoriteProduct(String(item.id))}
+                      onToggleFavorite={() =>
+                        toggleFavoriteProduct(String(item.id))
+                      }
+                      formatPrice={formatCup}
                     />
-                    <span className="catalog-section-header__name">{section.name}</span>
-                    <span className="catalog-section-header__count">
-                      {section.products.length}
-                    </span>
-                  </div>
-                  <div className={`prod-grid${view === "list" ? " prod-grid--list" : ""}`}>
-                    {section.products.map((item) => (
-                      <Card
-                        key={item.id}
-                        item={item}
-                        onQuickView={setQuickViewItem}
-                        isFavorite={isFavoriteProduct(String(item.id))}
-                        onToggleFavorite={() => toggleFavoriteProduct(String(item.id))}
-                        formatPrice={formatCup}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ))}
-            </>
-          )}
+                  ))}
+                </div>
+              </section>
+            ))}
         </div>
       </div>
 
       {/* Mobile filter drawer */}
       {mobileFilters && (
-        <div className="mobile-filter-overlay open" onClick={() => setMobileFilters(false)}>
-          <div className="mobile-filter-panel" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="mobile-filter-overlay open"
+          onClick={() => setMobileFilters(false)}
+        >
+          <div
+            className="mobile-filter-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="mobile-filter-head">
               Filtros
               <button

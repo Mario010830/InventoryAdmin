@@ -15,7 +15,8 @@ function str(v: unknown): string {
 
 function normalizeStatus(raw: unknown): SubscriptionStatus {
   const s = str(raw).toLowerCase();
-  if (s === "active" || s === "pending" || s === "expired" || s === "cancelled") return s;
+  if (s === "active" || s === "pending" || s === "expired" || s === "cancelled")
+    return s;
   return "pending";
 }
 
@@ -40,7 +41,9 @@ function planNameFrom(inner: Record<string, unknown>): string {
   return "";
 }
 
-function planRecord(inner: Record<string, unknown>): Record<string, unknown> | null {
+function planRecord(
+  inner: Record<string, unknown>,
+): Record<string, unknown> | null {
   const plan = inner.plan ?? inner.Plan;
   if (plan && typeof plan === "object") return plan as Record<string, unknown>;
   return null;
@@ -56,7 +59,9 @@ function pickLimit(...candidates: unknown[]): number | null {
   return null;
 }
 
-export function parseMySubscriptionResponse(raw: unknown): MySubscriptionDto | null {
+export function parseMySubscriptionResponse(
+  raw: unknown,
+): MySubscriptionDto | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
   const inner = (o.result ?? o.Result ?? o.data ?? o.Data ?? o) as unknown;

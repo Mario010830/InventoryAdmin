@@ -1,40 +1,39 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { useDebouncedValue } from "@/lib/useDebouncedValue";
-import {
-  useLoadAllRemainingPages,
-  SEARCH_TABLE_CHUNK_PAGE_SIZE,
-  TABLE_SEARCH_DEBOUNCE_MS,
-} from "@/lib/useLoadAllRemainingPages";
-import type { RoleResponse } from "@/lib/dashboard-types";
-import { DataTable } from "@/components/DataTable";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DataTableColumn } from "@/components/DataTable";
-import {
-  useGetRolesQuery,
-  useCreateRoleMutation,
-  useUpdateRoleMutation,
-  useDeleteRoleMutation,
-  useGetPermissionsQuery,
-} from "./_service/rolesApi";
-import { useGetUsersQuery } from "../users/_service/usersApi";
-import { RoleDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
-import { Icon } from "@/components/ui/Icon";
+import { DataTable } from "@/components/DataTable";
 import { DeleteModal } from "@/components/DeleteModal";
+import { RoleDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
 import { FormModal } from "@/components/FormModal";
 import Switch from "@/components/Switch";
-import { PERMISSIONS } from "@/lib/utils";
+import type { RoleResponse } from "@/lib/dashboard-types";
 import {
   buildEntityGroups,
-  getReadPermission,
   getOtherPermissions,
+  getReadPermission,
 } from "@/lib/permissions-by-entity";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
+import {
+  SEARCH_TABLE_CHUNK_PAGE_SIZE,
+  TABLE_SEARCH_DEBOUNCE_MS,
+  useLoadAllRemainingPages,
+} from "@/lib/useLoadAllRemainingPages";
+import { PERMISSIONS } from "@/lib/utils";
+import { useGetUsersQuery } from "../users/_service/usersApi";
+import {
+  useCreateRoleMutation,
+  useDeleteRoleMutation,
+  useGetPermissionsQuery,
+  useGetRolesQuery,
+  useUpdateRoleMutation,
+} from "./_service/rolesApi";
 import "../products/products-modal.css";
 import "./roles-modal.css";
-import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 import { toast } from "sonner";
-import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
 import { GridFilterBar } from "@/components/dashboard";
+import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
+import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 
 const COLUMNS: DataTableColumn<RoleResponse>[] = [
   { key: "name", label: "Nombre" },
@@ -48,7 +47,11 @@ const COLUMNS: DataTableColumn<RoleResponse>[] = [
   { key: "createdAt", label: "Creado", type: "date" },
 ];
 
-const initialForm: { name: string; description: string; permissions: number[] } = {
+const initialForm: {
+  name: string;
+  description: string;
+  permissions: number[];
+} = {
   name: "",
   description: "",
   permissions: [],
@@ -56,9 +59,12 @@ const initialForm: { name: string; description: string; permissions: number[] } 
 
 export default function RolesPage() {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, _setPageSize] = useState(10);
   const [filterText, setFilterText] = useState("");
-  const debouncedFilterText = useDebouncedValue(filterText, TABLE_SEARCH_DEBOUNCE_MS);
+  const debouncedFilterText = useDebouncedValue(
+    filterText,
+    TABLE_SEARCH_DEBOUNCE_MS,
+  );
   const perPage = Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
   const loadNextPage = useCallback(() => setPage((p) => p + 1), []);
   const [formOpen, setFormOpen] = useState(false);
@@ -82,7 +88,16 @@ export default function RolesPage() {
     useGetPermissionsQuery();
   const permissionList = useMemo(() => {
     const raw = permissions as
-      | { result?: { id?: number; Id?: number; code?: string; Code?: string; name?: string; Name?: string }[] }
+      | {
+          result?: {
+            id?: number;
+            Id?: number;
+            code?: string;
+            Code?: string;
+            name?: string;
+            Name?: string;
+          }[];
+        }
       | undefined;
     const fromApi = Array.isArray(raw?.result) ? raw.result : [];
     /** Unión por id: siempre incluir PERMISSIONS del front + lo que devuelva la API (nombres/códigos de la API tienen prioridad). */
@@ -91,10 +106,22 @@ export default function RolesPage() {
       byId.set(p.id, { id: p.id, code: p.code, name: p.name });
     }
     for (const p of fromApi) {
-      const id = Number((p as { id?: number; Id?: number }).id ?? (p as { Id?: number }).Id ?? 0);
+      const id = Number(
+        (p as { id?: number; Id?: number }).id ??
+          (p as { Id?: number }).Id ??
+          0,
+      );
       if (!id) continue;
-      const code = String((p as { code?: string; Code?: string }).code ?? (p as { Code?: string }).Code ?? "").trim();
-      const nameRaw = String((p as { name?: string; Name?: string }).name ?? (p as { Name?: string }).Name ?? "").trim();
+      const code = String(
+        (p as { code?: string; Code?: string }).code ??
+          (p as { Code?: string }).Code ??
+          "",
+      ).trim();
+      const nameRaw = String(
+        (p as { name?: string; Name?: string }).name ??
+          (p as { Name?: string }).Name ??
+          "",
+      ).trim();
       const fallback = PERMISSIONS.find((x) => x.id === id);
       byId.set(id, {
         id,
@@ -113,7 +140,10 @@ export default function RolesPage() {
     isLoading,
     isFetching,
   } = useGetRolesQuery({ page, perPage });
-  const { data: usersForRoleCount } = useGetUsersQuery({ page: 1, perPage: 500 });
+  const { data: usersForRoleCount } = useGetUsersQuery({
+    page: 1,
+    perPage: 500,
+  });
   const usersPerRole = useMemo(() => {
     const m = new Map<number, number>();
     for (const u of usersForRoleCount?.data ?? []) {
@@ -143,10 +173,13 @@ export default function RolesPage() {
   });
 
   useEffect(() => {
-    if (!filtersChanged.current) { filtersChanged.current = true; return; }
+    if (!filtersChanged.current) {
+      filtersChanged.current = true;
+      return;
+    }
     setPage(1);
     setAllRows([]);
-  }, [debouncedFilterText]);
+  }, []);
 
   const loadedRows =
     page === 1 && allRows.length === 0 ? (result?.data ?? []) : allRows;
@@ -156,14 +189,17 @@ export default function RolesPage() {
   const filteredData = useMemo(() => {
     const q = debouncedFilterText.trim().toLowerCase();
     if (!q) return loadedRows;
-    return loadedRows.filter((r) => String(r.name ?? "").toLowerCase().includes(q));
+    return loadedRows.filter((r) =>
+      String(r.name ?? "")
+        .toLowerCase()
+        .includes(q),
+    );
   }, [loadedRows, debouncedFilterText]);
 
-  const gridFiltersActive = filterText.trim() !== "";
+  const _gridFiltersActive = filterText.trim() !== "";
 
   const allPagesLoaded =
-    result?.pagination != null &&
-    page >= (result.pagination.totalPages ?? 1);
+    result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
 
   const openCreate = () => {
     setEditing(null);
@@ -173,7 +209,11 @@ export default function RolesPage() {
   };
   const openEdit = (item: RoleResponse) => {
     setEditing(item);
-    setForm({ name: item.name, description: item.description ?? "", permissions: item.permissionIds ?? [] });
+    setForm({
+      name: item.name,
+      description: item.description ?? "",
+      permissions: item.permissionIds ?? [],
+    });
     setFormErrors({});
     setFormOpen(true);
   };
@@ -274,7 +314,10 @@ export default function RolesPage() {
     if (groupId === "admin" && !on) {
       const adminId = group.permissions[0]?.id;
       if (adminId != null)
-        setForm((f) => ({ ...f, permissions: f.permissions.filter((id) => id !== adminId) }));
+        setForm((f) => ({
+          ...f,
+          permissions: f.permissions.filter((id) => id !== adminId),
+        }));
       return;
     }
     if (on) {
@@ -282,7 +325,10 @@ export default function RolesPage() {
       if (readPerm)
         setForm((f) => ({
           ...f,
-          permissions: [...f.permissions.filter((id) => !idsToRemove.includes(id)), readPerm.id],
+          permissions: [
+            ...f.permissions.filter((id) => !idsToRemove.includes(id)),
+            readPerm.id,
+          ],
         }));
     } else {
       setForm((f) => ({
@@ -333,14 +379,27 @@ export default function RolesPage() {
         onAdd={openCreate}
         addDisabled={!canCreateRole}
         actions={[
-          { icon: "edit", label: "Editar", onClick: openEdit, disabled: () => !canEditRole },
-          { icon: "delete_outline", label: "Eliminar", onClick: openDelete, variant: "danger", disabled: (row) => row.isSystem || !canDeleteRole },
+          {
+            icon: "edit",
+            label: "Editar",
+            onClick: openEdit,
+            disabled: () => !canEditRole,
+          },
+          {
+            icon: "delete_outline",
+            label: "Eliminar",
+            onClick: openDelete,
+            variant: "danger",
+            disabled: (row) => row.isSystem || !canDeleteRole,
+          },
         ]}
         detailDrawer={{
           entityLabelPlural: "roles",
           getTitle: (row) => row.name,
           getStatusBadge: (row) => (
-            <span className={`dt-tag ${row.isSystem ? "dt-tag--red" : "dt-tag--green"}`}>
+            <span
+              className={`dt-tag ${row.isSystem ? "dt-tag--red" : "dt-tag--green"}`}
+            >
               {row.isSystem ? "Sistema" : "Personalizado"}
             </span>
           ),
@@ -349,7 +408,8 @@ export default function RolesPage() {
               row={row}
               userCount={usersPerRole.get(row.id) ?? 0}
               permissionNames={(row.permissionIds ?? []).map(
-                (id) => permissionList.find((p) => p.id === id)?.name ?? String(id),
+                (id) =>
+                  permissionList.find((p) => p.id === id)?.name ?? String(id),
               )}
             />
           ),
@@ -399,7 +459,9 @@ export default function RolesPage() {
           </div>
           <div className="modal-field field-full roles-permissions-field">
             <label className="roles-permissions-label">Permisos</label>
-            <p className="roles-permissions-hint">Activa la vista por entidad y marca las operaciones permitidas.</p>
+            <p className="roles-permissions-hint">
+              Activa la vista por entidad y marca las operaciones permitidas.
+            </p>
             {loadingPermissions ? (
               <p className="roles-permissions-loading">Cargando permisos...</p>
             ) : (
@@ -407,19 +469,25 @@ export default function RolesPage() {
                 {entityGroups.map((group) => {
                   const readPerm = getReadPermission(group);
                   const otherPerms = getOtherPermissions(group);
-                  const hasRead = readPerm ? form.permissions.includes(readPerm.id) : false;
+                  const hasRead = readPerm
+                    ? form.permissions.includes(readPerm.id)
+                    : false;
                   return (
                     <div key={group.key} className="roles-entity-card">
                       <div className="roles-entity-header">
                         <div className="roles-entity-title-wrap">
                           <h4 className="roles-entity-title">{group.label}</h4>
                           {group.description && (
-                            <p className="roles-entity-desc">{group.description}</p>
+                            <p className="roles-entity-desc">
+                              {group.description}
+                            </p>
                           )}
                         </div>
                         <Switch
                           checked={hasRead}
-                          onChange={(checked) => toggleEntityRead(group.key, checked)}
+                          onChange={(checked) =>
+                            toggleEntityRead(group.key, checked)
+                          }
                         />
                       </div>
                       {hasRead && otherPerms.length > 0 && (

@@ -5,7 +5,10 @@ export interface PaginatedResult<T> {
   pagination: PaginationInfo | null;
 }
 
-export function parsePaginated<T>(body: unknown, perPage: number): PaginatedResult<T> {
+export function parsePaginated<T>(
+  body: unknown,
+  perPage: number,
+): PaginatedResult<T> {
   let items: T[] = [];
   let pagination: PaginationInfo | null = null;
 
@@ -14,7 +17,11 @@ export function parsePaginated<T>(body: unknown, perPage: number): PaginatedResu
   let payload: unknown = body;
   let paginationSource: Record<string, unknown> | null = null;
 
-  if (body && typeof body === "object" && "result" in (body as Record<string, unknown>)) {
+  if (
+    body &&
+    typeof body === "object" &&
+    "result" in (body as Record<string, unknown>)
+  ) {
     const outer = body as Record<string, unknown>;
     payload = outer.result;
 
@@ -113,6 +120,7 @@ export function parseSummaryResult<T>(raw: unknown): T | null {
   const obj = raw as Record<string, unknown> | null;
   if (!obj) return null;
   const result = obj.result ?? obj.Result ?? obj.data ?? obj.Data ?? obj;
-  if (result && typeof result === "object" && !Array.isArray(result)) return result as T;
+  if (result && typeof result === "object" && !Array.isArray(result))
+    return result as T;
   return null;
 }

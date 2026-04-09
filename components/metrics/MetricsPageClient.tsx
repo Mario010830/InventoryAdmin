@@ -1,12 +1,17 @@
 "use client";
 
-import { Package, ShoppingCart, Star, Users } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 import type { ApexOptions } from "apexcharts";
+import { Package, ShoppingCart, Star, Users } from "lucide-react";
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BarChartCard, StatCard, theme } from "@/components/dashboard";
 import { ReportKpiCard } from "@/components/reportes/ReportKpiCard";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
+import {
+  apexChartLocaleEs,
+  apexNoDataEs,
+  formatChartNumber,
+} from "@/lib/apexcharts-es";
 import { fetchAllMetrics, type MetricsBundle } from "@/lib/metrics-fetch";
 import type {
   CustomersMetricsNormalized,
@@ -20,9 +25,10 @@ import type {
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store/store";
 import { MetricsEmptyState } from "./MetricsEmptyState";
-import { apexChartLocaleEs, apexNoDataEs, formatChartNumber } from "@/lib/apexcharts-es";
 
-const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
+const ReactApexChart = dynamic(() => import("react-apexcharts"), {
+  ssr: false,
+});
 
 const PERIODS: MetricsPeriod[] = ["7d", "30d", "90d"];
 
@@ -313,8 +319,19 @@ export function MetricsPageClient() {
   const ratingsOptions: ApexOptions = useMemo(
     () => ({
       noData: apexNoDataEs,
-      chart: { type: "bar", height: 280, toolbar: { show: false }, ...apexChartLocaleEs },
-      plotOptions: { bar: { borderRadius: 4, borderRadiusApplication: "end", columnWidth: "48%" } },
+      chart: {
+        type: "bar",
+        height: 280,
+        toolbar: { show: false },
+        ...apexChartLocaleEs,
+      },
+      plotOptions: {
+        bar: {
+          borderRadius: 4,
+          borderRadiusApplication: "end",
+          columnWidth: "48%",
+        },
+      },
       dataLabels: { enabled: false },
       xaxis: {
         categories: ratingsBars.map((r) => r.label),
@@ -778,7 +795,12 @@ export function MetricsPageClient() {
                   <div style={{ width: "100%", height: 280, minHeight: 280 }}>
                     <ReactApexChart
                       options={ratingsOptions}
-                      series={[{ name: "Valoraciones", data: ratingsBars.map((b) => b.value) }]}
+                      series={[
+                        {
+                          name: "Valoraciones",
+                          data: ratingsBars.map((b) => b.value),
+                        },
+                      ]}
                       type="bar"
                       height={280}
                     />

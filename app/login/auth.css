@@ -75,7 +75,9 @@
   background: #fff;
   border-radius: 12px;
   padding: 40px 36px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 20px 48px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 20px 48px rgba(0, 0, 0, 0.08);
   position: relative;
   z-index: 1;
   animation: cardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
@@ -203,7 +205,7 @@
 
 .auth-card__divider::before,
 .auth-card__divider::after {
-  content: '';
+  content: "";
   flex: 1;
   height: 1px;
   background: #e2e8f0;
@@ -261,7 +263,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.2s, background 0.2s;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
   position: relative;
 }
 
@@ -271,7 +275,7 @@
 }
 
 .auth-checkbox input:checked + .auth-checkbox__box::after {
-  content: '';
+  content: "";
   width: 5px;
   height: 9px;
   border: solid #fff;
@@ -356,7 +360,9 @@
   background: #fff;
   border: 1.5px solid #e2e8f0;
   border-radius: 8px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .input-wrapper.focused {
@@ -490,7 +496,9 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease;
   color: #fff;
 }
 

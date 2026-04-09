@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Icon } from "@/components/ui/Icon";
-import Image from "next/image";
-import { useResetPasswordMutation } from "../_service/authApi";
+import { useState } from "react";
 import { toast } from "sonner";
+import { Icon } from "@/components/ui/Icon";
+import { useResetPasswordMutation } from "../_service/authApi";
 
 type Step = "email" | "code";
 
@@ -22,10 +21,10 @@ export default function ForgotPasswordPage() {
   const [emailError, setEmailError] = useState("");
 
   const emailInvalid = emailTouched && !email;
-  const emailFormatInvalid = emailTouched && email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const emailFormatInvalid =
+    emailTouched && email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const [forgotPassword] = useResetPasswordMutation();
-
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,19 +34,25 @@ export default function ForgotPasswordPage() {
     setIsSubmittingEmail(true);
     setEmailError("");
     try {
-      await forgotPassword({ email }).unwrap().then(()=>{
-        toast.success("Código de verificación enviado a tu email");
-        router.push("/login")
-      });
+      await forgotPassword({ email })
+        .unwrap()
+        .then(() => {
+          toast.success("Código de verificación enviado a tu email");
+          router.push("/login");
+        });
       setStep("code");
     } catch (err) {
-      setEmailError(err instanceof Error ? err.message : "Ocurrió un error. Intenta de nuevo.");
+      setEmailError(
+        err instanceof Error
+          ? err.message
+          : "Ocurrió un error. Intenta de nuevo.",
+      );
     } finally {
       setIsSubmittingEmail(false);
     }
   };
 
-  const handleResend = async () => {
+  const _handleResend = async () => {
     try {
       // await forgotPassword({ email }).unwrap();
       await new Promise((r) => setTimeout(r, 500)); // remove when using real API
@@ -71,13 +76,13 @@ export default function ForgotPasswordPage() {
       </header>
 
       <div className="auth-card auth-card--signin">
-
         {/* ── STEP 1: Email ── */}
         {step === "email" && (
           <>
             <h1 className="auth-card__title">¿Olvidaste tu contraseña?</h1>
             <p className="auth-card__subtitle">
-              Ingresa tu email y te enviaremos un código de verificación para restablecer tu contraseña.
+              Ingresa tu email y te enviaremos un código de verificación para
+              restablecer tu contraseña.
             </p>
 
             {emailError && (
@@ -93,7 +98,9 @@ export default function ForgotPasswordPage() {
                 <div
                   className={`input-wrapper ${emailFocused ? "focused" : ""} ${emailInvalid || emailFormatInvalid ? "error" : ""}`}
                 >
-                  <span className="input-icon"><Icon name="mail_outline" /></span>
+                  <span className="input-icon">
+                    <Icon name="mail_outline" />
+                  </span>
                   <input
                     id="email"
                     type="email"
@@ -101,10 +108,15 @@ export default function ForgotPasswordPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onFocus={() => setEmailFocused(true)}
-                    onBlur={() => { setEmailFocused(false); setEmailTouched(true); }}
+                    onBlur={() => {
+                      setEmailFocused(false);
+                      setEmailTouched(true);
+                    }}
                   />
                 </div>
-                {emailInvalid && <span className="form-error">El email es requerido</span>}
+                {emailInvalid && (
+                  <span className="form-error">El email es requerido</span>
+                )}
                 {emailFormatInvalid && !emailInvalid && (
                   <span className="form-error">Ingresa un email válido</span>
                 )}

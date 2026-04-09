@@ -43,10 +43,10 @@ export const authSlice = createSlice({
   initialState: initialState as AuthSliceState,
   reducers: {
     loginSuccessfull: (_state, action: PayloadAction<AuthState>) => {
-      return action.payload;   // ✅ return instead of reassign
+      return action.payload; // ✅ return instead of reassign
     },
     logoutSuccessfull: () => {
-      return null;             // ✅ return instead of reassign
+      return null; // ✅ return instead of reassign
     },
   },
 });

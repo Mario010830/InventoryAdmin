@@ -18,7 +18,8 @@
   left: 0;
   bottom: 0;
   z-index: 1100;
-  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+  transition:
+    width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
@@ -197,7 +198,9 @@
   border-left: 2px solid rgba(148, 163, 184, 0.28);
   max-height: 520px;
   opacity: 1;
-  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+  transition:
+    max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.25s ease;
   overflow: hidden;
 }
 
@@ -211,7 +214,9 @@
   font-weight: 500;
   color: rgba(203, 213, 225, 0.72);
   text-decoration: none;
-  transition: color 0.12s, background 0.12s;
+  transition:
+    color 0.12s,
+    background 0.12s;
   line-height: 1.35;
 }
 
@@ -600,7 +605,9 @@
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .chart-card-menu__trigger:hover {
@@ -729,7 +736,7 @@
 
 @media (max-width: 768px) {
   .dashboard-flex-row > * {
-    flex: 1 1 100% !important;
+    flex: 1 1 100%;
     max-width: 100%;
     min-width: 0;
   }
@@ -760,7 +767,7 @@
   }
 
   .main-area {
-    margin-left: 0 !important;
+    margin-left: 0;
     border-radius: 0;
   }
 

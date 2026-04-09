@@ -2,16 +2,16 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Icon } from "@/components/ui/Icon";
 import { useGetPlansQuery } from "@/app/login/_service/authApi";
+import { Icon } from "@/components/ui/Icon";
 import type { RegistrationBillingCycle } from "@/lib/auth-types";
 import {
   isEnterprisePlan,
   isProPlan,
+  type PublicPlan,
   planFeatureLines,
   planMarketingDescription,
   planPriceParts,
-  type PublicPlan,
 } from "@/lib/plan-utils";
 import "./pricing-cards.css";
 
@@ -35,12 +35,17 @@ export function PricingPlanCards({
   selectedPlanId,
   onSelectPlan,
 }: PricingPlanCardsProps) {
-  const [internalCycle, setInternalCycle] = useState<RegistrationBillingCycle>("monthly");
+  const [internalCycle, setInternalCycle] =
+    useState<RegistrationBillingCycle>("monthly");
   const billingCycle = billingProp ?? internalCycle;
   const setBillingCycle = onBillingProp ?? setInternalCycle;
 
   const skipFetch = variant === "signup";
-  const { data: fetched = [], isLoading, isError } = useGetPlansQuery(undefined, { skip: skipFetch });
+  const {
+    data: fetched = [],
+    isLoading,
+    isError,
+  } = useGetPlansQuery(undefined, { skip: skipFetch });
 
   const plans = useMemo(() => {
     if (variant === "signup" && plansProp) return plansProp;
@@ -51,16 +56,26 @@ export function PricingPlanCards({
     return <div className="pricing-plans-loading">Cargando planes…</div>;
   }
   if (!skipFetch && isError) {
-    return <div className="pricing-plans-error">No se pudieron cargar los planes. Intenta más tarde.</div>;
+    return (
+      <div className="pricing-plans-error">
+        No se pudieron cargar los planes. Intenta más tarde.
+      </div>
+    );
   }
   if (plans.length === 0) {
-    return <div className="pricing-plans-error">No hay planes disponibles.</div>;
+    return (
+      <div className="pricing-plans-error">No hay planes disponibles.</div>
+    );
   }
 
   return (
     <>
       <div className="pricing-billing">
-        <div className="pricing-billing__inner" role="group" aria-label="Ciclo de facturación">
+        <div
+          className="pricing-billing__inner"
+          role="group"
+          aria-label="Ciclo de facturación"
+        >
           <button
             type="button"
             className={`pricing-billing__btn ${billingCycle === "monthly" ? "pricing-billing__btn--active" : ""}`}
@@ -102,7 +117,9 @@ export function PricingPlanCards({
                 </span>
               ) : null}
               <h3 className="pricing-card__name">{plan.displayName}</h3>
-              <p className="pricing-card__desc">{planMarketingDescription(plan)}</p>
+              <p className="pricing-card__desc">
+                {planMarketingDescription(plan)}
+              </p>
               <div className="pricing-card__price">
                 <span className="price">{price}</span>
                 <span className="period">{period}</span>
@@ -116,7 +133,10 @@ export function PricingPlanCards({
                 ))}
               </ul>
               {variant === "landing" ? (
-                <Link href="/login/register" className={`pricing-card__btn ${popular ? "primary" : ""}`}>
+                <Link
+                  href="/login/register"
+                  className={`pricing-card__btn ${popular ? "primary" : ""}`}
+                >
                   {ctaLandingLabel(plan)}
                   <Icon name="arrow_forward" />
                 </Link>
@@ -149,6 +169,7 @@ export function PricingPlanCards({
 
 function ctaLandingLabel(plan: PublicPlan): string {
   if (isEnterprisePlan(plan)) return "Contactar ventas";
-  if (plan.monthlyPrice === 0 && plan.annualPrice === 0) return "Comenzar gratis";
+  if (plan.monthlyPrice === 0 && plan.annualPrice === 0)
+    return "Comenzar gratis";
   return "Elegir plan";
 }

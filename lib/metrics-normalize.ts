@@ -69,9 +69,7 @@ export function normalizeTrafficMetrics(
       const label =
         trafficSourceLabels[rawKey] ??
         String(r.label ?? r.name ?? r.source ?? r.key ?? "—");
-      const value = num(
-        r.percent ?? r.value ?? r.count ?? r.visits ?? r.share,
-      );
+      const value = num(r.percent ?? r.value ?? r.count ?? r.visits ?? r.share);
       return { label, value };
     });
   }
@@ -340,9 +338,7 @@ export function normalizeSalesMetrics(raw: unknown): SalesMetricsNormalized {
   }
 
   return {
-    revenue: num(
-      pick("totalRevenue", "TotalRevenue", "revenue", "Revenue"),
-    ),
+    revenue: num(pick("totalRevenue", "TotalRevenue", "revenue", "Revenue")),
     revenueChangePct: numOrNull(
       pick("revenueChangePct", "revenueChange", "revenue_change_pct"),
     ),

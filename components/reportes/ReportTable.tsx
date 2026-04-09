@@ -8,11 +8,11 @@ import {
   useRef,
   useState,
 } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { downloadCsv } from "@/lib/dataTableExport";
 import { cn } from "@/lib/utils";
 import { exportRowsToPdf } from "@/lib/utils/export";
-import { toast } from "sonner";
 
 const CLIENT_PAGE = 50;
 
@@ -154,9 +154,7 @@ export function ReportTable({
       try {
         await onExportCsv();
       } catch (e) {
-        toast.error(
-          e instanceof Error ? e.message : "Error al exportar CSV",
-        );
+        toast.error(e instanceof Error ? e.message : "Error al exportar CSV");
       } finally {
         setCsvBusy(false);
       }
@@ -181,9 +179,7 @@ export function ReportTable({
       try {
         await onExportPDF();
       } catch (e) {
-        toast.error(
-          e instanceof Error ? e.message : "Error al exportar PDF",
-        );
+        toast.error(e instanceof Error ? e.message : "Error al exportar PDF");
       } finally {
         setPdfBusy(false);
       }
@@ -199,7 +195,10 @@ export function ReportTable({
   }, [columns, exportRows, fileName, onExportPDF, stamp]);
 
   const totalPages = serverPagination
-    ? Math.max(1, Math.ceil(serverPagination.totalCount / serverPagination.pageSize))
+    ? Math.max(
+        1,
+        Math.ceil(serverPagination.totalCount / serverPagination.pageSize),
+      )
     : 1;
 
   const resolvedExportNote = isServer

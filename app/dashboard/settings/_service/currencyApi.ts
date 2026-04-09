@@ -1,11 +1,11 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { getApiUrl, getToken } from "@/lib/auth-api";
 import { parseChartResult, parseSummaryResult } from "@/lib/api-utils";
+import { getApiUrl, getToken } from "@/lib/auth-api";
 import type {
-  CurrencyResponse,
   CreateCurrencyRequest,
-  UpdateCurrencyRequest,
+  CurrencyResponse,
   SetDefaultCurrencyRequest,
+  UpdateCurrencyRequest,
 } from "@/lib/dashboard-types";
 
 function unwrapCurrency(raw: unknown): CurrencyResponse {
@@ -24,7 +24,15 @@ function parseCurrencyList(raw: unknown): CurrencyResponse[] {
   if (Array.isArray(direct)) return direct as CurrencyResponse[];
   if (direct && typeof direct === "object") {
     const inner = direct as Record<string, unknown>;
-    for (const key of ["data", "Data", "items", "Items", "value", "Value", "currencies"]) {
+    for (const key of [
+      "data",
+      "Data",
+      "items",
+      "Items",
+      "value",
+      "Value",
+      "currencies",
+    ]) {
       const v = inner[key];
       if (Array.isArray(v)) return v as CurrencyResponse[];
     }
@@ -54,7 +62,10 @@ export const currencyApi = createApi({
       transformResponse: (raw: unknown) => parseCurrencyList(raw),
       providesTags: (result) =>
         result?.length
-          ? [...result.map(({ id }) => ({ type: "Currency" as const, id })), { type: "Currency", id: "LIST" }]
+          ? [
+              ...result.map(({ id }) => ({ type: "Currency" as const, id })),
+              { type: "Currency", id: "LIST" },
+            ]
           : [{ type: "Currency", id: "LIST" }],
     }),
     getCurrencyById: builder.query<CurrencyResponse, number>({
@@ -67,16 +78,32 @@ export const currencyApi = createApi({
       transformResponse: unwrapCurrency,
       invalidatesTags: [{ type: "Currency", id: "LIST" }],
     }),
-    updateCurrency: builder.mutation<CurrencyResponse, { id: number; body: UpdateCurrencyRequest }>({
-      query: ({ id, body }) => ({ url: `/currency/${id}`, method: "PUT", body }),
+    updateCurrency: builder.mutation<
+      CurrencyResponse,
+      { id: number; body: UpdateCurrencyRequest }
+    >({
+      query: ({ id, body }) => ({
+        url: `/currency/${id}`,
+        method: "PUT",
+        body,
+      }),
       transformResponse: unwrapCurrency,
-      invalidatesTags: (_r, _e, { id }) => [{ type: "Currency", id }, { type: "Currency", id: "LIST" }],
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "Currency", id },
+        { type: "Currency", id: "LIST" },
+      ],
     }),
     deleteCurrency: builder.mutation<void, number>({
       query: (id) => ({ url: `/currency/${id}`, method: "DELETE" }),
-      invalidatesTags: (_r, _e, id) => [{ type: "Currency", id }, { type: "Currency", id: "LIST" }],
+      invalidatesTags: (_r, _e, id) => [
+        { type: "Currency", id },
+        { type: "Currency", id: "LIST" },
+      ],
     }),
-    setDefaultDisplayCurrency: builder.mutation<CurrencyResponse, SetDefaultCurrencyRequest>({
+    setDefaultDisplayCurrency: builder.mutation<
+      CurrencyResponse,
+      SetDefaultCurrencyRequest
+    >({
       query: (body) => ({ url: "/currency/default", method: "PUT", body }),
       transformResponse: unwrapCurrency,
       invalidatesTags: [{ type: "Currency", id: "LIST" }],

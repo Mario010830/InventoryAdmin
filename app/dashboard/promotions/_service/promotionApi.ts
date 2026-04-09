@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { type PaginatedResult, parsePaginated } from "@/lib/api-utils";
 import { getApiUrl, getToken } from "@/lib/auth-api";
-import { parsePaginated, type PaginatedResult } from "@/lib/api-utils";
 
 export type PromotionType = "percentage" | "fixed";
 
@@ -43,7 +43,9 @@ function normalizePromotionType(raw: string): PromotionType {
   return "percentage";
 }
 
-function parsePromotionRow(row: Record<string, unknown>): PromotionResponse | null {
+function parsePromotionRow(
+  row: Record<string, unknown>,
+): PromotionResponse | null {
   const id = Number(row.id ?? row.Id);
   if (!Number.isFinite(id)) return null;
 
@@ -63,7 +65,13 @@ function parsePromotionRow(row: Record<string, unknown>): PromotionResponse | nu
   }
 
   const promotionType = normalizePromotionType(
-    String(row.promotionType ?? row.PromotionType ?? row.type ?? row.Type ?? "percentage"),
+    String(
+      row.promotionType ??
+        row.PromotionType ??
+        row.type ??
+        row.Type ??
+        "percentage",
+    ),
   );
 
   const startsRaw = row.startsAt ?? row.StartsAt;
@@ -73,7 +81,10 @@ function parsePromotionRow(row: Record<string, unknown>): PromotionResponse | nu
   const endsAt = endsRaw == null || endsRaw === "" ? null : String(endsRaw);
 
   const isActive = Boolean(row.isActive ?? row.IsActive ?? false);
-  const minQuantity = Math.max(1, Number(row.minQuantity ?? row.MinQuantity ?? 1));
+  const minQuantity = Math.max(
+    1,
+    Number(row.minQuantity ?? row.MinQuantity ?? 1),
+  );
   const value = Number(row.value ?? row.Value ?? 0);
   const isCurrentlyValid = Boolean(
     row.isCurrentlyValid ?? row.IsCurrentlyValid ?? false,
@@ -127,7 +138,10 @@ export const promotionApi = createApi({
   refetchOnReconnect: true,
   tagTypes: ["Promotion"],
   endpoints: (builder) => ({
-    getPromotions: builder.query<PaginatedResult<PromotionResponse>, GetPromotionsArgs>({
+    getPromotions: builder.query<
+      PaginatedResult<PromotionResponse>,
+      GetPromotionsArgs
+    >({
       query: (arg) => {
         const page = arg?.page ?? 1;
         const perPage = arg?.perPage ?? 10;
@@ -179,7 +193,10 @@ export const promotionApi = createApi({
       ],
     }),
 
-    setPromotionActive: builder.mutation<void, { id: number; isActive: boolean }>({
+    setPromotionActive: builder.mutation<
+      void,
+      { id: number; isActive: boolean }
+    >({
       query: ({ id, isActive }) => ({
         url: `/promotion/${id}/active?isActive=${isActive ? "true" : "false"}`,
         method: "PATCH",

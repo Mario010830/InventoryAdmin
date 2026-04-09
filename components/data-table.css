@@ -82,7 +82,7 @@
 .dt-toolbar__search:focus-within {
   background: #fff;
   border-color: #4f6ef7;
-  box-shadow: 0 0 0 3px rgba(79,110,247,0.08);
+  box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.08);
 }
 .dt-toolbar__search .material-icons {
   font-size: 18px;
@@ -99,14 +99,18 @@
   color: #1e293b;
   width: 100%;
 }
-.dt-toolbar__search input::placeholder { color: #b8c0cc; }
-.dt-toolbar__spacer { flex: 1; }
+.dt-toolbar__search input::placeholder {
+  color: #b8c0cc;
+}
+.dt-toolbar__spacer {
+  flex: 1;
+}
 .dt-btn-add {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 8px 16px;
-  background: #1E293B;
+  background: #1e293b;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -121,8 +125,14 @@
   cursor: not-allowed;
   background: #94a3b8;
 }
-.dt-btn-add:hover:not(:disabled) { background: #334155; }
-.dt-btn-add .material-icons { font-size: 17px; width: 17px; height: 17px; }
+.dt-btn-add:hover:not(:disabled) {
+  background: #334155;
+}
+.dt-btn-add .material-icons {
+  font-size: 17px;
+  width: 17px;
+  height: 17px;
+}
 
 /* ─── Table ──────────────────────────────────────────────────────────────── */
 .dt-wrap {
@@ -210,7 +220,9 @@
   padding-right: 24px;
   text-align: center;
 }
-.dt-table thead th:last-child  { padding-right: 24px; }
+.dt-table thead th:last-child {
+  padding-right: 24px;
+}
 .dt-th {
   position: relative;
   box-sizing: border-box;
@@ -221,8 +233,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.dt-th-actions { text-align: center; }
-.dt-th-actions .dt-th-label { padding-right: 10px; }
+.dt-th-actions {
+  text-align: center;
+}
+.dt-th-actions .dt-th-label {
+  padding-right: 10px;
+}
 
 /* Zona 8px en el borde derecho; línea 2px solo al hover */
 .dt-resize-handle {
@@ -246,7 +262,9 @@
   width: 0;
   border-radius: 1px;
   background: transparent;
-  transition: width 0.12s ease, background 0.12s ease;
+  transition:
+    width 0.12s ease,
+    background 0.12s ease;
 }
 .dt-resize-handle:hover::after {
   width: 2px;
@@ -264,10 +282,18 @@
   box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.15);
 }
 
-.dt-table tbody tr { transition: background 0.08s; }
-.dt-table tbody tr:hover { background: #f3f4f6; }
-.dt-table tbody tr.dt-row-alt { background: #fafafa; }
-.dt-table tbody tr.dt-row-alt:hover { background: #f3f4f6; }
+.dt-table tbody tr {
+  transition: background 0.08s;
+}
+.dt-table tbody tr:hover {
+  background: #f3f4f6;
+}
+.dt-table tbody tr.dt-row-alt {
+  background: #fafafa;
+}
+.dt-table tbody tr.dt-row-alt:hover {
+  background: #f3f4f6;
+}
 
 .dt-table tbody tr.dt-row-clickable {
   cursor: pointer;
@@ -296,7 +322,9 @@
   padding-right: 24px;
   text-align: center;
 }
-.dt-table tbody td:last-child  { padding-right: 24px; }
+.dt-table tbody td:last-child {
+  padding-right: 24px;
+}
 
 /* ─── Cell helpers ───────────────────────────────────────────────────────── */
 .dt-cell-clamp {
@@ -306,7 +334,10 @@
   overflow: hidden;
   max-width: 280px;
 }
-.dt-cell-mono { font-variant-numeric: tabular-nums; font-weight: 600; }
+.dt-cell-mono {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
 
 .dt-tag {
   display: inline-block;
@@ -316,12 +347,24 @@
   font-weight: 600;
   white-space: nowrap;
 }
-.dt-tag--green { background: #ecfdf5; color: #059669; }
-.dt-tag--red   { background: #fef2f2; color: #dc2626; }
-.dt-tag--neutral { background: #f3f4f6; color: #6b7280; }
+.dt-tag--green {
+  background: #ecfdf5;
+  color: #059669;
+}
+.dt-tag--red {
+  background: #fef2f2;
+  color: #dc2626;
+}
+.dt-tag--neutral {
+  background: #f3f4f6;
+  color: #6b7280;
+}
 
 /* ─── Row actions ────────────────────────────────────────────────────────── */
-.dt-td-actions { text-align: center; white-space: nowrap; }
+.dt-td-actions {
+  text-align: center;
+  white-space: nowrap;
+}
 .dt-icon-btn {
   background: none;
   border: none;
@@ -334,10 +377,23 @@
   transition: all 0.12s;
   margin: 0 2px;
 }
-.dt-icon-btn .material-icons { font-size: 18px; width: 18px; height: 18px; }
-.dt-icon-btn:hover:not(:disabled) { color: #4f6ef7; background: rgba(79,110,247,0.08); }
-.dt-icon-btn--danger:hover:not(:disabled) { color: #ef4444; background: rgba(239,68,68,0.08); }
-.dt-icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.dt-icon-btn .material-icons {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+.dt-icon-btn:hover:not(:disabled) {
+  color: #4f6ef7;
+  background: rgba(79, 110, 247, 0.08);
+}
+.dt-icon-btn--danger:hover:not(:disabled) {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+.dt-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 
 /* ─── Footer / Pagination ────────────────────────────────────────────────── */
 .dt-footer {
@@ -357,7 +413,11 @@
   color: #94a3b8;
   white-space: nowrap;
 }
-.dt-footer__center { display: flex; align-items: center; gap: 3px; }
+.dt-footer__center {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
 .dt-footer-select {
   padding: 3px 6px;
   border: 1px solid #e8ecf1;
@@ -383,8 +443,14 @@
   transition: all 0.12s;
   white-space: nowrap;
 }
-.dt-pg-btn:disabled { opacity: 0.35; cursor: default; }
-.dt-pg-btn:hover:not(:disabled) { background: #f8f9fb; border-color: #cbd5e1; }
+.dt-pg-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.dt-pg-btn:hover:not(:disabled) {
+  background: #f8f9fb;
+  border-color: #cbd5e1;
+}
 .dt-pg-num {
   width: 30px;
   height: 30px;
@@ -400,9 +466,16 @@
   justify-content: center;
   transition: all 0.12s;
 }
-.dt-pg-num:hover { background: #f1f5f9; }
-.dt-pg-num--on   { background: #4f6ef7; color: #fff; }
-.dt-pg-num--on:hover { background: #3d5bd9; }
+.dt-pg-num:hover {
+  background: #f1f5f9;
+}
+.dt-pg-num--on {
+  background: #4f6ef7;
+  color: #fff;
+}
+.dt-pg-num--on:hover {
+  background: #3d5bd9;
+}
 
 /* ─── Empty / Loading states ─────────────────────────────────────────────── */
 .dt-state {
@@ -414,7 +487,9 @@
   color: #94a3b8;
   font-size: 0.86rem;
 }
-.dt-state--empty { padding: 56px 24px; }
+.dt-state--empty {
+  padding: 56px 24px;
+}
 .dt-state__spinner {
   width: 30px;
   height: 30px;
@@ -449,11 +524,29 @@
   display: grid;
   place-items: center;
 }
-.dt-state__icon-box .material-icons { font-size: 24px; width: 24px; height: 24px; color: #cbd5e1; }
-.dt-state__title { font-size: 0.95rem; font-weight: 600; color: #1e293b; margin: 0; }
-.dt-state__desc  { font-size: 0.84rem; color: #94a3b8; margin: 0 0 16px; }
+.dt-state__icon-box .material-icons {
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+  color: #cbd5e1;
+}
+.dt-state__title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+.dt-state__desc {
+  font-size: 0.84rem;
+  color: #94a3b8;
+  margin: 0 0 16px;
+}
 
-@keyframes dt-spin { to { transform: rotate(360deg); } }
+@keyframes dt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* ─── Grid: ghost buttons, export, columnas, ordenación ─────────────────────── */
 .dt-btn-ghost {
@@ -468,7 +561,10 @@
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
   white-space: nowrap;
 }
 .dt-btn-ghost:hover {
@@ -584,10 +680,10 @@
 }
 
 .dt-column-picker__lock-icon {
-  font-size: 14px !important;
-  width: 14px !important;
-  height: 14px !important;
-  color: #cbd5e1 !important;
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  color: #cbd5e1;
   flex-shrink: 0;
 }
 
@@ -729,9 +825,9 @@
 }
 
 .dt-sort-icon {
-  font-size: 16px !important;
-  width: 16px !important;
-  height: 16px !important;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
 }
 
 .dt-sort-icon--muted {
@@ -762,7 +858,9 @@
   cursor: help;
   border-radius: 4px;
   line-height: 0;
-  transition: color 0.12s ease, background 0.12s ease;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
 }
 
 .dt-th-hint__trigger:hover,
@@ -800,7 +898,9 @@
   text-align: left;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.15s ease, visibility 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    visibility 0.15s ease;
 }
 
 .dt-th-hint:hover .dt-th-hint__popover,
@@ -849,7 +949,7 @@
 }
 
 .dt-col-hidden {
-  display: none !important;
+  display: none;
 }
 
 /* Checkboxes selección (centrado real: thead th tenía text-align:left con más especificidad) */
@@ -920,7 +1020,9 @@
   font-weight: 600;
   color: #334155;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 .dt-bulk-btn:hover {
   background: #f8fafc;

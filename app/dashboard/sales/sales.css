@@ -291,7 +291,9 @@
   color: #6b7280;
 }
 
-.order-modal-btn--ghost:hover { background: #eaecef; }
+.order-modal-btn--ghost:hover {
+  background: #eaecef;
+}
 
 .order-modal-btn--confirm {
   background: #22c55e;

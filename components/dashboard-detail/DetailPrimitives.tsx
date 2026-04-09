@@ -1,6 +1,12 @@
 import type { ReactNode } from "react";
 
-export function DetailSection({ title, children }: { title: string; children: ReactNode }) {
+export function DetailSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
   return (
     <section className="gd-detail-section">
       <h3 className="gd-detail-section__title">{title}</h3>
@@ -10,7 +16,13 @@ export function DetailSection({ title, children }: { title: string; children: Re
   );
 }
 
-export function DetailField({ label, value }: { label: string; value: ReactNode }) {
+export function DetailField({
+  label,
+  value,
+}: {
+  label: string;
+  value: ReactNode;
+}) {
   return (
     <div className="gd-detail-field">
       <span className="gd-detail-field__label">{label}</span>
@@ -19,7 +31,15 @@ export function DetailField({ label, value }: { label: string; value: ReactNode 
   );
 }
 
-export function BoolBadge({ value, trueLabel, falseLabel }: { value: boolean; trueLabel: string; falseLabel: string }) {
+export function BoolBadge({
+  value,
+  trueLabel,
+  falseLabel,
+}: {
+  value: boolean;
+  trueLabel: string;
+  falseLabel: string;
+}) {
   return (
     <span className={`dt-tag ${value ? "dt-tag--green" : "dt-tag--red"}`}>
       {value ? trueLabel : falseLabel}

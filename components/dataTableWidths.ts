@@ -19,7 +19,10 @@ export function computeInitialWidths<T extends { width?: string }>(
   const opts =
     typeof options === "boolean"
       ? { hasCheckbox: false, hasActions: options }
-      : { hasCheckbox: options.hasCheckbox ?? false, hasActions: options.hasActions ?? false };
+      : {
+          hasCheckbox: options.hasCheckbox ?? false,
+          hasActions: options.hasActions ?? false,
+        };
   const arr: number[] = [];
   if (opts.hasCheckbox) arr.push(48);
   for (const c of columns) arr.push(parseColWidth(c.width));
@@ -46,7 +49,8 @@ export function measureColumnFit(
     if (!cell) return;
     max = Math.max(max, cell.scrollWidth);
   };
-  if (thead?.rows[0]) measure(thead.rows[0].cells[columnIndex] as HTMLTableCellElement);
+  if (thead?.rows[0])
+    measure(thead.rows[0].cells[columnIndex] as HTMLTableCellElement);
   if (tbody) {
     for (let r = 0; r < tbody.rows.length; r++) {
       measure(tbody.rows[r].cells[columnIndex] as HTMLTableCellElement);

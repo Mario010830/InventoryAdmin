@@ -5,11 +5,13 @@ import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 import "./topbar-currency.css";
 
 export function TopbarCurrencySelector() {
-  const { selectedCurrency, activeCurrencies, setCurrencyId, isLoading } = useDisplayCurrency();
+  const { selectedCurrency, activeCurrencies, setCurrencyId, isLoading } =
+    useDisplayCurrency();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const list = activeCurrencies.length > 0 ? activeCurrencies : [selectedCurrency];
+  const list =
+    activeCurrencies.length > 0 ? activeCurrencies : [selectedCurrency];
 
   useEffect(() => {
     if (!open) return;
@@ -51,12 +53,19 @@ export function TopbarCurrencySelector() {
         </span>
       </button>
       {open && (
-        <ul className="topbar-currency__menu" role="listbox" aria-label="Moneda de visualización">
+        <ul
+          className="topbar-currency__menu"
+          aria-label="Moneda de visualización"
+        >
           {list.map((c) => {
             const active = c.id === selectedCurrency.id;
             return (
-              <li key={c.id} role="option" aria-selected={active}>
-                <button type="button" className="topbar-currency__option" onClick={() => onPick(c.id)}>
+              <li key={c.id} aria-selected={active}>
+                <button
+                  type="button"
+                  className="topbar-currency__option"
+                  onClick={() => onPick(c.id)}
+                >
                   <span className="topbar-currency__check" aria-hidden>
                     {active ? "✓" : ""}
                   </span>

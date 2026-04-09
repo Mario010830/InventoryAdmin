@@ -28,19 +28,28 @@ export const settingsApi = createApi({
     getGroupedSettings: builder.query<GroupedSettingsResponse, void>({
       query: () => "/setting/grouped",
       transformResponse: (raw: unknown) => {
-        if (!raw || typeof raw !== "object") return {} as GroupedSettingsResponse;
+        if (!raw || typeof raw !== "object")
+          return {} as GroupedSettingsResponse;
         const o = raw as Record<string, unknown>;
         const payload = o.data ?? o.result ?? o;
-        return (payload && typeof payload === "object" ? payload : {}) as GroupedSettingsResponse;
+        return (
+          payload && typeof payload === "object" ? payload : {}
+        ) as GroupedSettingsResponse;
       },
       providesTags: ["Setting"],
     }),
-    updateGroupedSettings: builder.mutation<void, UpdateGroupedSettingsRequest>({
-      query: (body) => ({ url: "/setting/grouped", method: "PUT", body }),
-      invalidatesTags: ["Setting"],
-    }),
+    updateGroupedSettings: builder.mutation<void, UpdateGroupedSettingsRequest>(
+      {
+        query: (body) => ({ url: "/setting/grouped", method: "PUT", body }),
+        invalidatesTags: ["Setting"],
+      },
+    ),
     updateAccountProfile: builder.mutation<void, AccountUpdateProfileRequest>({
-      query: (body) => ({ url: "/account/update-profile", method: "POST", body }),
+      query: (body) => ({
+        url: "/account/update-profile",
+        method: "POST",
+        body,
+      }),
       invalidatesTags: ["Setting"],
     }),
     getMySubscription: builder.query<MySubscriptionDto | null, void>({

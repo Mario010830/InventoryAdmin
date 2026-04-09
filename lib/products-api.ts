@@ -1,9 +1,9 @@
 import { getApiUrl, getToken } from "@/lib/auth-api";
 import type {
-  ProductResponse,
-  ProductCategoryResponse,
-  PaginationInfo,
   CreateProductRequest,
+  PaginationInfo,
+  ProductCategoryResponse,
+  ProductResponse,
   UpdateProductRequest,
 } from "./dashboard-types";
 
@@ -24,7 +24,10 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     },
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data as { message?: string }).message ?? "Error en la solicitud.");
+  if (!res.ok)
+    throw new Error(
+      (data as { message?: string }).message ?? "Error en la solicitud.",
+    );
   return data as T;
 }
 
@@ -46,16 +49,25 @@ function parsePaginated<T>(body: unknown, perPage: number): PaginatedResult<T> {
       }
     }
     const p = b.currentPage ?? (b as Record<string, unknown>).CurrentPage ?? 1;
-    const totalP = b.totalPages ?? (b as Record<string, unknown>).TotalPages ?? 1;
-    const totalC = b.totalCount ?? (b as Record<string, unknown>).TotalCount ?? items.length;
-    const pSize = b.pageSize ?? (b as Record<string, unknown>).PageSize ?? perPage;
+    const totalP =
+      b.totalPages ?? (b as Record<string, unknown>).TotalPages ?? 1;
+    const totalC =
+      b.totalCount ?? (b as Record<string, unknown>).TotalCount ?? items.length;
+    const pSize =
+      b.pageSize ?? (b as Record<string, unknown>).PageSize ?? perPage;
     pagination = {
       currentPage: Number(p),
       totalPages: Number(totalP),
       totalCount: Number(totalC),
       pageSize: Number(pSize),
-      hasPreviousPage: Boolean(b.hasPreviousPage ?? (b as Record<string, unknown>).HasPreviousPage ?? false),
-      hasNextPage: Boolean(b.hasNextPage ?? (b as Record<string, unknown>).HasNextPage ?? false),
+      hasPreviousPage: Boolean(
+        b.hasPreviousPage ??
+          (b as Record<string, unknown>).HasPreviousPage ??
+          false,
+      ),
+      hasNextPage: Boolean(
+        b.hasNextPage ?? (b as Record<string, unknown>).HasNextPage ?? false,
+      ),
     };
   }
   return { data: items, pagination };
@@ -64,7 +76,7 @@ function parsePaginated<T>(body: unknown, perPage: number): PaginatedResult<T> {
 export async function getProducts(
   page = 1,
   perPage = 10,
-  sortOrder = "desc"
+  sortOrder = "desc",
 ): Promise<PaginatedResult<ProductResponse>> {
   const url = `${getApiUrl()}/product?page=${page}&perPage=${perPage}&sortOrder=${sortOrder}`;
   const data = await fetchJson<unknown>(url);
@@ -72,18 +84,18 @@ export async function getProducts(
 }
 
 export async function createProduct(
-  body: CreateProductRequest
+  body: CreateProductRequest,
 ): Promise<ProductResponse> {
   const data = await fetchJson<ProductResponse | { data: ProductResponse }>(
     `${getApiUrl()}/product`,
-    { method: "POST", body: JSON.stringify(body) }
+    { method: "POST", body: JSON.stringify(body) },
   );
   return "data" in data ? data.data : data;
 }
 
 export async function updateProduct(
   id: number,
-  body: UpdateProductRequest
+  body: UpdateProductRequest,
 ): Promise<void> {
   await fetchJson(`${getApiUrl()}/product?id=${id}`, {
     method: "PUT",
@@ -97,7 +109,7 @@ export async function deleteProduct(id: number): Promise<void> {
 
 export async function getProductCategories(
   page = 1,
-  perPage = 100
+  perPage = 100,
 ): Promise<PaginatedResult<ProductCategoryResponse>> {
   const url = `${getApiUrl()}/product-category?page=${page}&perPage=${perPage}`;
   const data = await fetchJson<unknown>(url);

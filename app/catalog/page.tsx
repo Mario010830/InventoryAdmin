@@ -1,17 +1,20 @@
 "use client";
 
-import { useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useMemo } from "react";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { Icon } from "@/components/ui/Icon";
-import { useGetPublicLocationsQuery, useGetAllPublicProductsQuery } from "./_service/catalogApi";
 import { useFuseSearch } from "@/hooks/useFuseSearch";
 import type { PublicLocation } from "@/lib/dashboard-types";
+import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import { useFavorites } from "@/lib/useFavorites";
-import { FavoriteButton } from "@/components/FavoriteButton";
+import {
+  useGetAllPublicProductsQuery,
+  useGetPublicLocationsQuery,
+} from "./_service/catalogApi";
 import AllProductsView from "./AllProductsView";
 import { useCatalogCtx } from "./layout";
-import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 
 const PRODUCT_FUSE_KEYS = [
   { name: "name" as const, weight: 0.5 },
@@ -31,7 +34,9 @@ interface ProvinceGroup {
   totalLocations: number;
 }
 
-function groupByProvinceAndMunicipality(locations: PublicLocation[]): ProvinceGroup[] {
+function groupByProvinceAndMunicipality(
+  locations: PublicLocation[],
+): ProvinceGroup[] {
   const provinceMap = new Map<string, Map<string, PublicLocation[]>>();
 
   for (const loc of locations) {
@@ -41,7 +46,7 @@ function groupByProvinceAndMunicipality(locations: PublicLocation[]): ProvinceGr
     if (!provinceMap.has(prov)) provinceMap.set(prov, new Map());
     const muniMap = provinceMap.get(prov)!;
     if (!muniMap.has(muni)) muniMap.set(muni, []);
-    muniMap.get(muni)!.push(loc);
+    muniMap.get(muni)?.push(loc);
   }
 
   const groups: ProvinceGroup[] = [];
@@ -92,7 +97,10 @@ function LocationCard({
     <Link href={`/catalog/${loc.id}`} className="loc2-card">
       <div className="loc2-card__img">
         {loc.photoUrl ? (
-          <img src={getProxiedImageSrc(loc.photoUrl) ?? loc.photoUrl} alt={loc.name} />
+          <img
+            src={getProxiedImageSrc(loc.photoUrl) ?? loc.photoUrl}
+            alt={loc.name}
+          />
         ) : (
           <div className="loc2-card__placeholder">
             <Icon name="storefront" />
@@ -107,7 +115,9 @@ function LocationCard({
               ariaRemove="Quitar tienda de favoritos"
             />
             {showBadge && (
-              <div className={`loc2-badge ${isOpen ? "loc2-badge--open" : "loc2-badge--closed"}`}>
+              <div
+                className={`loc2-badge ${isOpen ? "loc2-badge--open" : "loc2-badge--closed"}`}
+              >
                 {isOpen && <span className="loc2-badge__dot" />}
                 <span>{isOpen ? "Abierto" : "Cerrado"}</span>
               </div>
@@ -137,13 +147,15 @@ export default function CatalogLocationsPage() {
   const searchParams = useSearchParams();
   const tab = searchParams.get("tab") ?? "tiendas";
 
-  const { data: locations, isLoading, isError, refetch } = useGetPublicLocationsQuery();
-  const { search, setSearch } = useCatalogCtx();
   const {
-    favoriteLocations,
-    toggleFavoriteLocation,
-    isFavoriteLocation,
-  } = useFavorites();
+    data: locations,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetPublicLocationsQuery();
+  const { search, setSearch } = useCatalogCtx();
+  const { favoriteLocations, toggleFavoriteLocation, isFavoriteLocation } =
+    useFavorites();
 
   const filtered = useFuseSearch(
     locations ?? [],
@@ -179,7 +191,10 @@ export default function CatalogLocationsPage() {
     return locations.filter((l) => ids.has(String(l.id)));
   }, [locations, favoriteLocations]);
 
-  const groups = useMemo(() => groupByProvinceAndMunicipality(filtered), [filtered]);
+  const groups = useMemo(
+    () => groupByProvinceAndMunicipality(filtered),
+    [filtered],
+  );
 
   const setTab = (next: "tiendas" | "productos") => {
     const params = new URLSearchParams(searchParams.toString());
@@ -333,19 +348,14 @@ export default function CatalogLocationsPage() {
             </div>
           )}
 
-          {!isLoading &&
-            !isError &&
-            locations &&
-            locations.length === 0 && (
-              <div className="store-empty">
-                <div className="store-empty__icon">
-                  <Icon name="store" />
-                </div>
-                <p className="store-empty__text">
-                  No hay locales disponibles
-                </p>
+          {!isLoading && !isError && locations && locations.length === 0 && (
+            <div className="store-empty">
+              <div className="store-empty__icon">
+                <Icon name="store" />
               </div>
-            )}
+              <p className="store-empty__text">No hay locales disponibles</p>
+            </div>
+          )}
 
           {!isLoading &&
             !isError &&
@@ -405,10 +415,7 @@ export default function CatalogLocationsPage() {
 
                   <div className="loc2-province__body">
                     {pGroup.municipalities.map((mGroup) => (
-                      <div
-                        key={mGroup.municipality}
-                        className="loc2-muni"
-                      >
+                      <div key={mGroup.municipality} className="loc2-muni">
                         <div className="loc2-muni__header">
                           <Icon name="location_city" />
                           <span className="loc2-muni__name">
@@ -426,9 +433,7 @@ export default function CatalogLocationsPage() {
                             <LocationCard
                               key={loc.id}
                               loc={loc}
-                              isFavorite={isFavoriteLocation(
-                                String(loc.id),
-                              )}
+                              isFavorite={isFavoriteLocation(String(loc.id))}
                               onToggle={() =>
                                 toggleFavoriteLocation(String(loc.id))
                               }

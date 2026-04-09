@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 
 export function DefaultBulkToolbar({
@@ -30,20 +30,36 @@ export function DefaultBulkToolbar({
       <div className="dt-bulk-bar__actions">
         {extra}
         {showDelete && onDeleteSelected ? (
-          <button type="button" className="dt-bulk-btn dt-bulk-btn--danger" onClick={onDeleteSelected}>
+          <button
+            type="button"
+            className="dt-bulk-btn dt-bulk-btn--danger"
+            onClick={onDeleteSelected}
+          >
             <Icon name="delete_outline" />
             Eliminar seleccionados
           </button>
         ) : null}
-        <button type="button" className="dt-bulk-btn" onClick={onExportSelectedCsv}>
+        <button
+          type="button"
+          className="dt-bulk-btn"
+          onClick={onExportSelectedCsv}
+        >
           <Icon name="description" />
           Exportar CSV
         </button>
-        <button type="button" className="dt-bulk-btn" onClick={onExportSelectedXlsx}>
+        <button
+          type="button"
+          className="dt-bulk-btn"
+          onClick={onExportSelectedXlsx}
+        >
           <Icon name="table_chart" />
           Exportar Excel
         </button>
-        <button type="button" className="dt-bulk-btn dt-bulk-btn--ghost" onClick={onClear}>
+        <button
+          type="button"
+          className="dt-bulk-btn dt-bulk-btn--ghost"
+          onClick={onClear}
+        >
           Cancelar selección
         </button>
       </div>
@@ -51,7 +67,11 @@ export function DefaultBulkToolbar({
   );
 }
 
-function useCloseOnOutside(ref: React.RefObject<HTMLElement | null>, open: boolean, onClose: () => void) {
+function useCloseOnOutside(
+  ref: React.RefObject<HTMLElement | null>,
+  open: boolean,
+  onClose: () => void,
+) {
   useEffect(() => {
     if (!open) return;
     const fn = (e: MouseEvent) => {
@@ -92,10 +112,16 @@ export function ProductsBulkToolbar({
 
   return (
     <div className="dt-bulk-bar__inner">
-      <span className="dt-bulk-bar__count">{count} productos seleccionados</span>
+      <span className="dt-bulk-bar__count">
+        {count} productos seleccionados
+      </span>
       <div className="dt-bulk-bar__actions">
         {showDelete && onDeleteSelected ? (
-          <button type="button" className="dt-bulk-btn dt-bulk-btn--danger" onClick={onDeleteSelected}>
+          <button
+            type="button"
+            className="dt-bulk-btn dt-bulk-btn--danger"
+            onClick={onDeleteSelected}
+          >
             <Icon name="delete_outline" />
             Eliminar seleccionados
           </button>
@@ -178,15 +204,27 @@ export function ProductsBulkToolbar({
             </div>
           ) : null}
         </div>
-        <button type="button" className="dt-bulk-btn" onClick={exportSelectedCsv}>
+        <button
+          type="button"
+          className="dt-bulk-btn"
+          onClick={exportSelectedCsv}
+        >
           <Icon name="description" />
           Exportar CSV
         </button>
-        <button type="button" className="dt-bulk-btn" onClick={exportSelectedXlsx}>
+        <button
+          type="button"
+          className="dt-bulk-btn"
+          onClick={exportSelectedXlsx}
+        >
           <Icon name="table_chart" />
           Exportar Excel
         </button>
-        <button type="button" className="dt-bulk-btn dt-bulk-btn--ghost" onClick={onClear}>
+        <button
+          type="button"
+          className="dt-bulk-btn dt-bulk-btn--ghost"
+          onClick={onClear}
+        >
           Cancelar selección
         </button>
       </div>
@@ -228,7 +266,11 @@ export function UsersBulkToolbar({
       <span className="dt-bulk-bar__count">{count} usuarios seleccionados</span>
       <div className="dt-bulk-bar__actions">
         {showDelete && onDeleteSelected ? (
-          <button type="button" className="dt-bulk-btn dt-bulk-btn--danger" onClick={onDeleteSelected}>
+          <button
+            type="button"
+            className="dt-bulk-btn dt-bulk-btn--danger"
+            onClick={onDeleteSelected}
+          >
             <Icon name="delete_outline" />
             Eliminar seleccionados
           </button>
@@ -271,15 +313,27 @@ export function UsersBulkToolbar({
             </div>
           ) : null}
         </div>
-        <button type="button" className="dt-bulk-btn" onClick={exportSelectedCsv}>
+        <button
+          type="button"
+          className="dt-bulk-btn"
+          onClick={exportSelectedCsv}
+        >
           <Icon name="description" />
           Exportar CSV
         </button>
-        <button type="button" className="dt-bulk-btn" onClick={exportSelectedXlsx}>
+        <button
+          type="button"
+          className="dt-bulk-btn"
+          onClick={exportSelectedXlsx}
+        >
           <Icon name="table_chart" />
           Exportar Excel
         </button>
-        <button type="button" className="dt-bulk-btn dt-bulk-btn--ghost" onClick={onClear}>
+        <button
+          type="button"
+          className="dt-bulk-btn dt-bulk-btn--ghost"
+          onClick={onClear}
+        >
           Cancelar selección
         </button>
       </div>

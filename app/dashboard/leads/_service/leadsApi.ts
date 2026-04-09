@@ -1,12 +1,12 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { getApiUrl, getToken } from "@/lib/auth-api";
 import { parsePaginated } from "@/lib/api-utils";
+import { getApiUrl, getToken } from "@/lib/auth-api";
 import type {
   ContactResponse,
   CreateLeadRequest,
   LeadResponse,
-  UpdateLeadRequest,
   PaginationInfo,
+  UpdateLeadRequest,
 } from "@/lib/dashboard-types";
 
 export interface PaginatedResult<T> {
@@ -30,7 +30,8 @@ interface UpdateLeadArgs {
 function unwrapLead(raw: unknown): LeadResponse {
   if (raw && typeof raw === "object") {
     const r = raw as Record<string, unknown>;
-    if (r.result && typeof r.result === "object") return r.result as LeadResponse;
+    if (r.result && typeof r.result === "object")
+      return r.result as LeadResponse;
     if (r.data && typeof r.data === "object") return r.data as LeadResponse;
   }
   return raw as LeadResponse;
@@ -39,7 +40,8 @@ function unwrapLead(raw: unknown): LeadResponse {
 function unwrapContact(raw: unknown): ContactResponse {
   if (raw && typeof raw === "object") {
     const r = raw as Record<string, unknown>;
-    if (r.result && typeof r.result === "object") return r.result as ContactResponse;
+    if (r.result && typeof r.result === "object")
+      return r.result as ContactResponse;
     if (r.data && typeof r.data === "object") return r.data as ContactResponse;
   }
   return raw as ContactResponse;
@@ -51,7 +53,7 @@ export const leadsApi = createApi({
     baseUrl: getApiUrl(),
     prepareHeaders: (headers) => {
       const token = getToken();
-      if (token) headers.set("Authorization", "Bearer " + token);
+      if (token) headers.set("Authorization", `Bearer ${token}`);
       headers.set("Content-Type", "application/json");
       headers.set("ngrok-skip-browser-warning", "true");
       return headers;
@@ -90,17 +92,26 @@ export const leadsApi = createApi({
     }),
     updateLead: builder.mutation<void, UpdateLeadArgs>({
       query: ({ id, body }) => ({ url: `/lead?id=${id}`, method: "PUT", body }),
-      invalidatesTags: (_r, _e, { id }) => [{ type: "Lead", id }, { type: "Lead", id: "LIST" }],
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "Lead", id },
+        { type: "Lead", id: "LIST" },
+      ],
     }),
     deleteLead: builder.mutation<void, number>({
       query: (id) => ({ url: `/lead?id=${id}`, method: "DELETE" }),
-      invalidatesTags: (_r, _e, id) => [{ type: "Lead", id }, { type: "Lead", id: "LIST" }],
+      invalidatesTags: (_r, _e, id) => [
+        { type: "Lead", id },
+        { type: "Lead", id: "LIST" },
+      ],
     }),
     /** Convierte el lead en contacto (POST /lead/{id}/convert). */
     convertLeadToContact: builder.mutation<ContactResponse, number>({
       query: (id) => ({ url: `/lead/${id}/convert`, method: "POST" }),
       transformResponse: (raw: unknown) => unwrapContact(raw),
-      invalidatesTags: (_r, _e, id) => [{ type: "Lead", id }, { type: "Lead", id: "LIST" }],
+      invalidatesTags: (_r, _e, id) => [
+        { type: "Lead", id },
+        { type: "Lead", id: "LIST" },
+      ],
     }),
   }),
 });

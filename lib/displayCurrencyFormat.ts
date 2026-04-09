@@ -1,7 +1,12 @@
 /** Conversión solo visual: valores en BD siguen siendo CUP (base). */
 
 export function cupToDisplayAmount(cup: number, exchangeRate: number): number {
-  if (!Number.isFinite(cup) || !Number.isFinite(exchangeRate) || exchangeRate <= 0) return 0;
+  if (
+    !Number.isFinite(cup) ||
+    !Number.isFinite(exchangeRate) ||
+    exchangeRate <= 0
+  )
+    return 0;
   return cup / exchangeRate;
 }
 

@@ -1,11 +1,11 @@
 import { logoutSuccessfull } from "@/app/login/_slices/authSlice";
 import type {
-  LoginRequest,
+  ApiResponse,
   CreateOrganizationRequest,
+  LoginRequest,
+  OrganizationResponse,
   RegisterWithOrganizationRequest,
   UserResponse,
-  OrganizationResponse,
-  ApiResponse,
 } from "./auth-types";
 
 const BACKEND_URL = "http://162.220.165.172:5000/api";
@@ -59,7 +59,7 @@ export function clearSession(): void {
 }
 
 export async function login(
-  credentials: LoginRequest
+  credentials: LoginRequest,
 ): Promise<{ user: UserResponse }> {
   const res = await fetch(`${getApiUrl()}/account/login`, {
     method: "POST",
@@ -75,9 +75,14 @@ export async function login(
   if (token) saveToken(token);
   if (refreshToken) saveRefreshToken(refreshToken);
 
-  const json = (await res.json()) as ApiResponse<UserResponse> & { result?: UserResponse };
+  const json = (await res.json()) as ApiResponse<UserResponse> & {
+    result?: UserResponse;
+  };
   if (!res.ok) {
-    const msg = (res.status === 401 ? "Email o contraseña incorrectos." : "Error al iniciar sesión.");
+    const msg =
+      res.status === 401
+        ? "Email o contraseña incorrectos."
+        : "Error al iniciar sesión.";
     throw new Error(msg);
   }
   const user = json.result;
@@ -113,7 +118,7 @@ export async function register(body: {
 }
 
 export async function createOrganization(
-  data: CreateOrganizationRequest
+  data: CreateOrganizationRequest,
 ): Promise<OrganizationResponse> {
   const token = getToken();
   const res = await fetch(`${getApiUrl()}/organization`, {
@@ -129,13 +134,13 @@ export async function createOrganization(
   if (!res.ok) {
     throw new Error("Error al crear la organización.");
   }
-  return (json as unknown as OrganizationResponse);
+  return json as unknown as OrganizationResponse;
 }
 
 export async function registerWithOrganization(
   body: RegisterWithOrganizationRequest,
-  options?: { skipAutoLogin?: boolean }
-): Promise<{ user: UserResponse } | void> {
+  options?: { skipAutoLogin?: boolean },
+): Promise<{ user: UserResponse } | undefined> {
   const res = await fetch(`${getApiUrl()}/account/register-with-organization`, {
     method: "POST",
     headers: {

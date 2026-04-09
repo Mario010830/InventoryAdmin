@@ -1,13 +1,13 @@
 import "./landing.css";
 import {
-  Navbar,
-  Hero,
-  Features,
   CatalogSection,
-  StatsSection,
-  HowItWorks,
   CtaSection,
+  Features,
   Footer,
+  Hero,
+  HowItWorks,
+  Navbar,
+  StatsSection,
 } from "@/components/landing";
 
 export default function Home() {

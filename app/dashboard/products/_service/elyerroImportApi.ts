@@ -4,8 +4,8 @@ import type {
   ElYerroImportExecuteRequest,
   ElYerroImportPreviewRequest,
   ElYerroImportResult,
-  ElYerroPreviewProduct,
   ElYerroPreviewCategory,
+  ElYerroPreviewProduct,
   ElYerroPreviewResult,
 } from "@/lib/dashboard-types";
 
@@ -67,9 +67,7 @@ function parsePreviewProduct(raw: unknown): ElYerroPreviewProduct {
 function parsePreviewCategory(raw: unknown): ElYerroPreviewCategory {
   const o = raw as Record<string, unknown>;
   const prods = o.productos ?? o.Productos;
-  const productos = Array.isArray(prods)
-    ? prods.map(parsePreviewProduct)
-    : [];
+  const productos = Array.isArray(prods) ? prods.map(parsePreviewProduct) : [];
   return {
     nombre: pickStr(o, "nombre", "Nombre"),
     slug: pickStr(o, "slug", "Slug"),
@@ -79,7 +77,9 @@ function parsePreviewCategory(raw: unknown): ElYerroPreviewCategory {
   };
 }
 
-export function unwrapElYerroPreviewResult(raw: unknown): ElYerroPreviewResult | null {
+export function unwrapElYerroPreviewResult(
+  raw: unknown,
+): ElYerroPreviewResult | null {
   if (raw == null) return null;
   const outer = raw as Record<string, unknown>;
   const payload = (outer.result ?? outer.Result ?? outer) as Record<

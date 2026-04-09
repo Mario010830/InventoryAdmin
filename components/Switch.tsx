@@ -9,12 +9,21 @@ interface SwitchProps {
   disabled?: boolean;
 }
 
-const Switch: React.FC<SwitchProps> = ({ checked, onChange, id, className, disabled = false }) => {
+const Switch: React.FC<SwitchProps> = ({
+  checked,
+  onChange,
+  id,
+  className,
+  disabled = false,
+}) => {
   const autoId = useId();
   const switchId = id ?? autoId;
 
   return (
-    <StyledSwitch className={className} data-disabled={disabled ? "true" : undefined}>
+    <StyledSwitch
+      className={className}
+      data-disabled={disabled ? "true" : undefined}
+    >
       <input
         type="checkbox"
         className="switch__input"

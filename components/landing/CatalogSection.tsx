@@ -1,11 +1,14 @@
 "use client";
 
-import { useRef, useEffect, useMemo, useState } from "react";
-import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 import Link from "next/link";
-import { useGetPublicLocationsQuery, useLazyGetPublicCatalogQuery } from "@/app/catalog/_service/catalogApi";
-import type { PublicCatalogItem } from "@/lib/dashboard-types";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useGetPublicLocationsQuery,
+  useLazyGetPublicCatalogQuery,
+} from "@/app/catalog/_service/catalogApi";
 import { Icon } from "@/components/ui/Icon";
+import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
+import type { PublicCatalogItem } from "@/lib/dashboard-types";
 import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 
 const LOW_STOCK_THRESHOLD = 10;
@@ -39,8 +42,7 @@ function mapApiItemToCard(
   const stock = item.stockAtLocation ?? 0;
   const sc: "s-ok" | "s-lo" | "s-no" =
     stock <= 0 ? "s-no" : stock < LOW_STOCK_THRESHOLD ? "s-lo" : "s-ok";
-  const stockLabel =
-    stock <= 0 ? "Agotado" : `${stock} uds`;
+  const stockLabel = stock <= 0 ? "Agotado" : `${stock} uds`;
   const cc = item.categoryColor || DEFAULT_ACCENT;
   return {
     id: item.id,
@@ -128,7 +130,9 @@ export function CatalogSection() {
     const place = () => {
       const pos = posRef.current;
       const cx = getCenter();
-      const cards = track.querySelectorAll<HTMLDivElement>(".catalog-track__card");
+      const cards = track.querySelectorAll<HTMLDivElement>(
+        ".catalog-track__card",
+      );
       cards.forEach((c, idx) => {
         const raw = -pos + idx * STEP;
         const cx0 = raw + CARD_W / 2 - cx;
@@ -155,7 +159,7 @@ export function CatalogSection() {
     place();
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [allCards.length, N, TOTAL]);
+  }, [N, TOTAL]);
 
   return (
     <section className="catalog-section">
@@ -168,7 +172,8 @@ export function CatalogSection() {
             <span>y compra fácil</span>
           </h2>
           <p className="catalog-section__sub">
-            Entra al catálogo de tu tienda favorita, elige lo que necesitas y compra con confianza.
+            Entra al catálogo de tu tienda favorita, elige lo que necesitas y
+            compra con confianza.
           </p>
         </header>
 
@@ -178,52 +183,57 @@ export function CatalogSection() {
               <p className="catalog-section__loading">Cargando productos…</p>
             )}
             {!loading && N === 0 && (
-              <p className="catalog-section__empty">Aún no hay productos en venta.</p>
+              <p className="catalog-section__empty">
+                Aún no hay productos en venta.
+              </p>
             )}
-            {!loading && allCards.map(({ product: p, baseIdx }) => (
-              <div
-                key={`${baseIdx}-${p.id}`}
-                className="catalog-track__card"
-                style={{ top: "50%" }}
-              >
-                <div className="catalog-track__card-inner">
-                  <div
-                    className="catalog-track__card-img"
-                    style={{ background: p.bg }}
-                  >
-                    {p.imagenUrl ? (
-                      <img
-                        src={getProxiedImageSrc(p.imagenUrl) ?? p.imagenUrl}
-                        alt={p.name}
-                        className="catalog-track__card-img-el"
-                      />
-                    ) : (
-                      <span className="catalog-track__card-img-icon">
-                        <Icon name="inventory_2" />
-                      </span>
-                    )}
-                  </div>
-                  <div className="catalog-track__card-info">
-                    <div>
-                      <p
-                        className="catalog-track__card-cat"
-                        style={{ color: p.cc }}
-                      >
-                        {p.cat}
-                      </p>
-                      <p className="catalog-track__card-name">{p.name}</p>
-                      <p className="catalog-track__card-sku">{p.sku}</p>
+            {!loading &&
+              allCards.map(({ product: p, baseIdx }) => (
+                <div
+                  key={`${baseIdx}-${p.id}`}
+                  className="catalog-track__card"
+                  style={{ top: "50%" }}
+                >
+                  <div className="catalog-track__card-inner">
+                    <div
+                      className="catalog-track__card-img"
+                      style={{ background: p.bg }}
+                    >
+                      {p.imagenUrl ? (
+                        <img
+                          src={getProxiedImageSrc(p.imagenUrl) ?? p.imagenUrl}
+                          alt={p.name}
+                          className="catalog-track__card-img-el"
+                        />
+                      ) : (
+                        <span className="catalog-track__card-img-icon">
+                          <Icon name="inventory_2" />
+                        </span>
+                      )}
                     </div>
-                    <div className="catalog-track__card-bot">
-                      <span className="catalog-track__card-price">{p.price}</span>
-                      <span className={`catalog-track__card-stk ${p.sc}`}>
-                        {p.stock}
-                      </span>
+                    <div className="catalog-track__card-info">
+                      <div>
+                        <p
+                          className="catalog-track__card-cat"
+                          style={{ color: p.cc }}
+                        >
+                          {p.cat}
+                        </p>
+                        <p className="catalog-track__card-name">{p.name}</p>
+                        <p className="catalog-track__card-sku">{p.sku}</p>
+                      </div>
+                      <div className="catalog-track__card-bot">
+                        <span className="catalog-track__card-price">
+                          {p.price}
+                        </span>
+                        <span className={`catalog-track__card-stk ${p.sc}`}>
+                          {p.stock}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
           <div className="catalog-section__fade catalog-section__fade--l" />
           <div className="catalog-section__fade catalog-section__fade--r" />

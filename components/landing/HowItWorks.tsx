@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
-import { motion, useInView, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion, useInView } from "framer-motion";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 
 const STEPS = [
@@ -214,9 +214,7 @@ export function HowItWorks() {
                   className="step-card__body"
                   initial={{ opacity: 0, y: 16 }}
                   animate={
-                    isInView
-                      ? { opacity: 1, y: 0 }
-                      : { opacity: 0, y: 16 }
+                    isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }
                   }
                   transition={{
                     delay: NODE_DELAYS[index] + 0.2,
@@ -242,7 +240,12 @@ export function HowItWorks() {
             <span className="section-label">El cambio</span>
             <h2 className="section-title">
               De caos en hojas de cálculo a{" "}
-              <span className="gradient-text" style={{ textTransform: "uppercase", letterSpacing: "2px" }}>control total</span>
+              <span
+                className="gradient-text"
+                style={{ textTransform: "uppercase", letterSpacing: "2px" }}
+              >
+                control total
+              </span>
             </h2>
             <p className="section-subtitle">
               Así se ve el antes y el después de usar Tu Cuadre.

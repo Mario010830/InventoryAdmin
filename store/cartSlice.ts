@@ -34,7 +34,7 @@ export const cartSlice = createSlice({
         isOpenNow?: boolean | null;
         todayOpen?: string | null;
         todayClose?: string | null;
-      }>
+      }>,
     ) {
       if (state.locationId !== null && state.locationId !== action.payload.id) {
         state.items = [];
@@ -49,9 +49,12 @@ export const cartSlice = createSlice({
 
     addItem(state, action: PayloadAction<CartItem>) {
       const existing = state.items.find(
-        (i) => i.productId === action.payload.productId
+        (i) => i.productId === action.payload.productId,
       );
-      const maxQty = action.payload.tipo === "elaborado" ? Infinity : action.payload.stockAtLocation;
+      const maxQty =
+        action.payload.tipo === "elaborado"
+          ? Infinity
+          : action.payload.stockAtLocation;
       if (existing) {
         existing.quantity = Math.min(existing.quantity + 1, maxQty);
         if (action.payload.tipo != null) existing.tipo = action.payload.tipo;
@@ -66,18 +69,19 @@ export const cartSlice = createSlice({
 
     updateQuantity(
       state,
-      action: PayloadAction<{ productId: number; quantity: number }>
+      action: PayloadAction<{ productId: number; quantity: number }>,
     ) {
       const item = state.items.find(
-        (i) => i.productId === action.payload.productId
+        (i) => i.productId === action.payload.productId,
       );
       if (!item) return;
       if (action.payload.quantity <= 0) {
         state.items = state.items.filter(
-          (i) => i.productId !== action.payload.productId
+          (i) => i.productId !== action.payload.productId,
         );
       } else {
-        const maxQty = item.tipo === "elaborado" ? Infinity : item.stockAtLocation;
+        const maxQty =
+          item.tipo === "elaborado" ? Infinity : item.stockAtLocation;
         item.quantity = Math.min(action.payload.quantity, maxQty);
       }
     },

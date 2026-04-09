@@ -1,20 +1,38 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 import type { ApexOptions } from "apexcharts";
 import { Layers3, Package2, ShoppingBag, Tag } from "lucide-react";
-import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
+import dynamic from "next/dynamic";
+import { useMemo, useState } from "react";
 import { ReportFilters } from "@/components/reportes/ReportFilters";
 import { ReportKpiCard } from "@/components/reportes/ReportKpiCard";
 import { ReportPageLayout } from "@/components/reportes/ReportPageLayout";
 import { ReportTable } from "@/components/reportes/ReportTable";
 import { useReportData } from "@/components/reportes/useReportData";
-import type { ProductsReportResponse, ReportFilters as ReportFilterParams } from "@/lib/types/reports";
-import { apexChartLocaleEs, apexNoDataEs, formatChartNumber } from "@/lib/apexcharts-es";
+import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
+import {
+  apexChartLocaleEs,
+  apexNoDataEs,
+  formatChartNumber,
+} from "@/lib/apexcharts-es";
+import type {
+  ProductsReportResponse,
+  ReportFilters as ReportFilterParams,
+} from "@/lib/types/reports";
 
-const PIE_COLORS = ["#2563eb", "#7c3aed", "#16a34a", "#f59e0b", "#dc2626", "#0ea5e9", "#8b5cf6", "#22c55e"];
-const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
+const PIE_COLORS = [
+  "#2563eb",
+  "#7c3aed",
+  "#16a34a",
+  "#f59e0b",
+  "#dc2626",
+  "#0ea5e9",
+  "#8b5cf6",
+  "#22c55e",
+];
+const ReactApexChart = dynamic(() => import("react-apexcharts"), {
+  ssr: false,
+});
 
 function truncateLabel(s: string | null | undefined, max = 12): string {
   const v = (s ?? "Sin nombre").trim() || "Sin nombre";
@@ -50,15 +68,31 @@ export default function ReportesProductosPage() {
     [data?.categoryDistribution],
   );
 
-  const inactive = Math.max(0, (data?.totalProducts ?? 0) - (data?.activeProducts ?? 0));
+  const inactive = Math.max(
+    0,
+    (data?.totalProducts ?? 0) - (data?.activeProducts ?? 0),
+  );
 
   const topRevenueOptions: ApexOptions = useMemo(
     () => ({
       noData: apexNoDataEs,
-      chart: { type: "bar", height: 320, toolbar: { show: false }, ...apexChartLocaleEs },
-      plotOptions: { bar: { borderRadius: 6, borderRadiusApplication: "end", columnWidth: "48%" } },
+      chart: {
+        type: "bar",
+        height: 320,
+        toolbar: { show: false },
+        ...apexChartLocaleEs,
+      },
+      plotOptions: {
+        bar: {
+          borderRadius: 6,
+          borderRadiusApplication: "end",
+          columnWidth: "48%",
+        },
+      },
       dataLabels: { enabled: false },
-      xaxis: { categories: topByRevenue.slice(0, 10).map((r) => r.productNameShort) },
+      xaxis: {
+        categories: topByRevenue.slice(0, 10).map((r) => r.productNameShort),
+      },
       yaxis: { labels: { formatter: (v) => formatChartNumber(Number(v)) } },
       tooltip: {
         y: { formatter: (v) => formatCup(Number(v)) },
@@ -69,7 +103,12 @@ export default function ReportesProductosPage() {
     [topByRevenue, formatCup],
   );
   const topRevenueSeries = useMemo(
-    () => [{ name: "Revenue", data: topByRevenue.slice(0, 10).map((r) => r.revenue) }],
+    () => [
+      {
+        name: "Revenue",
+        data: topByRevenue.slice(0, 10).map((r) => r.revenue),
+      },
+    ],
     [topByRevenue],
   );
   const categoryPieOptions: ApexOptions = useMemo(
@@ -140,7 +179,12 @@ export default function ReportesProductosPage() {
             </p>
           ) : (
             <div className="h-[320px]">
-              <ReactApexChart options={topRevenueOptions} series={topRevenueSeries} type="bar" height={320} />
+              <ReactApexChart
+                options={topRevenueOptions}
+                series={topRevenueSeries}
+                type="bar"
+                height={320}
+              />
             </div>
           )}
         </section>
@@ -159,11 +203,16 @@ export default function ReportesProductosPage() {
               />
               <div className="overflow-auto pr-1 text-sm">
                 {categoryRows.map((row, idx) => (
-                  <div key={`${row.categoryId ?? "null"}-${idx}`} className="mb-1 flex items-center justify-between gap-2">
+                  <div
+                    key={`${row.categoryId ?? "null"}-${idx}`}
+                    className="mb-1 flex items-center justify-between gap-2"
+                  >
                     <span className="truncate text-slate-700">
                       {row.categoryName ?? "Sin categoría"}
                     </span>
-                    <span className="font-medium text-slate-900">{row.productsCount}</span>
+                    <span className="font-medium text-slate-900">
+                      {row.productsCount}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -206,7 +255,12 @@ export default function ReportesProductosPage() {
                 render: (row) => formatCup(Number(row.revenue ?? 0)),
               },
             ]}
-            data={(data?.topSellingProducts ?? []) as unknown as Record<string, unknown>[]}
+            data={
+              (data?.topSellingProducts ?? []) as unknown as Record<
+                string,
+                unknown
+              >[]
+            }
             loading={loading}
             searchable
             fileName="top-productos"

@@ -1,24 +1,24 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { DataTableAction, DataTableColumn } from "@/components/DataTable";
+import { DataTable } from "@/components/DataTable";
+import { DatePickerSimple } from "@/components/DatePickerSimple";
+import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
+import { Icon } from "@/components/ui/Icon";
+import type { SaleOrderResponse } from "@/lib/dashboard-types";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
-  useLoadAllRemainingPages,
   SEARCH_TABLE_CHUNK_PAGE_SIZE,
   TABLE_SEARCH_DEBOUNCE_MS,
+  useLoadAllRemainingPages,
 } from "@/lib/useLoadAllRemainingPages";
-import { Icon } from "@/components/ui/Icon";
-import { DataTable } from "@/components/DataTable";
-import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
-import { DatePickerSimple } from "@/components/DatePickerSimple";
 import { useGetUsersQuery } from "../users/_service/usersApi";
-import type { DataTableColumn, DataTableAction } from "@/components/DataTable";
 import {
-  useGetOrdersQuery,
-  useConfirmOrderMutation,
   useCancelOrderMutation,
+  useConfirmOrderMutation,
+  useGetOrdersQuery,
 } from "./_service/salesApi";
-import type { SaleOrderResponse } from "@/lib/dashboard-types";
 import "./sales.css";
 import { SaleOrderDetailBody } from "@/components/dashboard-detail/SaleOrderDetailBody";
 
@@ -31,15 +31,30 @@ function normalizeStatus(status: string): string {
   return status;
 }
 
-const STATUS_DISPLAY: Record<string, { cls: string; icon: string; label: string }> = {
-  Draft:     { cls: "sale-status--draft",     icon: "pending",      label: "Pendiente" },
-  Confirmed: { cls: "sale-status--confirmed", icon: "check_circle",  label: "Aceptada" },
-  Cancelled: { cls: "sale-status--cancelled", icon: "cancel",       label: "Cancelada" },
+const STATUS_DISPLAY: Record<
+  string,
+  { cls: string; icon: string; label: string }
+> = {
+  Draft: { cls: "sale-status--draft", icon: "pending", label: "Pendiente" },
+  Confirmed: {
+    cls: "sale-status--confirmed",
+    icon: "check_circle",
+    label: "Aceptada",
+  },
+  Cancelled: {
+    cls: "sale-status--cancelled",
+    icon: "cancel",
+    label: "Cancelada",
+  },
 };
 
 function StatusBadge({ status }: { status: string }) {
   const key = normalizeStatus(status);
-  const d = STATUS_DISPLAY[key] ?? { cls: "sale-status--draft", icon: "help", label: status };
+  const d = STATUS_DISPLAY[key] ?? {
+    cls: "sale-status--draft",
+    icon: "help",
+    label: status,
+  };
   return (
     <span className={`sale-status ${d.cls}`}>
       <Icon name={d.icon} />
@@ -51,13 +66,14 @@ function StatusBadge({ status }: { status: string }) {
 // ─── Columns ──────────────────────────────────────────────────────────────────
 
 const COLUMNS: DataTableColumn<SaleOrderResponse>[] = [
-  { key: "folio",        label: "Folio",     width: "110px" },
+  { key: "folio", label: "Folio", width: "110px" },
   { key: "locationName", label: "Ubicación" },
   {
     key: "status",
     label: "Estado",
     sortValue: (row) => normalizeStatus(row.status),
-    exportValue: (row) => STATUS_DISPLAY[normalizeStatus(row.status)]?.label ?? row.status,
+    exportValue: (row) =>
+      STATUS_DISPLAY[normalizeStatus(row.status)]?.label ?? row.status,
     render: (row) => <StatusBadge status={row.status} />,
   },
   {
@@ -67,25 +83,28 @@ const COLUMNS: DataTableColumn<SaleOrderResponse>[] = [
     width: "90px",
     sortValue: (row) => row.items.length,
   },
-  { key: "total",     label: "Total",  type: "currency" },
-  { key: "createdAt", label: "Fecha",  type: "date" },
+  { key: "total", label: "Total", type: "currency" },
+  { key: "createdAt", label: "Fecha", type: "date" },
 ];
 
 const STATUS_FILTERS = [
-  { label: "Todas",     value: "" },
+  { label: "Todas", value: "" },
   { label: "Pendiente", value: "Draft" },
-  { label: "Aceptada",  value: "Confirmed" },
+  { label: "Aceptada", value: "Confirmed" },
   { label: "Cancelada", value: "Cancelled" },
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SalesPage() {
-  const [page, setPage]         = useState(1);
-  const [pageSize]              = useState(10);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
   const [statusFilter, setStatus] = useState("");
   const [filterText, setFilterText] = useState("");
-  const debouncedFilterText = useDebouncedValue(filterText, TABLE_SEARCH_DEBOUNCE_MS);
+  const debouncedFilterText = useDebouncedValue(
+    filterText,
+    TABLE_SEARCH_DEBOUNCE_MS,
+  );
   const [saleDateFrom, setSaleDateFrom] = useState("");
   const [saleDateTo, setSaleDateTo] = useState("");
   const [amountMin, setAmountMin] = useState("");
@@ -93,16 +112,20 @@ export default function SalesPage() {
   const [filterSellerId, setFilterSellerId] = useState("");
   const perPage = Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
   const loadNextPage = useCallback(() => setPage((p) => p + 1), []);
-  const [allRows, setAllRows]   = useState<SaleOrderResponse[]>([]);
+  const [allRows, setAllRows] = useState<SaleOrderResponse[]>([]);
 
-  const { data: result, isLoading, isFetching } = useGetOrdersQuery({
+  const {
+    data: result,
+    isLoading,
+    isFetching,
+  } = useGetOrdersQuery({
     page,
     perPage,
     status: statusFilter,
   });
 
   const [confirmOrder, { isLoading: isConfirming }] = useConfirmOrderMutation();
-  const [cancelOrder,  { isLoading: isCancelling }]  = useCancelOrderMutation();
+  const [cancelOrder, { isLoading: isCancelling }] = useCancelOrderMutation();
   const [processingId, setProcessingId] = useState<number | null>(null);
   const filtersChanged = useRef(false);
 
@@ -123,10 +146,13 @@ export default function SalesPage() {
   });
 
   useEffect(() => {
-    if (!filtersChanged.current) { filtersChanged.current = true; return; }
+    if (!filtersChanged.current) {
+      filtersChanged.current = true;
+      return;
+    }
     setPage(1);
     setAllRows([]);
-  }, [statusFilter, debouncedFilterText, saleDateFrom, saleDateTo, amountMin, amountMax, filterSellerId]);
+  }, []);
 
   const loadedRows =
     page === 1 && allRows.length === 0 ? (result?.data ?? []) : allRows;
@@ -166,7 +192,9 @@ export default function SalesPage() {
         (r) =>
           r.folio.toLowerCase().includes(q) ||
           r.locationName.toLowerCase().includes(q) ||
-          String(r.contactName ?? "").toLowerCase().includes(q),
+          String(r.contactName ?? "")
+            .toLowerCase()
+            .includes(q),
       );
     }
     if (saleDateFrom) {
@@ -206,14 +234,16 @@ export default function SalesPage() {
     filterSellerId !== "";
 
   const allPagesLoaded =
-    result?.pagination != null &&
-    page >= (result.pagination.totalPages ?? 1);
+    result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
 
   const isBusy = isConfirming || isCancelling;
 
   const actions: DataTableAction<SaleOrderResponse>[] = [
     {
-      icon: processingId !== null && isConfirming ? "hourglass_empty" : "check_circle",
+      icon:
+        processingId !== null && isConfirming
+          ? "hourglass_empty"
+          : "check_circle",
       label: isConfirming ? "Aceptando…" : "Aceptar",
       onClick: async (row) => {
         setProcessingId(row.id);
@@ -229,7 +259,8 @@ export default function SalesPage() {
       disabled: (row) => isBusy && processingId !== row.id,
     },
     {
-      icon: processingId !== null && isCancelling ? "hourglass_empty" : "cancel",
+      icon:
+        processingId !== null && isCancelling ? "hourglass_empty" : "cancel",
       label: isCancelling ? "Cancelando…" : "Cancelar",
       onClick: async (row) => {
         setProcessingId(row.id);
@@ -248,131 +279,132 @@ export default function SalesPage() {
   ];
 
   return (
-    <>
-      <DataTable
-        gridConfig={{
-          storageKey: "dashboard-sales",
-          exportFilenamePrefix: "ventas",
-          primaryColumnKey: "folio",
-          bulkEntityLabel: "ventas",
-        }}
-        filters={
-          <GridFilterBar
-            onClear={() => {
-              clearGridFilters();
-              setStatus("");
-            }}
-          >
-            <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Buscar</span>
+    <DataTable
+      gridConfig={{
+        storageKey: "dashboard-sales",
+        exportFilenamePrefix: "ventas",
+        primaryColumnKey: "folio",
+        bulkEntityLabel: "ventas",
+      }}
+      filters={
+        <GridFilterBar
+          onClear={() => {
+            clearGridFilters();
+            setStatus("");
+          }}
+        >
+          <div className="grid-filter-bar__field">
+            <span className="grid-filter-bar__label">Buscar</span>
+            <input
+              type="search"
+              className={`grid-filter-bar__control grid-filter-bar__control--wide ${filterText.trim() ? "grid-filter-bar__control--active" : ""}`}
+              placeholder="Cliente, folio, referencia…"
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+            />
+          </div>
+          <div className="grid-filter-bar__field">
+            <span className="grid-filter-bar__label">Estado</span>
+            <GridFilterSelect
+              aria-label="Estado de venta"
+              value={statusFilter}
+              onChange={setStatus}
+              active={statusFilter !== ""}
+              className="grid-filter-bar__control--medium"
+              options={STATUS_FILTERS.map((f) => ({
+                value: f.value,
+                label: f.label,
+              }))}
+            />
+          </div>
+          <div className="grid-filter-bar__field">
+            <span className="grid-filter-bar__label">Desde</span>
+            <DatePickerSimple
+              date={saleDateFrom}
+              setDate={setSaleDateFrom}
+              emptyLabel="Seleccionar"
+              buttonClassName={`grid-filter-bar__date-trigger grid-filter-bar__control--medium ${saleDateFrom ? "grid-filter-bar__control--active" : ""}`}
+            />
+          </div>
+          <div className="grid-filter-bar__field">
+            <span className="grid-filter-bar__label">Hasta</span>
+            <DatePickerSimple
+              date={saleDateTo}
+              setDate={setSaleDateTo}
+              emptyLabel="Seleccionar"
+              buttonClassName={`grid-filter-bar__date-trigger grid-filter-bar__control--medium ${saleDateTo ? "grid-filter-bar__control--active" : ""}`}
+            />
+          </div>
+          <div className="grid-filter-bar__field">
+            <span className="grid-filter-bar__label">Monto</span>
+            <div className="grid-filter-bar__price-range">
               <input
-                type="search"
-                className={`grid-filter-bar__control grid-filter-bar__control--wide ${filterText.trim() ? "grid-filter-bar__control--active" : ""}`}
-                placeholder="Cliente, folio, referencia…"
-                value={filterText}
-                onChange={(e) => setFilterText(e.target.value)}
+                type="text"
+                inputMode="decimal"
+                className={`grid-filter-bar__control grid-filter-bar__control--narrow ${amountMin.trim() ? "grid-filter-bar__control--active" : ""}`}
+                placeholder="Min"
+                aria-label="Monto mínimo"
+                value={amountMin}
+                onChange={(e) => setAmountMin(e.target.value)}
+              />
+              <span className="grid-filter-bar__price-dash" aria-hidden>
+                –
+              </span>
+              <input
+                type="text"
+                inputMode="decimal"
+                className={`grid-filter-bar__control grid-filter-bar__control--narrow ${amountMax.trim() ? "grid-filter-bar__control--active" : ""}`}
+                placeholder="Max"
+                aria-label="Monto máximo"
+                value={amountMax}
+                onChange={(e) => setAmountMax(e.target.value)}
               />
             </div>
+          </div>
+          {sellerIdsInData.length > 0 ? (
             <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Estado</span>
+              <span className="grid-filter-bar__label">Vendedor</span>
               <GridFilterSelect
-                aria-label="Estado de venta"
-                value={statusFilter}
-                onChange={setStatus}
-                active={statusFilter !== ""}
+                aria-label="Vendedor"
+                value={filterSellerId}
+                onChange={setFilterSellerId}
+                active={filterSellerId !== ""}
                 className="grid-filter-bar__control--medium"
-                options={STATUS_FILTERS.map((f) => ({ value: f.value, label: f.label }))}
+                options={[
+                  { value: "", label: "Todos" },
+                  ...sellerIdsInData.map((id) => ({
+                    value: String(id),
+                    label: userIdToName.get(id) ?? String(id),
+                  })),
+                ]}
               />
             </div>
-            <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Desde</span>
-              <DatePickerSimple
-                date={saleDateFrom}
-                setDate={setSaleDateFrom}
-                emptyLabel="Seleccionar"
-                buttonClassName={`grid-filter-bar__date-trigger grid-filter-bar__control--medium ${saleDateFrom ? "grid-filter-bar__control--active" : ""}`}
-              />
-            </div>
-            <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Hasta</span>
-              <DatePickerSimple
-                date={saleDateTo}
-                setDate={setSaleDateTo}
-                emptyLabel="Seleccionar"
-                buttonClassName={`grid-filter-bar__date-trigger grid-filter-bar__control--medium ${saleDateTo ? "grid-filter-bar__control--active" : ""}`}
-              />
-            </div>
-            <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Monto</span>
-              <div className="grid-filter-bar__price-range">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className={`grid-filter-bar__control grid-filter-bar__control--narrow ${amountMin.trim() ? "grid-filter-bar__control--active" : ""}`}
-                  placeholder="Min"
-                  aria-label="Monto mínimo"
-                  value={amountMin}
-                  onChange={(e) => setAmountMin(e.target.value)}
-                />
-                <span className="grid-filter-bar__price-dash" aria-hidden>
-                  –
-                </span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className={`grid-filter-bar__control grid-filter-bar__control--narrow ${amountMax.trim() ? "grid-filter-bar__control--active" : ""}`}
-                  placeholder="Max"
-                  aria-label="Monto máximo"
-                  value={amountMax}
-                  onChange={(e) => setAmountMax(e.target.value)}
-                />
-              </div>
-            </div>
-            {sellerIdsInData.length > 0 ? (
-              <div className="grid-filter-bar__field">
-                <span className="grid-filter-bar__label">Vendedor</span>
-                <GridFilterSelect
-                  aria-label="Vendedor"
-                  value={filterSellerId}
-                  onChange={setFilterSellerId}
-                  active={filterSellerId !== ""}
-                  className="grid-filter-bar__control--medium"
-                  options={[
-                    { value: "", label: "Todos" },
-                    ...sellerIdsInData.map((id) => ({
-                      value: String(id),
-                      label: userIdToName.get(id) ?? String(id),
-                    })),
-                  ]}
-                />
-              </div>
-            ) : null}
-          </GridFilterBar>
-        }
-        data={filtered}
-        columns={COLUMNS}
-        loading={allRows.length === 0 && (isLoading || isFetching)}
-        title="Órdenes de Venta"
-        titleIcon="point_of_sale"
-        actions={actions}
-        infiniteScroll
-        hasMore={!allPagesLoaded}
-        loadingMore={isFetching && !allPagesLoaded}
-        emptyIcon="receipt_long"
-        emptyTitle="Sin órdenes"
-        emptyDesc={
-          (gridFiltersActive || statusFilter) && loadedRows.length > 0
-            ? "Ninguna orden coincide con los filtros."
-            : "Aún no hay órdenes de venta"
-        }
-        detailDrawer={{
-          entityLabelPlural: "ventas",
-          getTitle: (row) => row.folio || `Orden #${row.id}`,
-          getStatusBadge: (row) => <StatusBadge status={row.status} />,
-          render: (row) => <SaleOrderDetailBody row={row} />,
-          showEditButton: false,
-        }}
-      />
-    </>
+          ) : null}
+        </GridFilterBar>
+      }
+      data={filtered}
+      columns={COLUMNS}
+      loading={allRows.length === 0 && (isLoading || isFetching)}
+      title="Órdenes de Venta"
+      titleIcon="point_of_sale"
+      actions={actions}
+      infiniteScroll
+      hasMore={!allPagesLoaded}
+      loadingMore={isFetching && !allPagesLoaded}
+      emptyIcon="receipt_long"
+      emptyTitle="Sin órdenes"
+      emptyDesc={
+        (gridFiltersActive || statusFilter) && loadedRows.length > 0
+          ? "Ninguna orden coincide con los filtros."
+          : "Aún no hay órdenes de venta"
+      }
+      detailDrawer={{
+        entityLabelPlural: "ventas",
+        getTitle: (row) => row.folio || `Orden #${row.id}`,
+        getStatusBadge: (row) => <StatusBadge status={row.status} />,
+        render: (row) => <SaleOrderDetailBody row={row} />,
+        showEditButton: false,
+      }}
+    />
   );
 }

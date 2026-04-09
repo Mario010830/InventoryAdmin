@@ -1,5 +1,5 @@
-import Fuse from "fuse.js";
 import type { FuseOptionKey } from "fuse.js";
+import Fuse from "fuse.js";
 import { useMemo } from "react";
 
 export function useFuseSearch<T>(

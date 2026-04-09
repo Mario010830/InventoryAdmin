@@ -1,19 +1,33 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 import type { ApexOptions } from "apexcharts";
-import { AlertTriangle, Boxes, ClipboardList, PackageSearch } from "lucide-react";
-import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
+import {
+  AlertTriangle,
+  Boxes,
+  ClipboardList,
+  PackageSearch,
+} from "lucide-react";
+import dynamic from "next/dynamic";
+import { useMemo, useState } from "react";
 import { ReportFilters } from "@/components/reportes/ReportFilters";
 import { ReportKpiCard } from "@/components/reportes/ReportKpiCard";
 import { ReportPageLayout } from "@/components/reportes/ReportPageLayout";
 import { ReportTable } from "@/components/reportes/ReportTable";
 import { useReportData } from "@/components/reportes/useReportData";
-import type { InventoryReportResponse, ReportFilters as ReportFilterParams } from "@/lib/types/reports";
-import { apexChartLocaleEs, apexNoDataEs, formatChartNumber } from "@/lib/apexcharts-es";
+import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
+import {
+  apexChartLocaleEs,
+  apexNoDataEs,
+  formatChartNumber,
+} from "@/lib/apexcharts-es";
+import type {
+  InventoryReportResponse,
+  ReportFilters as ReportFilterParams,
+} from "@/lib/types/reports";
 
-const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
+const ReactApexChart = dynamic(() => import("react-apexcharts"), {
+  ssr: false,
+});
 const TYPE_LABEL: Record<string, string> = {
   Entradas: "Entradas",
   Salidas: "Salidas",
@@ -63,8 +77,19 @@ export default function ReportesInventarioPage() {
   const topStockOptions: ApexOptions = useMemo(
     () => ({
       noData: apexNoDataEs,
-      chart: { type: "bar", height: 320, toolbar: { show: false }, ...apexChartLocaleEs },
-      plotOptions: { bar: { horizontal: true, borderRadius: 6, borderRadiusApplication: "end" } },
+      chart: {
+        type: "bar",
+        height: 320,
+        toolbar: { show: false },
+        ...apexChartLocaleEs,
+      },
+      plotOptions: {
+        bar: {
+          horizontal: true,
+          borderRadius: 6,
+          borderRadiusApplication: "end",
+        },
+      },
       dataLabels: { enabled: false },
       xaxis: {
         categories: chartTopStock.map((r) => r.productNameShort),
@@ -131,14 +156,24 @@ export default function ReportesInventarioPage() {
           label="Productos bajo mínimo"
           value={loading ? "—" : String(data?.lowStockProducts.length ?? 0)}
           subvalue={
-            (data?.lowStockProducts.length ?? 0) > 0 ? "Requiere atención" : "Sin alertas"
+            (data?.lowStockProducts.length ?? 0) > 0
+              ? "Requiere atención"
+              : "Sin alertas"
           }
           loading={loading}
-          icon={<AlertTriangle className={(data?.lowStockProducts.length ?? 0) > 0 ? "text-red-600" : ""} />}
+          icon={
+            <AlertTriangle
+              className={
+                (data?.lowStockProducts.length ?? 0) > 0 ? "text-red-600" : ""
+              }
+            />
+          }
         />
         <ReportKpiCard
           label="Movimientos"
-          value={loading ? "—" : String(data?.movementsSummary.totalMovements ?? 0)}
+          value={
+            loading ? "—" : String(data?.movementsSummary.totalMovements ?? 0)
+          }
           subvalue={
             data
               ? `E: ${data.movementsSummary.entries} / S: ${data.movementsSummary.exits} / A: ${data.movementsSummary.adjustments}`
@@ -155,7 +190,12 @@ export default function ReportesInventarioPage() {
             Top productos por stock
           </h3>
           <div className="h-[320px]">
-            <ReactApexChart options={topStockOptions} series={topStockSeries} type="bar" height={320} />
+            <ReactApexChart
+              options={topStockOptions}
+              series={topStockSeries}
+              type="bar"
+              height={320}
+            />
           </div>
         </section>
 
@@ -207,11 +247,18 @@ export default function ReportesInventarioPage() {
                 key: "totalStock",
                 label: "Stock actual",
                 render: (row) => (
-                  <span className="font-medium text-red-600">{String(row.totalStock ?? 0)}</span>
+                  <span className="font-medium text-red-600">
+                    {String(row.totalStock ?? 0)}
+                  </span>
                 ),
               },
             ]}
-            data={(data?.lowStockProducts ?? []) as unknown as Record<string, unknown>[]}
+            data={
+              (data?.lowStockProducts ?? []) as unknown as Record<
+                string,
+                unknown
+              >[]
+            }
             loading={loading}
             searchable
             fileName="productos-bajo-minimo"
@@ -230,7 +277,12 @@ export default function ReportesInventarioPage() {
               { key: "productName", label: "Producto" },
               { key: "totalStock", label: "Stock total" },
             ]}
-            data={(data?.stockByProduct ?? []) as unknown as Record<string, unknown>[]}
+            data={
+              (data?.stockByProduct ?? []) as unknown as Record<
+                string,
+                unknown
+              >[]
+            }
             loading={loading}
             searchable
             fileName="stock-por-producto"

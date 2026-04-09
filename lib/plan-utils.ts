@@ -24,7 +24,9 @@ function normalizePlan(item: Record<string, unknown>): PublicPlan {
     id: num(item.id ?? item.Id ?? item.planId ?? item.PlanId, -1),
     displayName: String(item.displayName ?? item.DisplayName ?? ""),
     name: String(item.name ?? item.Name ?? "").toLowerCase(),
-    ...(typeof desc === "string" && desc.trim() ? { description: desc.trim() } : {}),
+    ...(typeof desc === "string" && desc.trim()
+      ? { description: desc.trim() }
+      : {}),
     monthlyPrice: num(item.monthlyPrice ?? item.MonthlyPrice, 0),
     annualPrice: num(item.annualPrice ?? item.AnnualPrice, 0),
     productsLimit: num(
@@ -84,7 +86,10 @@ export function parsePlansFromApi(raw: unknown): PublicPlan[] {
     else if (Array.isArray(o.plans)) list = o.plans as unknown[];
   }
   const parsed = list
-    .filter((item): item is Record<string, unknown> => item !== null && typeof item === "object")
+    .filter(
+      (item): item is Record<string, unknown> =>
+        item !== null && typeof item === "object",
+    )
     .map(normalizePlan)
     .filter((p) => p.id >= 0 && p.displayName.length > 0);
   return sortPlansDisplayOrder(parsed);
@@ -135,13 +140,20 @@ export function planPriceParts(
   if (isEnterprisePlan(plan)) return { price: "Custom", period: "a medida" };
   const raw = cycle === "annual" ? plan.annualPrice : plan.monthlyPrice;
   if (raw < 0) return { price: "Custom", period: "a medida" };
-  if (raw === 0) return { price: "Gratis", period: cycle === "annual" ? "al año" : "para siempre" };
+  if (raw === 0)
+    return {
+      price: "Gratis",
+      period: cycle === "annual" ? "al año" : "para siempre",
+    };
   const formatted = formatPlanPriceDisplay(raw);
   return { price: formatted, period: cycle === "annual" ? "/año" : "/mes" };
 }
 
 /** Una línea (registro / resúmenes). */
-export function planPriceLabel(plan: PublicPlan, cycle: PlanBillingCycle): string {
+export function planPriceLabel(
+  plan: PublicPlan,
+  cycle: PlanBillingCycle,
+): string {
   if (isEnterprisePlan(plan)) return "Custom";
   const raw = cycle === "annual" ? plan.annualPrice : plan.monthlyPrice;
   if (raw < 0) return "Custom";

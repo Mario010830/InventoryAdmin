@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import * as THREE from "three";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
-import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 
 /* ─── Config ─── */
 const RAY_COUNT = 400;
@@ -27,8 +27,14 @@ const PERM = new Uint8Array(512);
 })();
 
 const G2 = [
-  [1, 1], [-1, 1], [1, -1], [-1, -1],
-  [1, 0], [-1, 0], [0, 1], [0, -1],
+  [1, 1],
+  [-1, 1],
+  [1, -1],
+  [-1, -1],
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
 ];
 
 function dot2(g: number[], x: number, y: number) {
@@ -55,13 +61,24 @@ function noise2d(x: number, y: number): number {
   const gi0 = PERM[ii + PERM[jj]] % 8;
   const gi1 = PERM[ii + i1 + PERM[jj + j1]] % 8;
   const gi2 = PERM[ii + 1 + PERM[jj + 1]] % 8;
-  let n0 = 0, n1 = 0, n2 = 0;
+  let n0 = 0,
+    n1 = 0,
+    n2 = 0;
   let t0 = 0.5 - x0 * x0 - y0 * y0;
-  if (t0 >= 0) { t0 *= t0; n0 = t0 * t0 * dot2(G2[gi0], x0, y0); }
+  if (t0 >= 0) {
+    t0 *= t0;
+    n0 = t0 * t0 * dot2(G2[gi0], x0, y0);
+  }
   let t1 = 0.5 - x1 * x1 - y1 * y1;
-  if (t1 >= 0) { t1 *= t1; n1 = t1 * t1 * dot2(G2[gi1], x1, y1); }
+  if (t1 >= 0) {
+    t1 *= t1;
+    n1 = t1 * t1 * dot2(G2[gi1], x1, y1);
+  }
   let t2 = 0.5 - x2 * x2 - y2 * y2;
-  if (t2 >= 0) { t2 *= t2; n2 = t2 * t2 * dot2(G2[gi2], x2, y2); }
+  if (t2 >= 0) {
+    t2 *= t2;
+    n2 = t2 * t2 * dot2(G2[gi2], x2, y2);
+  }
   return 70 * (n0 + n1 + n2);
 }
 
@@ -117,7 +134,12 @@ export function StarburstCanvas() {
     const el = boxRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    if (e.clientY < r.top || e.clientY > r.bottom || e.clientX < r.left || e.clientX > r.right) {
+    if (
+      e.clientY < r.top ||
+      e.clientY > r.bottom ||
+      e.clientX < r.left ||
+      e.clientX > r.right
+    ) {
       mRef.current = { x: 9999, y: 9999 };
       return;
     }
@@ -150,9 +172,9 @@ export function StarburstCanvas() {
 
     const bloom = new UnrealBloomPass(
       new THREE.Vector2(W, H),
-      0.6,   // strength
-      0.5,   // radius
-      0.3    // threshold
+      0.6, // strength
+      0.5, // radius
+      0.3, // threshold
     );
     composer.addPass(bloom);
     composer.addPass(new OutputPass());
@@ -163,7 +185,12 @@ export function StarburstCanvas() {
     const rays = buildRays(W, H);
     const dotGeo = new THREE.CircleGeometry(DOT_R, 8);
 
-    const items: { pa: Float32Array; ca: Float32Array; ln: THREE.Line; dt: THREE.Mesh }[] = [];
+    const items: {
+      pa: Float32Array;
+      ca: Float32Array;
+      ln: THREE.Line;
+      dt: THREE.Mesh;
+    }[] = [];
 
     for (const ray of rays) {
       const n = (SEGMENTS + 1) * 3;
@@ -224,7 +251,8 @@ export function StarburstCanvas() {
         const g = items[i];
         const pulse = 0.88 + 0.12 * Math.sin(t * r.speed * 4 + r.phase);
         const drift = noise2d(r.noiseOffX + t * 0.15, r.noiseOffY) * 0.08;
-        const breathLen = r.len * pulse * (1 + 0.06 * Math.sin(t * 0.8 + r.phase));
+        const breathLen =
+          r.len * pulse * (1 + 0.06 * Math.sin(t * 0.8 + r.phase));
         const segLen = breathLen / SEGMENTS;
 
         let cx = ox;
@@ -239,7 +267,7 @@ export function StarburstCanvas() {
           const st = s / SEGMENTS;
           const nVal = noise2d(
             r.noiseOffX + t * r.speed * 1.8,
-            r.noiseOffY + s * 0.35 + t * 0.3
+            r.noiseOffY + s * 0.35 + t * 0.3,
           );
           const ang = r.angle + drift + nVal * 0.05 * st;
 
@@ -251,7 +279,7 @@ export function StarburstCanvas() {
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           if (dist < REPEL_R) {
-            const f = ((1 - dist / REPEL_R) ** 2) * REPEL_F * st;
+            const f = (1 - dist / REPEL_R) ** 2 * REPEL_F * st;
             const pushA = Math.atan2(dy, dx);
             cx += Math.cos(pushA) * f;
             cy += Math.sin(pushA) * f;
@@ -268,7 +296,8 @@ export function StarburstCanvas() {
         const sc = 0.3 + pulse * 0.7;
         g.dt.scale.set(sc, sc, sc);
         const flicker = Math.sin(t * r.speed * 8 + r.phase * 3) * 0.5 + 0.5;
-        (g.dt.material as THREE.MeshBasicMaterial).opacity = flicker * (0.15 + pulse * 0.35);
+        (g.dt.material as THREE.MeshBasicMaterial).opacity =
+          flicker * (0.15 + pulse * 0.35);
       }
 
       composer.render();

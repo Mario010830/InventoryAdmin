@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
-import { useCatalogCtx } from "./layout";
-import { useGetAllPublicProductsQuery, useGetPublicTagsQuery } from "./_service/catalogApi";
+import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 import { useFuseSearch } from "@/hooks/useFuseSearch";
 import type { PublicCatalogItem } from "@/lib/dashboard-types";
 import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
-import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
+import {
+  useGetAllPublicProductsQuery,
+  useGetPublicTagsQuery,
+} from "./_service/catalogApi";
+import { useCatalogCtx } from "./layout";
 
 const PRODUCT_FUSE_KEYS = [
   { name: "name" as const, weight: 0.5 },
@@ -17,7 +20,12 @@ const PRODUCT_FUSE_KEYS = [
   { name: "tags.name" as const, weight: 0.1 },
 ];
 
-type SortKey = "default" | "price-asc" | "price-desc" | "name-asc" | "name-desc";
+type SortKey =
+  | "default"
+  | "price-asc"
+  | "price-desc"
+  | "name-asc"
+  | "name-desc";
 
 const PAGE_SIZE = 50;
 
@@ -108,7 +116,13 @@ function FilterSidebar({
   categories: { name: string; color: string; count: number }[];
   selectedCategory: string | null;
   setSelectedCategory: (v: string | null) => void;
-  tags: { id: number; name: string; slug: string; color: string; count: number }[];
+  tags: {
+    id: number;
+    name: string;
+    slug: string;
+    color: string;
+    count: number;
+  }[];
   selectedTagSlugs: string[];
   setSelectedTagSlugs: (v: string[] | ((prev: string[]) => string[])) => void;
   priceRange: [number, number];
@@ -147,9 +161,16 @@ function FilterSidebar({
                 key={c.name}
                 type="button"
                 className={`filter-cat${selectedCategory === c.name ? " filter-cat--active" : ""}`}
-                onClick={() => setSelectedCategory(selectedCategory === c.name ? null : c.name)}
+                onClick={() =>
+                  setSelectedCategory(
+                    selectedCategory === c.name ? null : c.name,
+                  )
+                }
               >
-                <span className="filter-cat__dot" style={{ background: c.color }} />
+                <span
+                  className="filter-cat__dot"
+                  style={{ background: c.color }}
+                />
                 {c.name}
                 <span className="filter-cat__count">({c.count})</span>
               </button>
@@ -190,9 +211,7 @@ function FilterSidebar({
                 type="button"
                 className="filter-cat filter-cat--more"
                 onClick={() =>
-                  setVisibleTagCount((prev) =>
-                    Math.min(prev + 6, tags.length),
-                  )
+                  setVisibleTagCount((prev) => Math.min(prev + 6, tags.length))
                 }
               >
                 Ver más
@@ -315,11 +334,7 @@ function ProductCard({
       </div>
 
       <div className="p-explore-body">
-        <button
-          type="button"
-          className="p-explore-name"
-          onClick={onGoToStore}
-        >
+        <button type="button" className="p-explore-name" onClick={onGoToStore}>
           {item.name}
         </button>
 
@@ -340,11 +355,7 @@ function ProductCard({
 
         <div className="p-explore-price">{formatPrice(item.precio)}</div>
 
-        <button
-          type="button"
-          className="p-explore-cta"
-          onClick={onGoToStore}
-        >
+        <button type="button" className="p-explore-cta" onClick={onGoToStore}>
           Ver en tienda
         </button>
       </div>
@@ -365,13 +376,8 @@ export default function AllProductsView() {
   const [items, setItems] = useState<PublicCatalogItem[]>([]);
   const [mobileFilters, setMobileFilters] = useState(false);
 
-  const {
-    data,
-    isLoading,
-    isFetching,
-    isError,
-    refetch,
-  } = useGetAllPublicProductsQuery({ page, pageSize: PAGE_SIZE });
+  const { data, isLoading, isFetching, isError, refetch } =
+    useGetAllPublicProductsQuery({ page, pageSize: PAGE_SIZE });
   const { data: publicTagsRaw } = useGetPublicTagsQuery();
   const publicTags = publicTagsRaw ?? [];
   const lastTagsRef = useRef<typeof publicTags>([]);
@@ -383,7 +389,7 @@ export default function AllProductsView() {
   // Reset página cuando cambian filtros principales
   useEffect(() => {
     setPage(1);
-  }, [search, selectedCategory, selectedTagSlugs, priceRange, onlyInStock, sortKey]);
+  }, []);
 
   // Sincronizar items con la respuesta del backend cuando cambia page
   useEffect(() => {
@@ -406,7 +412,7 @@ export default function AllProductsView() {
     }
     if (!Number.isFinite(mn) || !Number.isFinite(mx)) return;
     setPriceRange([Math.floor(mn), Math.ceil(mx)]);
-  }, [items.length]);
+  }, [items.length, items]);
 
   const filteredBySearch = useFuseSearch(items, PRODUCT_FUSE_KEYS, search);
 
@@ -428,7 +434,12 @@ export default function AllProductsView() {
       if (!p.categoryName) continue;
       const existing = m.get(p.categoryName);
       if (existing) existing.count++;
-      else m.set(p.categoryName, { name: p.categoryName, color: p.categoryColor ?? "#3b82f6", count: 1 });
+      else
+        m.set(p.categoryName, {
+          name: p.categoryName,
+          color: p.categoryColor ?? "#3b82f6",
+          count: 1,
+        });
     }
     return Array.from(m.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [filteredBySearch]);
@@ -436,7 +447,9 @@ export default function AllProductsView() {
   const tagsWithCount = useMemo(() => {
     const countBySlug = new Map<string, number>();
     for (const p of filteredBySearch) {
-      const slugs = (p.tagIds ?? []).map((id) => tagsStable.find((t) => t.id === id)?.slug).filter(Boolean) as string[];
+      const slugs = (p.tagIds ?? [])
+        .map((id) => tagsStable.find((t) => t.id === id)?.slug)
+        .filter(Boolean) as string[];
       for (const slug of slugs) {
         countBySlug.set(slug, (countBySlug.get(slug) ?? 0) + 1);
       }
@@ -504,7 +517,6 @@ export default function AllProductsView() {
     new Set(filtered.map((p) => p.locationId).filter((v) => v != null)).size ||
     0;
 
-
   const hasMore =
     !!pagination && page < pagination.totalPages && !isLoading && !isError;
 
@@ -540,9 +552,7 @@ export default function AllProductsView() {
         <div className="store-empty__icon">
           <Icon name="wifi_off" />
         </div>
-        <p className="store-empty__text">
-          No pudimos cargar los productos.
-        </p>
+        <p className="store-empty__text">No pudimos cargar los productos.</p>
         <button
           type="button"
           className="store-empty__btn"
@@ -597,7 +607,9 @@ export default function AllProductsView() {
                 key={t.slug}
                 type="button"
                 className={`allprod-pill${
-                  selectedTagSlugs.includes(t.slug) ? " allprod-pill--active" : ""
+                  selectedTagSlugs.includes(t.slug)
+                    ? " allprod-pill--active"
+                    : ""
                 }`}
                 onClick={() =>
                   setSelectedTagSlugs((prev) =>

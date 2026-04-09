@@ -1,15 +1,15 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import type { ApexOptions } from "apexcharts";
-import { ChartCardMenu } from "./ChartCardMenu";
-import { theme } from "./theme";
+import dynamic from "next/dynamic";
 import {
   apexChartFontFamily,
   apexChartLocaleEs,
   apexNoDataEs,
   formatChartNumber,
 } from "@/lib/apexcharts-es";
+import { ChartCardMenu } from "./ChartCardMenu";
+import { theme } from "./theme";
 
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
@@ -92,7 +92,12 @@ export function PieChartCard({
           flexShrink: 0,
         }}
       >
-        <ReactApexChart options={options} series={values} type="donut" height={height} />
+        <ReactApexChart
+          options={options}
+          series={values}
+          type="donut"
+          height={height}
+        />
       </div>
     </div>
   );

@@ -1,26 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Icon } from "@/components/ui/Icon";
 
-const LocationPickerMap = dynamic(
-  () => import("./LocationPickerMap"),
-  {
-    ssr: false,
-    loading: () => (
-      <div
-        style={{
-          height: 300,
-          width: "100%",
-          borderRadius: 8,
-          background: "#f1f5f9",
-        }}
-      />
-    ),
-  },
-);
+const LocationPickerMap = dynamic(() => import("./LocationPickerMap"), {
+  ssr: false,
+  loading: () => (
+    <div
+      style={{
+        height: 300,
+        width: "100%",
+        borderRadius: 8,
+        background: "#f1f5f9",
+      }}
+    />
+  ),
+});
 
 interface Props {
   value: { lat: number; lng: number } | null;
@@ -35,7 +32,8 @@ interface NominatimResult {
 
 export default function LocationPicker({ value, onChange }: Props) {
   const [initialCenter, setInitialCenter] = useState<[number, number]>([
-    21.52, -78.9, // centro aproximado de Cuba
+    21.52,
+    -78.9, // centro aproximado de Cuba
   ]);
   const [search, setSearch] = useState("");
   const [loadingSearch, setLoadingSearch] = useState(false);
@@ -91,12 +89,15 @@ export default function LocationPicker({ value, onChange }: Props) {
           limit: "5",
           addressdetails: "1",
         });
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
-          headers: {
-            "Accept-Language": "es",
-            "User-Agent": "StrovaInventory/1.0",
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?${params.toString()}`,
+          {
+            headers: {
+              "Accept-Language": "es",
+              "User-Agent": "StrovaInventory/1.0",
+            },
           },
-        });
+        );
         if (!res.ok) throw new Error("Error buscando dirección");
         const data = (await res.json()) as NominatimResult[];
         setResults(data);
@@ -189,7 +190,11 @@ export default function LocationPicker({ value, onChange }: Props) {
       </div>
 
       <div className="loc-picker__map">
-        <LocationPickerMap center={initialCenter} value={value} onChange={onChange} />
+        <LocationPickerMap
+          center={initialCenter}
+          value={value}
+          onChange={onChange}
+        />
       </div>
 
       <div className="loc-picker__actions">
@@ -220,4 +225,3 @@ export default function LocationPicker({ value, onChange }: Props) {
     </div>
   );
 }
-

@@ -35,7 +35,9 @@ export function PageKpiStrip({ items }: { items: PageKpiMetric[] }) {
           </div>
           <div className="page-kpi-strip__meta">
             <span className="page-kpi-strip__label">{it.label}</span>
-            {it.sub ? <span className="page-kpi-strip__sub">{it.sub}</span> : null}
+            {it.sub ? (
+              <span className="page-kpi-strip__sub">{it.sub}</span>
+            ) : null}
           </div>
         </div>
       ))}

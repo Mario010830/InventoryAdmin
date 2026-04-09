@@ -1,35 +1,42 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { DataTableColumn } from "@/components/DataTable";
+import { DataTable } from "@/components/DataTable";
+import { DeleteModal } from "@/components/DeleteModal";
+import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
+import { FormModal } from "@/components/FormModal";
+import type { CreateLeadRequest, LeadResponse } from "@/lib/dashboard-types";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
-  useLoadAllRemainingPages,
   SEARCH_TABLE_CHUNK_PAGE_SIZE,
   TABLE_SEARCH_DEBOUNCE_MS,
+  useLoadAllRemainingPages,
 } from "@/lib/useLoadAllRemainingPages";
-import type { CreateLeadRequest, LeadResponse } from "@/lib/dashboard-types";
-import { DataTable } from "@/components/DataTable";
-import type { DataTableColumn } from "@/components/DataTable";
-import {
-  useGetLeadsQuery,
-  useCreateLeadMutation,
-  useUpdateLeadMutation,
-  useDeleteLeadMutation,
-  useConvertLeadToContactMutation,
-} from "./_service/leadsApi";
 import { contactsApi } from "../contacts/_service/contactsApi";
 import { useGetUsersQuery } from "../users/_service/usersApi";
-import { DeleteModal } from "@/components/DeleteModal";
-import { FormModal } from "@/components/FormModal";
-import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
+import {
+  useConvertLeadToContactMutation,
+  useCreateLeadMutation,
+  useDeleteLeadMutation,
+  useGetLeadsQuery,
+  useUpdateLeadMutation,
+} from "./_service/leadsApi";
 import "../products/products-modal.css";
-import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 import { toast } from "sonner";
-import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
 import { LeadDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
+import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
+import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 import { useAppDispatch } from "@/store/store";
 
-const LEAD_STATUSES = ["Nuevo", "En contacto", "Calificado", "Propuesta", "Ganado", "Perdido"];
+const LEAD_STATUSES = [
+  "Nuevo",
+  "En contacto",
+  "Calificado",
+  "Propuesta",
+  "Ganado",
+  "Perdido",
+];
 
 const COLUMNS: DataTableColumn<LeadResponse>[] = [
   { key: "name", label: "Nombre", width: "160px" },
@@ -69,11 +76,16 @@ export default function LeadsPage() {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [filterText, setFilterText] = useState("");
-  const debouncedFilterText = useDebouncedValue(filterText, TABLE_SEARCH_DEBOUNCE_MS);
+  const debouncedFilterText = useDebouncedValue(
+    filterText,
+    TABLE_SEARCH_DEBOUNCE_MS,
+  );
   /** Filtro de estado enviado al API (vacío = todos) */
   const [filterStatusApi, setFilterStatusApi] = useState("");
   /** Filtro local: todos | solo abiertos | solo convertidos */
-  const [filterConverted, setFilterConverted] = useState<"" | "open" | "converted">("");
+  const [filterConverted, setFilterConverted] = useState<
+    "" | "open" | "converted"
+  >("");
   const perPage = Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
   const loadNextPage = useCallback(() => setPage((p) => p + 1), []);
   const [formOpen, setFormOpen] = useState(false);
@@ -93,7 +105,11 @@ export default function LeadsPage() {
   const canEditLead = hasPermission("lead.update");
   const canDeleteLead = hasPermission("lead.delete");
 
-  const { data: result, isLoading, isFetching } = useGetLeadsQuery({
+  const {
+    data: result,
+    isLoading,
+    isFetching,
+  } = useGetLeadsQuery({
     page,
     perPage,
     status: filterStatusApi.trim() || undefined,
@@ -138,7 +154,7 @@ export default function LeadsPage() {
     }
     setPage(1);
     setAllRows([]);
-  }, [debouncedFilterText, filterStatusApi, filterConverted]);
+  }, []);
 
   const loadedRows =
     page === 1 && allRows.length === 0 ? (result?.data ?? []) : allRows;
@@ -185,7 +201,9 @@ export default function LeadsPage() {
   }, [loadedRows, debouncedFilterText, filterConverted]);
 
   const gridFiltersActive =
-    filterText.trim() !== "" || filterStatusApi !== "" || filterConverted !== "";
+    filterText.trim() !== "" ||
+    filterStatusApi !== "" ||
+    filterConverted !== "";
 
   const allPagesLoaded =
     result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
@@ -294,7 +312,9 @@ export default function LeadsPage() {
     setConvertSubmitting(true);
     try {
       await convertLeadToContact(convertTarget.id).unwrap();
-      dispatch(contactsApi.util.invalidateTags([{ type: "Contact", id: "LIST" }]));
+      dispatch(
+        contactsApi.util.invalidateTags([{ type: "Contact", id: "LIST" }]),
+      );
       toast.success("Lead convertido a contacto.");
       setConvertTarget(null);
       setPage(1);
@@ -370,7 +390,9 @@ export default function LeadsPage() {
               <GridFilterSelect
                 aria-label="Conversión"
                 value={filterConverted}
-                onChange={(v) => setFilterConverted(v as "" | "open" | "converted")}
+                onChange={(v) =>
+                  setFilterConverted(v as "" | "open" | "converted")
+                }
                 active={filterConverted !== ""}
                 className="grid-filter-bar__control--medium"
                 options={[
@@ -419,7 +441,9 @@ export default function LeadsPage() {
           getStatusBadge: (row) => (
             <span
               className={`dt-tag ${
-                row.convertedToContactId != null ? "dt-tag--green" : "dt-tag--neutral"
+                row.convertedToContactId != null
+                  ? "dt-tag--green"
+                  : "dt-tag--neutral"
               }`}
             >
               {row.convertedToContactId != null ? "Convertido" : row.status}
@@ -430,13 +454,14 @@ export default function LeadsPage() {
               row={row}
               assignedUserName={
                 row.assignedUserId != null
-                  ? userNameById.get(row.assignedUserId) ?? null
+                  ? (userNameById.get(row.assignedUserId) ?? null)
                   : null
               }
             />
           ),
           onEdit: openEdit,
-          showEditButton: (row) => canEditLead && row.convertedToContactId == null,
+          showEditButton: (row) =>
+            canEditLead && row.convertedToContactId == null,
         }}
         infiniteScroll
         hasMore={!allPagesLoaded}
@@ -475,7 +500,9 @@ export default function LeadsPage() {
             <input
               id="l-company"
               value={form.company}
-              onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, company: e.target.value }))
+              }
             />
           </div>
           <div className="modal-field">
@@ -483,7 +510,9 @@ export default function LeadsPage() {
             <input
               id="l-contactPerson"
               value={form.contactPerson}
-              onChange={(e) => setForm((f) => ({ ...f, contactPerson: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, contactPerson: e.target.value }))
+              }
             />
           </div>
           <div className="modal-field">
@@ -491,7 +520,9 @@ export default function LeadsPage() {
             <input
               id="l-phone"
               value={form.phone}
-              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, phone: e.target.value }))
+              }
             />
           </div>
           <div className="modal-field">
@@ -500,7 +531,9 @@ export default function LeadsPage() {
               id="l-email"
               type="email"
               value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, email: e.target.value }))
+              }
             />
           </div>
           <div className="modal-field">
@@ -508,7 +541,9 @@ export default function LeadsPage() {
             <input
               id="l-origin"
               value={form.origin}
-              onChange={(e) => setForm((f) => ({ ...f, origin: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, origin: e.target.value }))
+              }
             />
           </div>
           <div className="modal-field field-full">
@@ -516,7 +551,9 @@ export default function LeadsPage() {
             <select
               id="l-status"
               value={form.status}
-              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, status: e.target.value }))
+              }
             >
               {statusOptionsForForm.map((s) => (
                 <option key={s} value={s}>
@@ -530,7 +567,9 @@ export default function LeadsPage() {
             <textarea
               id="l-notes"
               value={form.notes}
-              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, notes: e.target.value }))
+              }
               rows={3}
             />
           </div>
@@ -538,7 +577,9 @@ export default function LeadsPage() {
             <label htmlFor="l-assigned">Asignado a</label>
             <select
               id="l-assigned"
-              value={form.assignedUserId === "" ? "" : String(form.assignedUserId)}
+              value={
+                form.assignedUserId === "" ? "" : String(form.assignedUserId)
+              }
               onChange={(e) => {
                 const v = e.target.value;
                 setForm((f) => ({

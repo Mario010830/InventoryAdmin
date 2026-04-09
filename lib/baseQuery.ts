@@ -1,6 +1,13 @@
-import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query';
-import { setAuthCookie, removeAuthCookie } from '@/app/login/_service/sessionCookie';
+import type {
+  BaseQueryFn,
+  FetchArgs,
+  FetchBaseQueryError,
+} from "@reduxjs/toolkit/query";
+import { fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import {
+  removeAuthCookie,
+  setAuthCookie,
+} from "@/app/login/_service/sessionCookie";
 
 const BACKEND_URL = "http://162.220.165.172:5000/api";
 
@@ -59,10 +66,10 @@ const baseQuery = fetchBaseQuery({
   prepareHeaders: (headers) => {
     const token = getToken();
     if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
+      headers.set("Authorization", `Bearer ${token}`);
     }
-    headers.set('Content-Type', 'application/json');
-    headers.set('ngrok-skip-browser-warning', 'true');
+    headers.set("Content-Type", "application/json");
+    headers.set("ngrok-skip-browser-warning", "true");
     return headers;
   },
 });
@@ -70,14 +77,18 @@ const baseQuery = fetchBaseQuery({
 /**
  * Base query with token refresh logic
  */
-export const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (args, api, extraOptions) => {
+export const baseQueryWithReauth: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api, extraOptions) => {
   let result = await baseQuery(args, api, extraOptions);
 
   // Capture tokens from response headers if present
   if (result.meta?.response) {
-    const authHeader = result.meta.response.headers.get('Authorization');
-    const refreshHeader = result.meta.response.headers.get('RefreshToken');
-    
+    const authHeader = result.meta.response.headers.get("Authorization");
+    const refreshHeader = result.meta.response.headers.get("RefreshToken");
+
     if (authHeader) {
       saveToken(authHeader);
     }
@@ -88,26 +99,29 @@ export const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, Fetch
 
   // Handle 401 - try to refresh token
   if (result.error && result.error.status === 401) {
-    const refreshToken = typeof window !== "undefined" 
-      ? localStorage.getItem("refreshToken") 
-      : null;
+    const refreshToken =
+      typeof window !== "undefined"
+        ? localStorage.getItem("refreshToken")
+        : null;
 
     if (refreshToken) {
       // Try to refresh the token
       const refreshResult = await baseQuery(
         {
-          url: '/account/refresh',
-          method: 'POST',
+          url: "/account/refresh",
+          method: "POST",
           body: { refreshToken },
         },
         api,
-        extraOptions
+        extraOptions,
       );
 
       if (refreshResult.meta?.response) {
-        const newToken = refreshResult.meta.response.headers.get('Authorization');
-        const newRefreshToken = refreshResult.meta.response.headers.get('RefreshToken');
-        
+        const newToken =
+          refreshResult.meta.response.headers.get("Authorization");
+        const newRefreshToken =
+          refreshResult.meta.response.headers.get("RefreshToken");
+
         if (newToken) {
           saveToken(newToken);
           if (newRefreshToken) {
@@ -119,21 +133,21 @@ export const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, Fetch
           // Refresh failed - clear session
           clearSession();
           if (typeof window !== "undefined") {
-            window.location.href = '/login';
+            window.location.href = "/login";
           }
         }
       } else {
         // Refresh failed - clear session
         clearSession();
         if (typeof window !== "undefined") {
-          window.location.href = '/login';
+          window.location.href = "/login";
         }
       }
     } else {
       // No refresh token - clear session
       clearSession();
       if (typeof window !== "undefined") {
-        window.location.href = '/login';
+        window.location.href = "/login";
       }
     }
   }

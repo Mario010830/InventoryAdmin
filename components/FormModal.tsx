@@ -55,13 +55,14 @@ export function FormModal({
         <form onSubmit={onSubmit} className="modal-body">
           {loading ? (
             <div className="modal-body-loading">
-              <div className="dt-state__spinner" style={{ width: 32, height: 32, borderWidth: 3 }} />
+              <div
+                className="dt-state__spinner"
+                style={{ width: 32, height: 32, borderWidth: 3 }}
+              />
               <span>Cargando…</span>
             </div>
           ) : (
-          <div className="modal-form-grid">
-            {children}
-          </div>
+            <div className="modal-form-grid">{children}</div>
           )}
 
           {error && (
@@ -83,7 +84,14 @@ export function FormModal({
               className="modal-btn modal-btn--primary"
               disabled={submitting || loading}
             >
-              {submitting ? <div className="dt-state__spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : submitLabel}
+              {submitting ? (
+                <div
+                  className="dt-state__spinner"
+                  style={{ width: 16, height: 16, borderWidth: 2 }}
+                />
+              ) : (
+                submitLabel
+              )}
             </button>
           </div>
         </form>

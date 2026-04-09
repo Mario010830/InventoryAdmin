@@ -30,8 +30,8 @@ import {
   Sparkles,
   Store,
   UtensilsCrossed,
-  Wrench,
   Wine,
+  Wrench,
 } from "lucide-react";
 
 /**
@@ -115,7 +115,9 @@ export function getBusinessCategoryLucideKey(categoryName: string): string {
   return "Store";
 }
 
-export function getBusinessCategoryLucideComponent(categoryName: string): LucideIcon {
+export function getBusinessCategoryLucideComponent(
+  categoryName: string,
+): LucideIcon {
   const k = getBusinessCategoryLucideKey(categoryName);
   return LUCIDE_BY_KEY[k] ?? Store;
 }

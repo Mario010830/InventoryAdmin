@@ -1,7 +1,7 @@
 "use client";
 
-import { StarburstCanvas } from "./StarburstCanvas";
 import { Icon } from "@/components/ui/Icon";
+import { StarburstCanvas } from "./StarburstCanvas";
 
 const STATS = [
   {

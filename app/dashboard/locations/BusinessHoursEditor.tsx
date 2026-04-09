@@ -106,7 +106,9 @@ export function validateBusinessHoursFormState(
     const v = state[key];
     if (!v.isOpen) continue;
     if (!v.open || !v.close) {
-      bhErrors.push(`${DAY_NAMES[key]}: hora de apertura y cierre son requeridas.`);
+      bhErrors.push(
+        `${DAY_NAMES[key]}: hora de apertura y cierre son requeridas.`,
+      );
       continue;
     }
     const start = timeToMinutes(v.open);
@@ -157,9 +159,7 @@ export function BusinessHoursEditor({ value, onChange }: Props) {
                 <input
                   type="checkbox"
                   checked={day.isOpen}
-                  onChange={(e) =>
-                    update(key, { isOpen: e.target.checked })
-                  }
+                  onChange={(e) => update(key, { isOpen: e.target.checked })}
                 />
                 <span>{label}</span>
               </label>
@@ -200,4 +200,3 @@ export function BusinessHoursEditor({ value, onChange }: Props) {
     </div>
   );
 }
-

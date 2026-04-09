@@ -24,7 +24,13 @@ export function useLoadAllRemainingPages({
     const cur = pagination.currentPage ?? 1;
     const total = pagination.totalPages ?? 1;
     if (cur < total) loadNextPage();
-  }, [isFetching, pagination?.currentPage, pagination?.totalPages, loadNextPage]);
+  }, [
+    isFetching,
+    pagination?.currentPage,
+    pagination?.totalPages,
+    loadNextPage,
+    pagination,
+  ]);
 }
 
 /** Tamaño de página al listar: menos viajes de red que con 10 filas por petición. */

@@ -1,30 +1,30 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import {
-  useLoadAllRemainingPages,
-  SEARCH_TABLE_CHUNK_PAGE_SIZE,
-} from "@/lib/useLoadAllRemainingPages";
-import type { ProductResponse } from "@/lib/dashboard-types";
-import { DataTable } from "@/components/DataTable";
-import type { DataTableColumn } from "@/components/DataTable";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useGetProductsQuery } from "@/app/dashboard/products/_service/productsApi";
-import {
-  useGetPromotionsQuery,
-  useCreatePromotionMutation,
-  useUpdatePromotionMutation,
-  useSetPromotionActiveMutation,
-  useDeletePromotionMutation,
-  type PromotionResponse,
-  type PromotionType,
-} from "./_service/promotionApi";
-import { FormModal } from "@/components/FormModal";
+import type { DataTableColumn } from "@/components/DataTable";
+import { DataTable } from "@/components/DataTable";
 import { DeleteModal } from "@/components/DeleteModal";
 import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
+import { FormModal } from "@/components/FormModal";
 import Switch from "@/components/Switch";
+import type { ProductResponse } from "@/lib/dashboard-types";
+import {
+  SEARCH_TABLE_CHUNK_PAGE_SIZE,
+  useLoadAllRemainingPages,
+} from "@/lib/useLoadAllRemainingPages";
+import {
+  type PromotionResponse,
+  type PromotionType,
+  useCreatePromotionMutation,
+  useDeletePromotionMutation,
+  useGetPromotionsQuery,
+  useSetPromotionActiveMutation,
+  useUpdatePromotionMutation,
+} from "./_service/promotionApi";
 import "../products/products-modal.css";
-import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
+import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 
 type EstadoFiltro = "" | "active_valid" | "active_invalid" | "inactive";
 
@@ -50,7 +50,9 @@ function promotionOverlapsRange(
   rangeFrom: string,
   rangeTo: string,
 ): boolean {
-  const startMs = startsAt ? new Date(startsAt).getTime() : Number.NEGATIVE_INFINITY;
+  const startMs = startsAt
+    ? new Date(startsAt).getTime()
+    : Number.NEGATIVE_INFINITY;
   const endMs = endsAt ? new Date(endsAt).getTime() : Number.POSITIVE_INFINITY;
   const rf = new Date(`${rangeFrom}T00:00:00`).getTime();
   const rt = new Date(`${rangeTo}T23:59:59.999`).getTime();
@@ -64,7 +66,10 @@ function activeOnlyForEstado(estado: EstadoFiltro): boolean | undefined {
   return undefined;
 }
 
-function applyEstadoClient(rows: PromotionResponse[], estado: EstadoFiltro): PromotionResponse[] {
+function applyEstadoClient(
+  rows: PromotionResponse[],
+  estado: EstadoFiltro,
+): PromotionResponse[] {
   if (estado === "active_valid") {
     return rows.filter((r) => r.isActive && r.isCurrentlyValid);
   }
@@ -131,7 +136,7 @@ const initialForm = (): PromoFormState => ({
 export default function PromotionsPage() {
   const { formatCup } = useDisplayCurrency();
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, _setPageSize] = useState(10);
   const [filterProductId, setFilterProductId] = useState("");
   const [filterEstado, setFilterEstado] = useState<EstadoFiltro>("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
@@ -149,7 +154,11 @@ export default function PromotionsPage() {
 
   const activeOnlyArg = activeOnlyForEstado(filterEstado);
 
-  const { data: promoResult, isLoading, isFetching } = useGetPromotionsQuery({
+  const {
+    data: promoResult,
+    isLoading,
+    isFetching,
+  } = useGetPromotionsQuery({
     page,
     perPage,
     productId: productIdQuery,
@@ -167,12 +176,16 @@ export default function PromotionsPage() {
   const canDeletePromotion = canManage;
 
   const [productPage, setProductPage] = useState(1);
-  const loadNextProductPage = useCallback(() => setProductPage((p) => p + 1), []);
+  const loadNextProductPage = useCallback(
+    () => setProductPage((p) => p + 1),
+    [],
+  );
   const productPerPage = SEARCH_TABLE_CHUNK_PAGE_SIZE;
-  const { data: productsResult, isFetching: productsFetching } = useGetProductsQuery({
-    page: productPage,
-    perPage: productPerPage,
-  });
+  const { data: productsResult, isFetching: productsFetching } =
+    useGetProductsQuery({
+      page: productPage,
+      perPage: productPerPage,
+    });
 
   const [allProducts, setAllProducts] = useState<ProductResponse[]>([]);
   useEffect(() => {
@@ -203,7 +216,9 @@ export default function PromotionsPage() {
     setAllPromoRows((prev) => {
       if (page === 1) return promoResult.data;
       const ids = new Set(prev.map((r) => r.id));
-      const fresh = promoResult.data.filter((r: PromotionResponse) => !ids.has(r.id));
+      const fresh = promoResult.data.filter(
+        (r: PromotionResponse) => !ids.has(r.id),
+      );
       return [...prev, ...fresh];
     });
   }, [promoResult?.data, page]);
@@ -222,10 +237,12 @@ export default function PromotionsPage() {
     }
     setPage(1);
     setAllPromoRows([]);
-  }, [filterProductId, filterEstado, filterDateFrom, filterDateTo, productIdQuery, activeOnlyArg]);
+  }, []);
 
   const loadedPromos =
-    page === 1 && allPromoRows.length === 0 ? (promoResult?.data ?? []) : allPromoRows;
+    page === 1 && allPromoRows.length === 0
+      ? (promoResult?.data ?? [])
+      : allPromoRows;
 
   const filteredByEstado = useMemo(
     () => applyEstadoClient(loadedPromos, filterEstado),
@@ -236,7 +253,12 @@ export default function PromotionsPage() {
     let rows = filteredByEstado;
     if (filterDateFrom.trim() && filterDateTo.trim()) {
       rows = rows.filter((r) =>
-        promotionOverlapsRange(r.startsAt, r.endsAt, filterDateFrom.trim(), filterDateTo.trim()),
+        promotionOverlapsRange(
+          r.startsAt,
+          r.endsAt,
+          filterDateFrom.trim(),
+          filterDateTo.trim(),
+        ),
       );
     }
     return rows.map((r) => {
@@ -261,7 +283,8 @@ export default function PromotionsPage() {
       {
         key: "promotionType",
         label: "Tipo",
-        render: (r) => (r.promotionType === "fixed" ? "Precio fijo" : "Porcentaje"),
+        render: (r) =>
+          r.promotionType === "fixed" ? "Precio fijo" : "Porcentaje",
       },
       {
         key: "value",
@@ -283,8 +306,11 @@ export default function PromotionsPage() {
         label: "Vigencia",
         sortable: false,
         render: (r) => {
-          if (!r.startsAt && !r.endsAt) return <span className="dt-cell-clamp">Indefinida</span>;
-          const a = r.startsAt ? new Date(r.startsAt).toLocaleString("es-ES") : "—";
+          if (!r.startsAt && !r.endsAt)
+            return <span className="dt-cell-clamp">Indefinida</span>;
+          const a = r.startsAt
+            ? new Date(r.startsAt).toLocaleString("es-ES")
+            : "—";
           const b = r.endsAt ? new Date(r.endsAt).toLocaleString("es-ES") : "—";
           return (
             <span className="dt-cell-clamp" title={`${a} → ${b}`}>
@@ -304,10 +330,14 @@ export default function PromotionsPage() {
   );
 
   const allPagesLoaded =
-    promoResult?.pagination != null && page >= (promoResult.pagination.totalPages ?? 1);
+    promoResult?.pagination != null &&
+    page >= (promoResult.pagination.totalPages ?? 1);
 
   const gridFiltersActive =
-    filterProductId !== "" || filterEstado !== "" || filterDateFrom !== "" || filterDateTo !== "";
+    filterProductId !== "" ||
+    filterEstado !== "" ||
+    filterDateFrom !== "" ||
+    filterDateTo !== "";
 
   const clearGridFilters = () => {
     setFilterProductId("");
@@ -326,7 +356,8 @@ export default function PromotionsPage() {
   const [deleting, setDeleting] = useState<Row | null>(null);
   const [deleteError, setDeleteError] = useState("");
 
-  const selectedProduct = form.productId > 0 ? productById.get(form.productId) : undefined;
+  const selectedProduct =
+    form.productId > 0 ? productById.get(form.productId) : undefined;
 
   const openCreate = () => {
     setEditing(null);
@@ -370,14 +401,16 @@ export default function PromotionsPage() {
     if (!Number.isFinite(val)) {
       err.value = "Valor numérico inválido";
     } else if (form.type === "percentage") {
-      if (val < 1 || val > 99) err.value = "El porcentaje debe estar entre 1 y 99";
+      if (val < 1 || val > 99)
+        err.value = "El porcentaje debe estar entre 1 y 99";
     } else if (val <= 0) {
       err.value = "El precio fijo debe ser mayor que 0";
     }
     const hasStart = Boolean(form.startsAt.trim());
     const hasEnd = Boolean(form.endsAt.trim());
     if (hasStart !== hasEnd) {
-      err.dates = "Indica ambas fechas (inicio y fin) o ninguna para vigencia indefinida";
+      err.dates =
+        "Indica ambas fechas (inicio y fin) o ninguna para vigencia indefinida";
     }
     if (hasStart && hasEnd) {
       const s = new Date(form.startsAt).getTime();
@@ -397,8 +430,12 @@ export default function PromotionsPage() {
     try {
       const minQuantity = Number(form.minQuantity);
       const value = Number(form.value);
-      const startsAtIso = form.startsAt.trim() ? datetimeLocalToIso(form.startsAt) : undefined;
-      const endsAtIso = form.endsAt.trim() ? datetimeLocalToIso(form.endsAt) : undefined;
+      const startsAtIso = form.startsAt.trim()
+        ? datetimeLocalToIso(form.startsAt)
+        : undefined;
+      const endsAtIso = form.endsAt.trim()
+        ? datetimeLocalToIso(form.endsAt)
+        : undefined;
 
       if (editing) {
         await updatePromotion({
@@ -419,7 +456,9 @@ export default function PromotionsPage() {
           value,
           minQuantity,
           isActive: form.isActive,
-          ...(startsAtIso && endsAtIso ? { startsAt: startsAtIso, endsAt: endsAtIso } : {}),
+          ...(startsAtIso && endsAtIso
+            ? { startsAt: startsAtIso, endsAt: endsAtIso }
+            : {}),
         }).unwrap();
         setPage(1);
       }
@@ -505,7 +544,10 @@ export default function PromotionsPage() {
                 options={[
                   { value: "", label: "Todos" },
                   { value: "active_valid", label: "Activa y vigente" },
-                  { value: "active_invalid", label: "Activa · fuera de vigencia" },
+                  {
+                    value: "active_invalid",
+                    label: "Activa · fuera de vigencia",
+                  },
                   { value: "inactive", label: "Inactiva" },
                 ]}
               />
@@ -572,14 +614,19 @@ export default function PromotionsPage() {
           getTitle: (r) => r._displayProduct,
           getStatusBadge: (r) => promotionStatusBadge(r),
           render: (r) => (
-            <div className="modal-field-grid" style={{ display: "grid", gap: 12 }}>
+            <div
+              className="modal-field-grid"
+              style={{ display: "grid", gap: 12 }}
+            >
               <p>
                 <strong>Tipo:</strong>{" "}
                 {r.promotionType === "fixed" ? "Precio fijo" : "Porcentaje"}
               </p>
               <p>
                 <strong>Valor:</strong>{" "}
-                {r.promotionType === "fixed" ? formatCup(r.value) : `${r.value}%`}
+                {r.promotionType === "fixed"
+                  ? formatCup(r.value)
+                  : `${r.value}%`}
               </p>
               <p>
                 <strong>Cantidad mínima:</strong> {r.minQuantity}
@@ -625,7 +672,10 @@ export default function PromotionsPage() {
               value={form.productId || ""}
               disabled={Boolean(editing)}
               onChange={(e) =>
-                setForm((f) => ({ ...f, productId: Number(e.target.value) || 0 }))
+                setForm((f) => ({
+                  ...f,
+                  productId: Number(e.target.value) || 0,
+                }))
               }
             >
               <option value="">Seleccionar…</option>
@@ -635,10 +685,16 @@ export default function PromotionsPage() {
                 </option>
               ))}
             </select>
-            {formErrors.productId && <p className="form-error">{formErrors.productId}</p>}
+            {formErrors.productId && (
+              <p className="form-error">{formErrors.productId}</p>
+            )}
             {selectedProduct && (
-              <p className="form-hint" style={{ marginTop: 6, fontSize: "0.85rem", opacity: 0.85 }}>
-                Precio base actual: <strong>{formatCup(selectedProduct.precio)}</strong>
+              <p
+                className="form-hint"
+                style={{ marginTop: 6, fontSize: "0.85rem", opacity: 0.85 }}
+              >
+                Precio base actual:{" "}
+                <strong>{formatCup(selectedProduct.precio)}</strong>
               </p>
             )}
           </div>
@@ -671,9 +727,13 @@ export default function PromotionsPage() {
               min={form.type === "percentage" ? 1 : 0}
               max={form.type === "percentage" ? 99 : undefined}
               value={form.value}
-              onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, value: e.target.value }))
+              }
             />
-            {formErrors.value && <p className="form-error">{formErrors.value}</p>}
+            {formErrors.value && (
+              <p className="form-error">{formErrors.value}</p>
+            )}
           </div>
 
           <div className="modal-field">
@@ -684,9 +744,13 @@ export default function PromotionsPage() {
               min={1}
               step={1}
               value={form.minQuantity}
-              onChange={(e) => setForm((f) => ({ ...f, minQuantity: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, minQuantity: e.target.value }))
+              }
             />
-            {formErrors.minQuantity && <p className="form-error">{formErrors.minQuantity}</p>}
+            {formErrors.minQuantity && (
+              <p className="form-error">{formErrors.minQuantity}</p>
+            )}
           </div>
 
           <div className="modal-field field-full">
@@ -695,7 +759,9 @@ export default function PromotionsPage() {
               id="promo-start"
               type="datetime-local"
               value={form.startsAt}
-              onChange={(e) => setForm((f) => ({ ...f, startsAt: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, startsAt: e.target.value }))
+              }
             />
           </div>
           <div className="modal-field field-full">
@@ -704,18 +770,28 @@ export default function PromotionsPage() {
               id="promo-end"
               type="datetime-local"
               value={form.endsAt}
-              onChange={(e) => setForm((f) => ({ ...f, endsAt: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, endsAt: e.target.value }))
+              }
             />
-            {formErrors.dates && <p className="form-error">{formErrors.dates}</p>}
-            <p className="form-hint" style={{ marginTop: 6, fontSize: "0.82rem", opacity: 0.8 }}>
-              Sin fechas = vigencia indefinida mientras la promoción esté activa.
+            {formErrors.dates && (
+              <p className="form-error">{formErrors.dates}</p>
+            )}
+            <p
+              className="form-hint"
+              style={{ marginTop: 6, fontSize: "0.82rem", opacity: 0.8 }}
+            >
+              Sin fechas = vigencia indefinida mientras la promoción esté
+              activa.
             </p>
           </div>
 
           <div className="modal-field field-full modal-toggle">
             <Switch
               checked={form.isActive}
-              onChange={(checked) => setForm((f) => ({ ...f, isActive: checked }))}
+              onChange={(checked) =>
+                setForm((f) => ({ ...f, isActive: checked }))
+              }
             />
             <span>Promoción activa</span>
           </div>

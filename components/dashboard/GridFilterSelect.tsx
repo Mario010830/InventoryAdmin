@@ -30,10 +30,7 @@ export function GridFilterSelect({
 }) {
   const inner = value === "" ? ALL : value;
   return (
-    <Select
-      value={inner}
-      onValueChange={(v) => onChange(v === ALL ? "" : v)}
-    >
+    <Select value={inner} onValueChange={(v) => onChange(v === ALL ? "" : v)}>
       <SelectTrigger
         aria-label={ariaLabel}
         size="sm"
@@ -42,7 +39,8 @@ export function GridFilterSelect({
           "text-[0.8125rem] text-[#0f172a]",
           "focus-visible:border-[#4f6ef7] focus-visible:ring-1 focus-visible:ring-[rgba(79,110,247,0.35)]",
           "hover:border-[#cbd5e1] data-[placeholder]:text-[#94a3b8]",
-          active && "grid-filter-bar__control--active border-[#4f6ef7] !bg-white",
+          active &&
+            "grid-filter-bar__control--active border-[#4f6ef7] !bg-white",
           className,
         )}
       >
@@ -50,7 +48,10 @@ export function GridFilterSelect({
       </SelectTrigger>
       <SelectContent position="popper" className="z-[100]">
         {options.map((o) => (
-          <SelectItem key={o.value === "" ? ALL : o.value} value={o.value === "" ? ALL : o.value}>
+          <SelectItem
+            key={o.value === "" ? ALL : o.value}
+            value={o.value === "" ? ALL : o.value}
+          >
             {o.label}
           </SelectItem>
         ))}

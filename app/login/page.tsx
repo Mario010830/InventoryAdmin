@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Icon } from "@/components/ui/Icon";
+import { useState } from "react";
 import Switch from "@/components/Switch";
+import { Icon } from "@/components/ui/Icon";
+import { useAppDispatch } from "@/store/store";
 import { useLoginMutation } from "./_service/authApi";
-import { useAppDispatch, } from "@/store/store";
-import {type AuthState, loginSuccessfull } from "./_slices/authSlice";
+import { type AuthState, loginSuccessfull } from "./_slices/authSlice";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,19 +18,21 @@ export default function LoginPage() {
   const [hidePassword, setHidePassword] = useState(true);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
-  const [touched, setTouched] = useState<{ email?: boolean; password?: boolean }>({});
+  const [touched, setTouched] = useState<{
+    email?: boolean;
+    password?: boolean;
+  }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   const emailError = touched.email && !email;
-  const emailInvalid = touched.email && email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const emailInvalid =
+    touched.email && email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const passwordError = touched.password && !password;
 
   const [login] = useLoginMutation();
 
-
   // const user = useAppSelector((state) => state.auth);
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +57,9 @@ export default function LoginPage() {
         err && typeof err === "object" && "data" in err
           ? (err as { data?: { message?: string } }).data?.message
           : undefined;
-      setErrorMessage(apiMsg ?? (err instanceof Error ? err.message : fallback));
+      setErrorMessage(
+        apiMsg ?? (err instanceof Error ? err.message : fallback),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -88,9 +92,11 @@ export default function LoginPage() {
           <div className="form-group">
             <label htmlFor="email">Email</label>
             <div
-              className={`input-wrapper ${emailFocused ? "focused" : ""} ${(emailError || emailInvalid) ? "error" : ""}`}
+              className={`input-wrapper ${emailFocused ? "focused" : ""} ${emailError || emailInvalid ? "error" : ""}`}
             >
-              <span className="input-icon"><Icon name="mail_outline" /></span>
+              <span className="input-icon">
+                <Icon name="mail_outline" />
+              </span>
               <input
                 id="email"
                 type="email"
@@ -98,22 +104,33 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onFocus={() => setEmailFocused(true)}
-                onBlur={() => { setEmailFocused(false); setTouched((t) => ({ ...t, email: true })); }}
+                onBlur={() => {
+                  setEmailFocused(false);
+                  setTouched((t) => ({ ...t, email: true }));
+                }}
               />
             </div>
-            {emailError ? <span className="form-error">El email es requerido</span> : null}
-            {emailInvalid && !emailError ? <span className="form-error">Ingresa un email válido</span> : null}
+            {emailError ? (
+              <span className="form-error">El email es requerido</span>
+            ) : null}
+            {emailInvalid && !emailError ? (
+              <span className="form-error">Ingresa un email válido</span>
+            ) : null}
           </div>
 
           <div className="form-group">
             <div className="form-group__header">
               <label htmlFor="password">Contraseña</label>
-              <Link className="form-link" href="/login/forgot_password">¿Olvidaste tu contraseña?</Link>
+              <Link className="form-link" href="/login/forgot_password">
+                ¿Olvidaste tu contraseña?
+              </Link>
             </div>
             <div
               className={`input-wrapper ${passwordFocused ? "focused" : ""} ${passwordError ? "error" : ""}`}
             >
-              <span className="input-icon"><Icon name="lock_outline" /></span>
+              <span className="input-icon">
+                <Icon name="lock_outline" />
+              </span>
               <input
                 id="password"
                 type={hidePassword ? "password" : "text"}
@@ -121,18 +138,25 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onFocus={() => setPasswordFocused(true)}
-                onBlur={() => { setPasswordFocused(false); setTouched((t) => ({ ...t, password: true })); }}
+                onBlur={() => {
+                  setPasswordFocused(false);
+                  setTouched((t) => ({ ...t, password: true }));
+                }}
               />
               <button
                 type="button"
                 className="input-toggle"
                 onClick={() => setHidePassword((v) => !v)}
-                aria-label={hidePassword ? "Mostrar contraseña" : "Ocultar contraseña"}
+                aria-label={
+                  hidePassword ? "Mostrar contraseña" : "Ocultar contraseña"
+                }
               >
                 <Icon name={hidePassword ? "visibility_off" : "visibility"} />
               </button>
             </div>
-            {passwordError ? <span className="form-error">La contraseña es requerida</span> : null}
+            {passwordError ? (
+              <span className="form-error">La contraseña es requerida</span>
+            ) : null}
           </div>
 
           <label className="auth-checkbox">
@@ -143,7 +167,11 @@ export default function LoginPage() {
             <span>Recordarme en este dispositivo</span>
           </label>
 
-          <button type="submit" className="auth-btn auth-btn--primary" disabled={isLoading}>
+          <button
+            type="submit"
+            className="auth-btn auth-btn--primary"
+            disabled={isLoading}
+          >
             {isLoading ? (
               <div className="spinner" />
             ) : (

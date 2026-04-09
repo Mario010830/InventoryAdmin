@@ -3,8 +3,8 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
-import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import type { ProductImageResponse } from "@/lib/dashboard-types";
+import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import {
   extractImagenUrlFromUnknown,
   useDeleteProductImageMutation,
@@ -74,9 +74,10 @@ export function ProductImageGallery({
   const pid = mode === "edit" ? productId : undefined;
   const skipImages = mode !== "edit" || !pid;
 
-  const { data: apiImages = [], refetch: refetchImages } = useGetProductImagesQuery(pid!, {
-    skip: skipImages,
-  });
+  const { data: apiImages = [], refetch: refetchImages } =
+    useGetProductImagesQuery(pid!, {
+      skip: skipImages,
+    });
   const [uploadImages] = useUploadProductImagesMutation();
   const [setMain] = useSetProductImageMainMutation();
   const [reorderImages] = useReorderProductImagesMutation();
@@ -87,7 +88,9 @@ export function ProductImageGallery({
   const [pending, setPending] = useState<PendingUpload[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<number | "legacy" | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | "legacy" | null>(
+    null,
+  );
   const [showUrlField, setShowUrlField] = useState(false);
   const [flashUrl, setFlashUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -97,7 +100,10 @@ export function ProductImageGallery({
     if (skipImages) return;
     setOrdered((prev) => {
       const next = apiImages.filter((x) => x.id > 0 && x.url);
-      if (prev.length === next.length && prev.every((p, i) => p.id === next[i]?.id && p.url === next[i]?.url)) {
+      if (
+        prev.length === next.length &&
+        prev.every((p, i) => p.id === next[i]?.id && p.url === next[i]?.url)
+      ) {
         return prev;
       }
       return next;
@@ -124,11 +130,13 @@ export function ProductImageGallery({
   const pendingCount = pending.length;
   const legacyCount = showLegacyThumb ? 1 : 0;
   const filledCount = apiCount + pendingCount + legacyCount;
-  const displayCount = mode === "create" ? (imagenUrl.trim() ? 1 : 0) : filledCount;
+  const displayCount =
+    mode === "create" ? (imagenUrl.trim() ? 1 : 0) : filledCount;
   const emptySlots = Math.max(0, MAX_IMAGES - filledCount);
 
   const validateFile = (file: File): string | null => {
-    if (!ALLOWED_TYPES.includes(file.type)) return "Formato no permitido (JPEG, PNG, GIF, WebP).";
+    if (!ALLOWED_TYPES.includes(file.type))
+      return "Formato no permitido (JPEG, PNG, GIF, WebP).";
     if (file.size > MAX_BYTES) return "Supera 5 MB.";
     return null;
   };
@@ -168,17 +176,29 @@ export function ProductImageGallery({
     const validFiles = toUpload.filter((f) => !validateFile(f));
     if (validFiles.length === 0) return;
 
-    const validClientIds = newPending.filter((x) => !x.error).map((x) => x.clientId);
+    const validClientIds = newPending
+      .filter((x) => !x.error)
+      .map((x) => x.clientId);
     setUploading(true);
     try {
-      const raw = await uploadImages({ productId: pid, files: validFiles }).unwrap();
-      await syncImagenUrlAfterMutation(raw, fetchProduct, pid, onImagenUrlChange);
+      const raw = await uploadImages({
+        productId: pid,
+        files: validFiles,
+      }).unwrap();
+      await syncImagenUrlAfterMutation(
+        raw,
+        fetchProduct,
+        pid,
+        onImagenUrlChange,
+      );
       await refetchImages();
       setPending((p) => p.filter((x) => !validClientIds.includes(x.clientId)));
     } catch {
       setPending((p) =>
         p.map((x) =>
-          validClientIds.includes(x.clientId) ? { ...x, error: "Error al subir. Revisa formato o tamaño." } : x,
+          validClientIds.includes(x.clientId)
+            ? { ...x, error: "Error al subir. Revisa formato o tamaño." }
+            : x,
         ),
       );
     } finally {
@@ -190,7 +210,13 @@ export function ProductImageGallery({
     if (!pid || disabled) return;
     try {
       const raw = await setMain({ productId: pid, imageId }).unwrap();
-      await syncImagenUrlAfterMutation(raw, fetchProduct, pid, onImagenUrlChange, imageUrl);
+      await syncImagenUrlAfterMutation(
+        raw,
+        fetchProduct,
+        pid,
+        onImagenUrlChange,
+        imageUrl,
+      );
     } catch {
       /* toast / silent */
     }
@@ -207,7 +233,12 @@ export function ProductImageGallery({
     const imageIds = next.map((x) => x.id);
     try {
       const raw = await reorderImages({ productId: pid, imageIds }).unwrap();
-      await syncImagenUrlAfterMutation(raw, fetchProduct, pid, onImagenUrlChange);
+      await syncImagenUrlAfterMutation(
+        raw,
+        fetchProduct,
+        pid,
+        onImagenUrlChange,
+      );
       await refetchImages();
     } catch {
       setOrdered(prevSnap);
@@ -221,7 +252,13 @@ export function ProductImageGallery({
     setOrdered((o) => o.filter((x) => x.id !== imageId));
     try {
       const raw = await deleteImage({ productId: pid, imageId }).unwrap();
-      await syncImagenUrlAfterMutation(raw, fetchProduct, pid, onImagenUrlChange, "");
+      await syncImagenUrlAfterMutation(
+        raw,
+        fetchProduct,
+        pid,
+        onImagenUrlChange,
+        "",
+      );
       await refetchImages();
     } catch {
       setOrdered(prevOrdered);
@@ -252,7 +289,9 @@ export function ProductImageGallery({
   if (!pid) return null;
 
   const mainImage = ordered.find((img) => urlsMatch(imagenUrl, img.url));
-  const secondaryImages = ordered.filter((img) => !urlsMatch(imagenUrl, img.url));
+  const secondaryImages = ordered.filter(
+    (img) => !urlsMatch(imagenUrl, img.url),
+  );
 
   const heroSrc = mainImage
     ? (getProxiedImageSrc(mainImage.url) ?? mainImage.url)
@@ -272,7 +311,9 @@ export function ProductImageGallery({
 
       {/* --- Hero: imagen principal destacada --- */}
       {heroSrc ? (
-        <div className={`product-gallery__hero${flashUrl && heroSrc && urlsMatch(flashUrl, heroSrc) ? " product-gallery__hero--flash" : ""}`}>
+        <div
+          className={`product-gallery__hero${flashUrl && heroSrc && urlsMatch(flashUrl, heroSrc) ? " product-gallery__hero--flash" : ""}`}
+        >
           <div className="product-gallery__hero-img">
             <img src={heroSrc} alt="Imagen principal" />
             <span className="product-gallery__badge">Principal</span>
@@ -282,7 +323,11 @@ export function ProductImageGallery({
               <div className="product-gallery__hero-confirm">
                 <span>¿Eliminar esta imagen?</span>
                 <div className="product-gallery__hero-confirm-row">
-                  <button type="button" className="modal-btn modal-btn--secondary" onClick={() => setDeleteConfirm(null)}>
+                  <button
+                    type="button"
+                    className="modal-btn modal-btn--secondary"
+                    onClick={() => setDeleteConfirm(null)}
+                  >
                     Cancelar
                   </button>
                   <button
@@ -331,7 +376,9 @@ export function ProductImageGallery({
           <span className="product-gallery__section-label">Más imágenes</span>
           <div className="product-gallery__track">
             {secondaryImages.map((img, index) => {
-              const flashing = Boolean(flashUrl && urlsMatch(flashUrl, img.url));
+              const flashing = Boolean(
+                flashUrl && urlsMatch(flashUrl, img.url),
+              );
               return (
                 <div
                   key={img.id}
@@ -369,10 +416,18 @@ export function ProductImageGallery({
                         <div className="product-gallery__confirm">
                           <span>¿Eliminar esta imagen?</span>
                           <div className="product-gallery__confirm-actions">
-                            <button type="button" className="modal-btn modal-btn--secondary" onClick={() => setDeleteConfirm(null)}>
+                            <button
+                              type="button"
+                              className="modal-btn modal-btn--secondary"
+                              onClick={() => setDeleteConfirm(null)}
+                            >
                               Cancelar
                             </button>
-                            <button type="button" className="modal-btn" onClick={() => void handleDeleteApi(img.id)}>
+                            <button
+                              type="button"
+                              className="modal-btn"
+                              onClick={() => void handleDeleteApi(img.id)}
+                            >
                               Confirmar
                             </button>
                           </div>
@@ -407,13 +462,18 @@ export function ProductImageGallery({
               <div key={p.clientId} className="product-gallery__thumb-wrap">
                 <div className="product-gallery__thumb product-gallery__thumb--filled product-gallery__thumb--pending">
                   {p.error ? (
-                    <span className="product-gallery__pending-error" title={p.error}>
+                    <span
+                      className="product-gallery__pending-error"
+                      title={p.error}
+                    >
                       {p.error}
                     </span>
                   ) : (
                     <>
                       <div className="img-uploader__spinner" />
-                      <span className="product-gallery__pending-name">{p.name}</span>
+                      <span className="product-gallery__pending-name">
+                        {p.name}
+                      </span>
                     </>
                   )}
                 </div>
@@ -421,7 +481,10 @@ export function ProductImageGallery({
             ))}
 
             {Array.from({ length: emptySlots }).map((_, i) => (
-              <div key={`empty-${i}`} className="product-gallery__thumb-wrap product-gallery__thumb-wrap--empty">
+              <div
+                key={`empty-${i}`}
+                className="product-gallery__thumb-wrap product-gallery__thumb-wrap--empty"
+              >
                 <div className="product-gallery__thumb product-gallery__thumb--empty">
                   <Icon name="add" />
                 </div>
@@ -458,7 +521,9 @@ export function ProductImageGallery({
         onClick={() => setShowUrlField((v) => !v)}
       >
         <Icon name={showUrlField ? "expand_less" : "link"} />
-        {showUrlField ? "Ocultar URL principal" : "O ingresa URL de imagen principal"}
+        {showUrlField
+          ? "Ocultar URL principal"
+          : "O ingresa URL de imagen principal"}
       </button>
 
       {showUrlField && (

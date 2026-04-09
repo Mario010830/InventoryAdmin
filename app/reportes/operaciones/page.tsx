@@ -1,26 +1,37 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 import type { ApexOptions } from "apexcharts";
-import { ArrowDownCircle, ArrowUpCircle, SlidersHorizontal, Waypoints } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { getApiUrl, getToken } from "@/lib/auth-api";
-import { parsePaginated } from "@/lib/api-utils";
-import type { InventoryMovementResponse, SupplierResponse } from "@/lib/dashboard-types";
-import { exportRowsToPdf } from "@/lib/utils/export";
+import {
+  ArrowDownCircle,
+  ArrowUpCircle,
+  SlidersHorizontal,
+  Waypoints,
+} from "lucide-react";
+import dynamic from "next/dynamic";
+import { useEffect, useMemo, useState } from "react";
 import { useGetSuppliersQuery } from "@/app/dashboard/suppliers/_service/suppliersApi";
 import { ReportFilters } from "@/components/reportes/ReportFilters";
 import { ReportKpiCard } from "@/components/reportes/ReportKpiCard";
 import { ReportPageLayout } from "@/components/reportes/ReportPageLayout";
 import { ReportTable } from "@/components/reportes/ReportTable";
 import { useReportData } from "@/components/reportes/useReportData";
+import { Button } from "@/components/ui/button";
+import {
+  apexChartLocaleEs,
+  apexNoDataEs,
+  formatChartNumber,
+} from "@/lib/apexcharts-es";
+import { parsePaginated } from "@/lib/api-utils";
+import { getApiUrl, getToken } from "@/lib/auth-api";
 import type {
-  MovementsByTypeDto,
+  InventoryMovementResponse,
+  SupplierResponse,
+} from "@/lib/dashboard-types";
+import type {
   OperationsReportResponse,
   ReportFilters as ReportFilterParams,
 } from "@/lib/types/reports";
-import { apexChartLocaleEs, apexNoDataEs, formatChartNumber } from "@/lib/apexcharts-es";
+import { exportRowsToPdf } from "@/lib/utils/export";
 
 const TYPE_LABEL: Record<string, string> = {
   entry: "Entrada",
@@ -37,7 +48,9 @@ const TYPE_TEXT_CLASS: Record<string, string> = {
   exit: "text-red-600",
   adjustment: "text-blue-600",
 };
-const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
+const ReactApexChart = dynamic(() => import("react-apexcharts"), {
+  ssr: false,
+});
 const REASON_LABEL: Record<string, string> = {
   Venta: "Venta",
   Correccion: "Corrección",
@@ -74,7 +87,10 @@ export default function ReportesOperacionesPage() {
     filters ?? { dateFrom: "", dateTo: "" },
   );
 
-  const { data: suppliersResult } = useGetSuppliersQuery({ page: 1, perPage: 500 });
+  const { data: suppliersResult } = useGetSuppliersQuery({
+    page: 1,
+    perPage: 500,
+  });
   const suppliersById = useMemo(() => {
     const map = new Map<number, SupplierResponse>();
     for (const s of suppliersResult?.data ?? []) map.set(s.id, s);
@@ -94,7 +110,8 @@ export default function ReportesOperacionesPage() {
         params.set("sortOrder", "desc");
         params.set("from", toDateParam(filters.dateFrom));
         params.set("to", toDateParam(filters.dateTo));
-        if (filters.locationId != null) params.set("locationId", String(filters.locationId));
+        if (filters.locationId != null)
+          params.set("locationId", String(filters.locationId));
 
         const token = getToken();
         const headers: HeadersInit = { "ngrok-skip-browser-warning": "true" };
@@ -116,7 +133,9 @@ export default function ReportesOperacionesPage() {
       } catch (e) {
         if (!cancelled) {
           setDetailRows([]);
-          setDetailError(e instanceof Error ? e.message : "Error al cargar movimientos");
+          setDetailError(
+            e instanceof Error ? e.message : "Error al cargar movimientos",
+          );
         }
       } finally {
         if (!cancelled) setDetailLoading(false);
@@ -148,10 +167,7 @@ export default function ReportesOperacionesPage() {
     return base;
   }, [data?.movementsByType]);
 
-  const pieRows = useMemo(
-    () => byType.filter((x) => x.count > 0),
-    [byType],
-  );
+  const pieRows = useMemo(() => byType.filter((x) => x.count > 0), [byType]);
 
   const summaryRows = useMemo(() => {
     const total = byType.reduce((acc, row) => acc + row.count, 0);
@@ -173,8 +189,19 @@ export default function ReportesOperacionesPage() {
   const byTypeOptions: ApexOptions = useMemo(
     () => ({
       noData: apexNoDataEs,
-      chart: { type: "bar", height: 320, toolbar: { show: false }, ...apexChartLocaleEs },
-      plotOptions: { bar: { borderRadius: 6, borderRadiusApplication: "end", columnWidth: "42%" } },
+      chart: {
+        type: "bar",
+        height: 320,
+        toolbar: { show: false },
+        ...apexChartLocaleEs,
+      },
+      plotOptions: {
+        bar: {
+          borderRadius: 6,
+          borderRadiusApplication: "end",
+          columnWidth: "42%",
+        },
+      },
       dataLabels: { enabled: false },
       xaxis: { categories: byType.map((r) => TYPE_LABEL[r.type] ?? r.type) },
       yaxis: { labels: { formatter: (v) => formatChartNumber(Number(v)) } },
@@ -276,14 +303,23 @@ export default function ReportesOperacionesPage() {
 
       <div className="mb-6 grid gap-4 md:grid-cols-2">
         <section className="rounded-xl border border-[#eceff4] bg-white p-4 shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
-          <h3 className="mb-3 text-sm font-semibold text-slate-800">Movimientos por tipo</h3>
+          <h3 className="mb-3 text-sm font-semibold text-slate-800">
+            Movimientos por tipo
+          </h3>
           <div className="h-[320px]">
-            <ReactApexChart options={byTypeOptions} series={byTypeSeries} type="bar" height={320} />
+            <ReactApexChart
+              options={byTypeOptions}
+              series={byTypeSeries}
+              type="bar"
+              height={320}
+            />
           </div>
         </section>
 
         <section className="rounded-xl border border-[#eceff4] bg-white p-4 shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
-          <h3 className="mb-3 text-sm font-semibold text-slate-800">Proporción de movimientos</h3>
+          <h3 className="mb-3 text-sm font-semibold text-slate-800">
+            Proporción de movimientos
+          </h3>
           {(data?.totalMovements ?? 0) > 0 ? (
             <div className="h-[320px]">
               <ReactApexChart
@@ -374,8 +410,15 @@ export default function ReportesOperacionesPage() {
       ) : (
         <section className="rounded-xl border border-[#eceff4] bg-white p-4 shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold text-slate-800">Resumen por tipo</h3>
-            <Button type="button" variant="outline" size="sm" onClick={exportSummaryPdf}>
+            <h3 className="text-sm font-semibold text-slate-800">
+              Resumen por tipo
+            </h3>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={exportSummaryPdf}
+            >
               Exportar PDF
             </Button>
           </div>
@@ -384,9 +427,15 @@ export default function ReportesOperacionesPage() {
               <thead>
                 <tr className="bg-slate-50 text-left text-slate-600">
                   <th className="border-b border-slate-200 px-3 py-2">Tipo</th>
-                  <th className="border-b border-slate-200 px-3 py-2">Movimientos</th>
-                  <th className="border-b border-slate-200 px-3 py-2">Unidades totales</th>
-                  <th className="border-b border-slate-200 px-3 py-2">% del total</th>
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    Movimientos
+                  </th>
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    Unidades totales
+                  </th>
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    % del total
+                  </th>
                 </tr>
               </thead>
               <tbody>

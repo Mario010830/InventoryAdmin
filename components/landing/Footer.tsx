@@ -1,9 +1,24 @@
- "use client";
+"use client";
 
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import {
+  Clock3,
+  Database,
+  FileText,
+  Handshake,
+  Scale,
+  Settings2,
+  Share2,
+  ShieldCheck,
+} from "lucide-react";
 import Link from "next/link";
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Icon } from "@/components/ui/Icon";
-import { Clock3, Database, FileText, Handshake, Scale, Settings2, ShieldCheck, Share2 } from "lucide-react";
 
 const PRODUCT_LINKS = [
   { label: "Características", href: "#features" },
@@ -27,14 +42,15 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
   const [aboutOpen, setAboutOpen] = useState(false);
   const [legalOpen, setLegalOpen] = useState(false);
-  const [legalSection, setLegalSection] = useState<"privacy" | "terms" | "cookies">("privacy");
+  const [legalSection, setLegalSection] = useState<
+    "privacy" | "terms" | "cookies"
+  >("privacy");
   const [cookiePrefs, setCookiePrefs] = useState({
     essential: true,
     analytics: true,
     marketing: false,
   });
   const policyRef = useRef<HTMLDivElement>(null);
-
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -84,7 +100,10 @@ export function Footer() {
     const next = { essential: true, analytics: true, marketing: true };
     setCookiePrefs(next);
     try {
-      localStorage.setItem("tu-cuadre-cookie-preferences", JSON.stringify(next));
+      localStorage.setItem(
+        "tu-cuadre-cookie-preferences",
+        JSON.stringify(next),
+      );
     } catch {
       // ignore storage errors in restricted environments
     }
@@ -95,7 +114,10 @@ export function Footer() {
     const next = { essential: true, analytics: false, marketing: false };
     setCookiePrefs(next);
     try {
-      localStorage.setItem("tu-cuadre-cookie-preferences", JSON.stringify(next));
+      localStorage.setItem(
+        "tu-cuadre-cookie-preferences",
+        JSON.stringify(next),
+      );
     } catch {
       // ignore storage errors in restricted environments
     }
@@ -175,7 +197,13 @@ export function Footer() {
               <a href="/" className="social-icon" aria-label="Web">
                 <Icon name="language" />
               </a>
-              <a href="https://wa.me/5358728126" className="social-icon" aria-label="WhatsApp" target="_blank" rel="noreferrer">
+              <a
+                href="https://wa.me/5358728126"
+                className="social-icon"
+                aria-label="WhatsApp"
+                target="_blank"
+                rel="noreferrer"
+              >
                 <Icon name="mail" />
               </a>
             </div>
@@ -198,7 +226,11 @@ export function Footer() {
               {COMPANY_LINKS.map((link) => (
                 <li key={link.label}>
                   {link.action === "about" ? (
-                    <button type="button" className="footer__link-btn" onClick={() => setAboutOpen(true)}>
+                    <button
+                      type="button"
+                      className="footer__link-btn"
+                      onClick={() => setAboutOpen(true)}
+                    >
                       {link.label}
                     </button>
                   ) : (
@@ -233,29 +265,45 @@ export function Footer() {
         </div>
 
         <div className="footer__bottom">
-          <p>
-            © {currentYear} Tu Cuadre. Todos los derechos reservados.
-          </p>
+          <p>© {currentYear} Tu Cuadre. Todos los derechos reservados.</p>
         </div>
       </div>
 
       {aboutOpen && (
-        <div className="footer-modal__backdrop" role="presentation" onClick={() => setAboutOpen(false)}>
-          <div className="footer-modal" role="dialog" aria-modal="true" aria-label="Acerca de Tu Cuadre" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="footer-modal__backdrop"
+          role="presentation"
+          onClick={() => setAboutOpen(false)}
+        >
+          <div
+            className="footer-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Acerca de Tu Cuadre"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="footer-modal__head">
               <h3>Acerca de Tu Cuadre</h3>
-              <button type="button" onClick={() => setAboutOpen(false)} aria-label="Cerrar">
+              <button
+                type="button"
+                onClick={() => setAboutOpen(false)}
+                aria-label="Cerrar"
+              >
                 <Icon name="close" />
               </button>
             </div>
             <div className="footer-modal__body">
               <p>
-                Tu Cuadre es una plataforma profesional de gestion de inventario orientada a negocios que necesitan visibilidad operativa en tiempo real.
-                Centraliza productos, movimientos, ubicaciones, proveedores y reportes en una sola experiencia clara y accionable.
+                Tu Cuadre es una plataforma profesional de gestion de inventario
+                orientada a negocios que necesitan visibilidad operativa en
+                tiempo real. Centraliza productos, movimientos, ubicaciones,
+                proveedores y reportes en una sola experiencia clara y
+                accionable.
               </p>
               <p>
-                Nuestro objetivo es reducir errores, acelerar decisiones y brindar control confiable a equipos de todos los tamaños mediante herramientas
-                modernas, seguras y faciles de adoptar.
+                Nuestro objetivo es reducir errores, acelerar decisiones y
+                brindar control confiable a equipos de todos los tamaños
+                mediante herramientas modernas, seguras y faciles de adoptar.
               </p>
             </div>
           </div>
@@ -263,7 +311,11 @@ export function Footer() {
       )}
 
       {legalOpen && (
-        <div className="footer-modal__backdrop" role="presentation" onClick={() => setLegalOpen(false)}>
+        <div
+          className="footer-modal__backdrop"
+          role="presentation"
+          onClick={() => setLegalOpen(false)}
+        >
           <div
             ref={policyRef}
             className="policy-modal"
@@ -275,7 +327,11 @@ export function Footer() {
           >
             <div className="policy-modal__head">
               <h3>Política de Privacidad</h3>
-              <button type="button" onClick={() => setLegalOpen(false)} aria-label="Cerrar">
+              <button
+                type="button"
+                onClick={() => setLegalOpen(false)}
+                aria-label="Cerrar"
+              >
                 <Icon name="close" />
               </button>
             </div>
@@ -326,9 +382,17 @@ export function Footer() {
                       <div className="policy-item__row">
                         <div>
                           <h4>Cookies esenciales</h4>
-                          <p>Necesarias para autenticación, seguridad y funcionamiento básico del producto.</p>
+                          <p>
+                            Necesarias para autenticación, seguridad y
+                            funcionamiento básico del producto.
+                          </p>
                         </div>
-                        <button type="button" className="policy-switch active" disabled aria-label="Cookies esenciales activas" />
+                        <button
+                          type="button"
+                          className="policy-switch active"
+                          disabled
+                          aria-label="Cookies esenciales activas"
+                        />
                       </div>
                     </section>
                     <section className="policy-item">
@@ -336,14 +400,22 @@ export function Footer() {
                       <div className="policy-item__row">
                         <div>
                           <h4>Analítica</h4>
-                          <p>Nos ayudan a medir uso y rendimiento para mejorar funcionalidades y experiencia.</p>
+                          <p>
+                            Nos ayudan a medir uso y rendimiento para mejorar
+                            funcionalidades y experiencia.
+                          </p>
                         </div>
                         <button
                           type="button"
                           className={`policy-switch ${cookiePrefs.analytics ? "active" : ""}`}
                           aria-label="Alternar cookies analíticas"
                           aria-pressed={cookiePrefs.analytics}
-                          onClick={() => setCookiePrefs((p) => ({ ...p, analytics: !p.analytics }))}
+                          onClick={() =>
+                            setCookiePrefs((p) => ({
+                              ...p,
+                              analytics: !p.analytics,
+                            }))
+                          }
                         />
                       </div>
                     </section>
@@ -352,14 +424,22 @@ export function Footer() {
                       <div className="policy-item__row">
                         <div>
                           <h4>Marketing</h4>
-                          <p>Permiten personalizar comunicación comercial y campañas relevantes para tu negocio.</p>
+                          <p>
+                            Permiten personalizar comunicación comercial y
+                            campañas relevantes para tu negocio.
+                          </p>
                         </div>
                         <button
                           type="button"
                           className={`policy-switch ${cookiePrefs.marketing ? "active" : ""}`}
                           aria-label="Alternar cookies de marketing"
                           aria-pressed={cookiePrefs.marketing}
-                          onClick={() => setCookiePrefs((p) => ({ ...p, marketing: !p.marketing }))}
+                          onClick={() =>
+                            setCookiePrefs((p) => ({
+                              ...p,
+                              marketing: !p.marketing,
+                            }))
+                          }
                         />
                       </div>
                     </section>
@@ -368,10 +448,18 @@ export function Footer() {
               </div>
             </div>
             <div className="policy-modal__footer">
-              <button type="button" className="policy-btn policy-btn--ghost" onClick={rejectOptionalCookies}>
+              <button
+                type="button"
+                className="policy-btn policy-btn--ghost"
+                onClick={rejectOptionalCookies}
+              >
                 Rechazar
               </button>
-              <button type="button" className="policy-btn policy-btn--solid" onClick={acceptAllCookies}>
+              <button
+                type="button"
+                className="policy-btn policy-btn--solid"
+                onClick={acceptAllCookies}
+              >
                 Aceptar todo
               </button>
             </div>

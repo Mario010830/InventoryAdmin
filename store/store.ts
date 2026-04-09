@@ -1,36 +1,44 @@
-import { configureStore, combineReducers } from "@reduxjs/toolkit";
+import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
-import { type TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import {
-  persistStore,
+  type TypedUseSelectorHook,
+  useDispatch,
+  useSelector,
+} from "react-redux";
+import {
+  FLUSH,
+  PAUSE,
+  PERSIST,
+  PURGE,
   persistReducer,
-  FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER,
+  persistStore,
+  REGISTER,
+  REHYDRATE,
 } from "redux-persist";
 import storage from "redux-persist/lib/storage"; // localStorage
-
-import { authSlice } from "../app/login/_slices/authSlice";
-import { authApi } from "../app/login/_service/authApi";
-import { productsApi } from "@/app/dashboard/products/_service/productsApi";
-import { elyerroImportApi } from "@/app/dashboard/products/_service/elyerroImportApi";
-import { inventoryApi } from "@/app/dashboard/inventory/_service/inventoryApi";
-import { categoriesApi } from "@/app/dashboard/categories/_service/categoriesApi";
-import { suppliersApi } from "@/app/dashboard/suppliers/_service/suppliersApi";
-import { locationsApi } from "@/app/dashboard/locations/_service/locationsApi";
-import { businessCategoryApi } from "@/app/dashboard/locations/_service/businessCategoryApi";
-import { movementsApi } from "@/app/dashboard/movements/_service/movementsApi";
-import { usersApi } from "@/app/dashboard/users/_service/usersApi";
-import { rolesApi } from "@/app/dashboard/roles/_service/rolesApi";
-import { logsApi } from "@/app/dashboard/logs/_service/logsApi";
-import { settingsApi } from "@/app/dashboard/settings/_service/settingsApi";
-import { currencyApi } from "@/app/dashboard/settings/_service/currencyApi";
-import { dashboardApi } from "@/app/dashboard/_service/dashboardApi";
 import { catalogApi } from "@/app/catalog/_service/catalogApi";
-import { salesApi } from "@/app/dashboard/sales/_service/salesApi";
-import { promotionApi } from "@/app/dashboard/promotions/_service/promotionApi";
+import { dashboardApi } from "@/app/dashboard/_service/dashboardApi";
+import { categoriesApi } from "@/app/dashboard/categories/_service/categoriesApi";
 import { contactsApi } from "@/app/dashboard/contacts/_service/contactsApi";
+import { inventoryApi } from "@/app/dashboard/inventory/_service/inventoryApi";
 import { leadsApi } from "@/app/dashboard/leads/_service/leadsApi";
-import { cartSlice } from "./cartSlice";
+import { businessCategoryApi } from "@/app/dashboard/locations/_service/businessCategoryApi";
+import { locationsApi } from "@/app/dashboard/locations/_service/locationsApi";
+import { logsApi } from "@/app/dashboard/logs/_service/logsApi";
+import { movementsApi } from "@/app/dashboard/movements/_service/movementsApi";
+import { elyerroImportApi } from "@/app/dashboard/products/_service/elyerroImportApi";
+import { productsApi } from "@/app/dashboard/products/_service/productsApi";
+import { promotionApi } from "@/app/dashboard/promotions/_service/promotionApi";
+import { rolesApi } from "@/app/dashboard/roles/_service/rolesApi";
+import { salesApi } from "@/app/dashboard/sales/_service/salesApi";
+import { currencyApi } from "@/app/dashboard/settings/_service/currencyApi";
+import { settingsApi } from "@/app/dashboard/settings/_service/settingsApi";
+import { suppliersApi } from "@/app/dashboard/suppliers/_service/suppliersApi";
+import { usersApi } from "@/app/dashboard/users/_service/usersApi";
 import { toastMiddleware } from "@/lib/toastMiddleware";
+import { authApi } from "../app/login/_service/authApi";
+import { authSlice } from "../app/login/_slices/authSlice";
+import { cartSlice } from "./cartSlice";
 
 // Only persist the auth slice — API cache doesn't need persistence
 const persistConfig = {
@@ -114,8 +122,8 @@ export const store = configureStore({
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
     })
-    .concat(toastMiddleware)
-    .concat(...apiMiddleware),
+      .concat(toastMiddleware)
+      .concat(...apiMiddleware),
 });
 
 export const persistor = persistStore(store);

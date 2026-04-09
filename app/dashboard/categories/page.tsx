@@ -1,30 +1,30 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { DataTableColumn } from "@/components/DataTable";
+import { DataTable } from "@/components/DataTable";
+import { DeleteModal } from "@/components/DeleteModal";
+import { GridFilterBar } from "@/components/dashboard";
+import { CategoryDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
+import { FormModal } from "@/components/FormModal";
+import type { ProductCategoryResponse } from "@/lib/dashboard-types";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
-  useLoadAllRemainingPages,
   SEARCH_TABLE_CHUNK_PAGE_SIZE,
   TABLE_SEARCH_DEBOUNCE_MS,
+  useLoadAllRemainingPages,
 } from "@/lib/useLoadAllRemainingPages";
-import type { ProductCategoryResponse } from "@/lib/dashboard-types";
-import { DataTable } from "@/components/DataTable";
-import type { DataTableColumn } from "@/components/DataTable";
-import {
-  useGetCategoriesQuery,
-  useCreateCategoryMutation,
-  useUpdateCategoryMutation,
-  useDeleteCategoryMutation,
-} from "./_service/categoriesApi";
 import { useGetProductsQuery } from "../products/_service/productsApi";
-import { CategoryDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
-import { DeleteModal } from "@/components/DeleteModal";
-import { FormModal } from "@/components/FormModal";
-import { GridFilterBar } from "@/components/dashboard";
+import {
+  useCreateCategoryMutation,
+  useDeleteCategoryMutation,
+  useGetCategoriesQuery,
+  useUpdateCategoryMutation,
+} from "./_service/categoriesApi";
 import "../products/products-modal.css";
-import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 import { toast } from "sonner";
 import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
+import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 
 const COLUMNS: DataTableColumn<ProductCategoryResponse>[] = [
   { key: "name", label: "Nombre" },
@@ -64,9 +64,12 @@ const initialForm = { name: "", description: "", color: "#6366f1" };
 
 export default function CategoriesPage() {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, _setPageSize] = useState(10);
   const [filterText, setFilterText] = useState("");
-  const debouncedFilterText = useDebouncedValue(filterText, TABLE_SEARCH_DEBOUNCE_MS);
+  const debouncedFilterText = useDebouncedValue(
+    filterText,
+    TABLE_SEARCH_DEBOUNCE_MS,
+  );
   const perPage = Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
   const loadNextPage = useCallback(() => setPage((p) => p + 1), []);
   const [formOpen, setFormOpen] = useState(false);
@@ -75,7 +78,9 @@ export default function CategoriesPage() {
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deleting, setDeleting] = useState<ProductCategoryResponse | null>(null);
+  const [deleting, setDeleting] = useState<ProductCategoryResponse | null>(
+    null,
+  );
   const [deleteError, setDeleteError] = useState("");
   const filtersChanged = useRef(false);
 
@@ -86,8 +91,15 @@ export default function CategoriesPage() {
   const canEditCategory = hasPermission("productcategory.update");
   const canDeleteCategory = hasPermission("productcategory.delete");
 
-  const { data: result, isLoading, isFetching } = useGetCategoriesQuery({ page, perPage });
-  const { data: productsForCount } = useGetProductsQuery({ page: 1, perPage: 500 });
+  const {
+    data: result,
+    isLoading,
+    isFetching,
+  } = useGetCategoriesQuery({ page, perPage });
+  const { data: productsForCount } = useGetProductsQuery({
+    page: 1,
+    perPage: 500,
+  });
   const categoryProductCounts = useMemo(() => {
     const m = new Map<number, number>();
     for (const p of productsForCount?.data ?? []) {
@@ -120,10 +132,13 @@ export default function CategoriesPage() {
 
   // Reset al cambiar búsqueda
   useEffect(() => {
-    if (!filtersChanged.current) { filtersChanged.current = true; return; }
+    if (!filtersChanged.current) {
+      filtersChanged.current = true;
+      return;
+    }
     setPage(1);
     setAllRows([]);
-  }, [debouncedFilterText]);
+  }, []);
 
   const loadedRows =
     page === 1 && allRows.length === 0 ? (result?.data ?? []) : allRows;
@@ -133,14 +148,17 @@ export default function CategoriesPage() {
   const filteredData = useMemo(() => {
     const q = debouncedFilterText.trim().toLowerCase();
     if (!q) return loadedRows;
-    return loadedRows.filter((r) => String(r.name ?? "").toLowerCase().includes(q));
+    return loadedRows.filter((r) =>
+      String(r.name ?? "")
+        .toLowerCase()
+        .includes(q),
+    );
   }, [loadedRows, debouncedFilterText]);
 
   const gridFiltersActive = filterText.trim() !== "";
 
   const allPagesLoaded =
-    result?.pagination != null &&
-    page >= (result.pagination.totalPages ?? 1);
+    result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
 
   const openCreate = () => {
     setEditing(null);
@@ -196,7 +214,9 @@ export default function CategoriesPage() {
       }
       closeForm();
     } catch (err) {
-      setFormErrors({ submit: err instanceof Error ? err.message : "Error al guardar" });
+      setFormErrors({
+        submit: err instanceof Error ? err.message : "Error al guardar",
+      });
     } finally {
       setFormSubmitting(false);
     }
@@ -248,7 +268,9 @@ export default function CategoriesPage() {
           primaryColumnKey: "name",
           bulkEntityLabel: "categorías",
         }}
-        onBulkDeleteSelected={canDeleteCategory ? handleBulkDeleteCategories : undefined}
+        onBulkDeleteSelected={
+          canDeleteCategory ? handleBulkDeleteCategories : undefined
+        }
         filters={
           <GridFilterBar onClear={clearGridFilters}>
             <div className="grid-filter-bar__field">
@@ -272,13 +294,26 @@ export default function CategoriesPage() {
         onAdd={openCreate}
         addDisabled={!canCreateCategory}
         actions={[
-          { icon: "edit", label: "Editar", onClick: openEdit, disabled: () => !canEditCategory },
-          { icon: "delete_outline", label: "Eliminar", onClick: openDelete, variant: "danger", disabled: () => !canDeleteCategory },
+          {
+            icon: "edit",
+            label: "Editar",
+            onClick: openEdit,
+            disabled: () => !canEditCategory,
+          },
+          {
+            icon: "delete_outline",
+            label: "Eliminar",
+            onClick: openDelete,
+            variant: "danger",
+            disabled: () => !canDeleteCategory,
+          },
         ]}
         detailDrawer={{
           entityLabelPlural: "categorías",
           getTitle: (row) => row.name,
-          getStatusBadge: () => <span className="dt-tag dt-tag--green">Activo</span>,
+          getStatusBadge: () => (
+            <span className="dt-tag dt-tag--green">Activo</span>
+          ),
           render: (row) => (
             <CategoryDetailBody
               row={row}
@@ -324,7 +359,9 @@ export default function CategoriesPage() {
             <textarea
               id="description"
               value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, description: e.target.value }))
+              }
               placeholder="Descripción"
               rows={3}
             />
@@ -335,7 +372,9 @@ export default function CategoriesPage() {
               id="color"
               type="color"
               value={form.color}
-              onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, color: e.target.value }))
+              }
             />
           </div>
           {formErrors.submit && (

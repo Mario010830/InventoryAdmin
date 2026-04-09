@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/ui/Icon";
 import "./grid-detail-drawer.css";
@@ -88,7 +88,9 @@ export function GridDetailDrawer({
             <h2 id="gd-drawer-title" className="gd-drawer-title">
               {title}
             </h2>
-            {statusBadge ? <span className="gd-drawer-header__badge">{statusBadge}</span> : null}
+            {statusBadge ? (
+              <span className="gd-drawer-header__badge">{statusBadge}</span>
+            ) : null}
           </div>
           <div className="gd-drawer-header__actions">
             {showEditButton && onEdit ? (

@@ -27,7 +27,10 @@ export function compareValues(a: unknown, b: unknown): number {
   ) {
     return na - nb;
   }
-  return String(a).localeCompare(String(b), "es", { numeric: true, sensitivity: "base" });
+  return String(a).localeCompare(String(b), "es", {
+    numeric: true,
+    sensitivity: "base",
+  });
 }
 
 function resolveValue<T extends object>(
@@ -35,11 +38,20 @@ function resolveValue<T extends object>(
   key: string | ((row: T) => string | number),
 ): unknown {
   if (typeof key === "function") return key(row);
-  return key.split(".").reduce((obj: unknown, k) => (obj as Record<string, unknown>)?.[k], row);
+  return key
+    .split(".")
+    .reduce((obj: unknown, k) => (obj as Record<string, unknown>)?.[k], row);
 }
 
 /** Ordena filas según columna; `sortKey` es resolveColKey de la columna. */
-export function sortData<T extends object, C extends { key: string | ((row: T) => string | number); sortable?: boolean; sortValue?: (row: T) => unknown }>(
+export function sortData<
+  T extends object,
+  C extends {
+    key: string | ((row: T) => string | number);
+    sortable?: boolean;
+    sortValue?: (row: T) => unknown;
+  },
+>(
   rows: T[],
   columns: C[],
   sortKey: string | null,
@@ -58,13 +70,12 @@ export function sortData<T extends object, C extends { key: string | ((row: T) =
   };
 
   const mult = sortDir === "asc" ? 1 : -1;
-  return [...rows].sort((r1, r2) => mult * compareValues(getSortVal(r1), getSortVal(r2)));
+  return [...rows].sort(
+    (r1, r2) => mult * compareValues(getSortVal(r1), getSortVal(r2)),
+  );
 }
 
-export function cycleSort(
-  current: SortState,
-  colKey: string,
-): SortState {
+export function cycleSort(current: SortState, colKey: string): SortState {
   if (current.key !== colKey) {
     return { key: colKey, dir: "asc" };
   }

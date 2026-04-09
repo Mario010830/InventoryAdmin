@@ -29,7 +29,10 @@ function parseErrorMessage(body: unknown, fallback: string): string {
  * Para ventas: pasar page / pageSize en params; el refetch corre al cambiar filtros o paginación.
  * Respuesta: el payload útil va en `result` (parseSummaryResult en lib/api-utils).
  */
-export function useReportData<T>(endpoint: string, params: ReportRequestParams) {
+export function useReportData<T>(
+  endpoint: string,
+  params: ReportRequestParams,
+) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -1,36 +1,50 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { DataTableColumn } from "@/components/DataTable";
+import { DataTable } from "@/components/DataTable";
+import { GridFilterBar, GridFilterSelect, theme } from "@/components/dashboard";
+import { FormModal } from "@/components/FormModal";
+import Switch from "@/components/Switch";
+import { Icon } from "@/components/ui/Icon";
+import type {
+  CreateInventoryMovementRequest,
+  CreateProductRequest,
+  InventoryMovementResponse,
+  ProductResponse,
+} from "@/lib/dashboard-types";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
-  useLoadAllRemainingPages,
   SEARCH_TABLE_CHUNK_PAGE_SIZE,
   TABLE_SEARCH_DEBOUNCE_MS,
+  useLoadAllRemainingPages,
 } from "@/lib/useLoadAllRemainingPages";
-import type { InventoryMovementResponse, CreateInventoryMovementRequest, CreateProductRequest, ProductResponse } from "@/lib/dashboard-types";
-import { DataTable } from "@/components/DataTable";
-import type { DataTableColumn } from "@/components/DataTable";
-import { useGetMovementsQuery, useGetMovementFormContextQuery, useCreateMovementMutation } from "./_service/movementsApi";
-import { useGetProductsQuery, useCreateProductMutation, useGetProductCategoriesQuery, useUploadProductImageMutation } from "../products/_service/productsApi";
-import { useGetLocationsQuery } from "../locations/_service/locationsApi";
-import { FormModal } from "@/components/FormModal";
-import { GridFilterBar, GridFilterSelect, theme } from "@/components/dashboard";
-import { Icon } from "@/components/ui/Icon";
 import { useAppSelector } from "@/store/store";
-import Switch from "@/components/Switch";
+import { useGetLocationsQuery } from "../locations/_service/locationsApi";
+import {
+  useCreateProductMutation,
+  useGetProductCategoriesQuery,
+  useGetProductsQuery,
+  useUploadProductImageMutation,
+} from "../products/_service/productsApi";
+import {
+  useCreateMovementMutation,
+  useGetMovementFormContextQuery,
+  useGetMovementsQuery,
+} from "./_service/movementsApi";
 import "../products/products-modal.css";
 import "./movements-table.css";
-import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
-import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import { DatePickerSimple } from "@/components/DatePickerSimple";
-import { useGetUsersQuery } from "../users/_service/usersApi";
+import { MovementDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
 import {
-  movementTypeLabel,
   INVENTORY_MOVEMENT_REASONS,
   MOVEMENT_REASON_LABEL,
+  movementTypeLabel,
 } from "@/lib/inventoryMovementUi";
-import { MovementDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
+import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import { useDefaultLocation } from "@/lib/useDefaultLocation";
+import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
+import { useGetUsersQuery } from "../users/_service/usersApi";
 
 function movementTypeTone(type: unknown): "in" | "out" | "neutral" {
   const key = String(type ?? "").toLowerCase();
@@ -113,7 +127,10 @@ function ImageUploader({ value, onChange }: ImageUploaderProps) {
           dragOver ? "img-uploader__dropzone--dragover" : "",
         ].join(" ")}
         onClick={() => !isLoading && !hasImage && inputRef.current?.click()}
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
       >
@@ -124,12 +141,19 @@ function ImageUploader({ value, onChange }: ImageUploaderProps) {
           </div>
         ) : hasImage ? (
           <>
-            <img src={getProxiedImageSrc(value) ?? value} alt="Preview" className="img-uploader__preview" />
+            <img
+              src={getProxiedImageSrc(value) ?? value}
+              alt="Preview"
+              className="img-uploader__preview"
+            />
             <div className="img-uploader__overlay">
               <button
                 type="button"
                 className="img-uploader__overlay-btn img-uploader__overlay-btn--change"
-                onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  inputRef.current?.click();
+                }}
               >
                 <Icon name="upload" />
                 Cambiar
@@ -137,7 +161,10 @@ function ImageUploader({ value, onChange }: ImageUploaderProps) {
               <button
                 type="button"
                 className="img-uploader__overlay-btn img-uploader__overlay-btn--remove"
-                onClick={(e) => { e.stopPropagation(); onChange(""); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange("");
+                }}
               >
                 <Icon name="delete" />
                 Quitar
@@ -227,9 +254,12 @@ const initialNewProduct = {
 
 export default function MovementsPage() {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, _setPageSize] = useState(10);
   const [filterText, setFilterText] = useState("");
-  const debouncedFilterText = useDebouncedValue(filterText, TABLE_SEARCH_DEBOUNCE_MS);
+  const debouncedFilterText = useDebouncedValue(
+    filterText,
+    TABLE_SEARCH_DEBOUNCE_MS,
+  );
   const [filterType, setFilterType] = useState("");
   const [filterLocationId, setFilterLocationId] = useState("");
   const [movDateFrom, setMovDateFrom] = useState("");
@@ -245,13 +275,23 @@ export default function MovementsPage() {
   const [productSearch, setProductSearch] = useState("");
   const [productDropdownOpen, setProductDropdownOpen] = useState(false);
   const productDropdownRef = useRef<HTMLDivElement>(null);
-  const [productMode, setProductMode] = useState<"existing" | "new">("existing");
+  const [productMode, setProductMode] = useState<"existing" | "new">(
+    "existing",
+  );
   const [newProductForm, setNewProductForm] = useState(initialNewProduct);
   const filtersChanged = useRef(false);
 
-  const { data: result, isLoading, isFetching } = useGetMovementsQuery({ page, perPage });
-  const { data: formContext, isLoading: formContextLoading } = useGetMovementFormContextQuery(undefined, { skip: !formOpen });
-  const { data: productsResult } = useGetProductsQuery({ page: 1, perPage: 100 });
+  const {
+    data: result,
+    isLoading,
+    isFetching,
+  } = useGetMovementsQuery({ page, perPage });
+  const { data: formContext, isLoading: formContextLoading } =
+    useGetMovementFormContextQuery(undefined, { skip: !formOpen });
+  const { data: productsResult } = useGetProductsQuery({
+    page: 1,
+    perPage: 100,
+  });
   const { data: locationsResult } = useGetLocationsQuery(
     { page: 1, perPage: 100 },
     { skip: !formOpen || formContext?.isLocationLocked === true },
@@ -261,7 +301,9 @@ export default function MovementsPage() {
     perPage: 200,
     ...(authOrgId ? { organizationId: authOrgId } : {}),
   });
-  const { data: categoriesResult } = useGetProductCategoriesQuery({ perPage: 100 });
+  const { data: categoriesResult } = useGetProductCategoriesQuery({
+    perPage: 100,
+  });
   const [createMovement] = useCreateMovementMutation();
   const [createProduct] = useCreateProductMutation();
 
@@ -279,7 +321,7 @@ export default function MovementsPage() {
     if (defaultLoc.locationId != null) {
       setFilterLocationId(String(defaultLoc.locationId));
     }
-  }, [defaultLoc.locationId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [defaultLoc.locationId, filterLocationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Permissions ──────────────────────────────────────────────────────────
 
@@ -303,15 +345,26 @@ export default function MovementsPage() {
   });
 
   useEffect(() => {
-    if (!filtersChanged.current) { filtersChanged.current = true; return; }
+    if (!filtersChanged.current) {
+      filtersChanged.current = true;
+      return;
+    }
     setPage(1);
     setAllRows([]);
-  }, [debouncedFilterText, filterType, filterLocationId, movDateFrom, movDateTo, filterUserId]);
+  }, []);
 
   // Si el usuario tiene ubicación fija, rellenar locationId al abrir el formulario
   useEffect(() => {
-    if (!formOpen || !formContext?.isLocationLocked || formContext.locationId == null) return;
-    setForm((prev) => ({ ...prev, locationId: formContext.locationId as number }));
+    if (
+      !formOpen ||
+      !formContext?.isLocationLocked ||
+      formContext.locationId == null
+    )
+      return;
+    setForm((prev) => ({
+      ...prev,
+      locationId: formContext.locationId as number,
+    }));
   }, [formOpen, formContext?.isLocationLocked, formContext?.locationId]);
 
   const loadedRows =
@@ -361,17 +414,26 @@ export default function MovementsPage() {
       rows = rows.filter((r) => {
         const userLabel =
           (r.userFullName ?? r.userName ?? "").trim() ||
-          (r.userId != null && r.userId > 0 ? (userIdToName.get(r.userId) ?? "") : "");
+          (r.userId != null && r.userId > 0
+            ? (userIdToName.get(r.userId) ?? "")
+            : "");
         return (
-          String(r.productName ?? "").toLowerCase().includes(q) ||
-          String(r.referenceDocument ?? "").toLowerCase().includes(q) ||
-          String(r.reason ?? "").toLowerCase().includes(q) ||
+          String(r.productName ?? "")
+            .toLowerCase()
+            .includes(q) ||
+          String(r.referenceDocument ?? "")
+            .toLowerCase()
+            .includes(q) ||
+          String(r.reason ?? "")
+            .toLowerCase()
+            .includes(q) ||
           userLabel.toLowerCase().includes(q) ||
           String(r.userId ?? "").includes(q)
         );
       });
     }
-    if (filterType !== "") rows = rows.filter((r) => movementTypeFilterKey(r.type) === filterType);
+    if (filterType !== "")
+      rows = rows.filter((r) => movementTypeFilterKey(r.type) === filterType);
     if (filterLocationId !== "") {
       const lid = Number(filterLocationId);
       rows = rows.filter((r) => r.locationId === lid);
@@ -410,8 +472,7 @@ export default function MovementsPage() {
     filterUserId !== "";
 
   const allPagesLoaded =
-    result?.pagination != null &&
-    page >= (result.pagination.totalPages ?? 1);
+    result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
 
   const columns: DataTableColumn<InventoryMovementResponse>[] = useMemo(
     () => [
@@ -422,20 +483,38 @@ export default function MovementsPage() {
         width: "min(280px, 26vw)",
         sortValue: (row) => {
           if (row.productName) return row.productName;
-          const p = products.find((x: ProductResponse) => x.id === row.productId);
-          return p ? (p.code ? `${p.code} - ${p.name}` : p.name) : String(row.productId);
+          const p = products.find(
+            (x: ProductResponse) => x.id === row.productId,
+          );
+          return p
+            ? p.code
+              ? `${p.code} - ${p.name}`
+              : p.name
+            : String(row.productId);
         },
         exportValue: (row) => {
           if (row.productName) return row.productName;
-          const p = products.find((x: ProductResponse) => x.id === row.productId);
-          return p ? (p.code ? `${p.code} - ${p.name}` : p.name) : String(row.productId);
+          const p = products.find(
+            (x: ProductResponse) => x.id === row.productId,
+          );
+          return p
+            ? p.code
+              ? `${p.code} - ${p.name}`
+              : p.name
+            : String(row.productId);
         },
         render: (row) => {
           const text = row.productName
             ? row.productName
             : (() => {
-                const p = products.find((x: ProductResponse) => x.id === row.productId);
-                return p ? (p.code ? `${p.code} - ${p.name}` : p.name) : String(row.productId);
+                const p = products.find(
+                  (x: ProductResponse) => x.id === row.productId,
+                );
+                return p
+                  ? p.code
+                    ? `${p.code} - ${p.name}`
+                    : p.name
+                  : String(row.productId);
               })();
           return <span className="dt-movements-product">{text}</span>;
         },
@@ -459,7 +538,12 @@ export default function MovementsPage() {
         },
       },
       { key: "quantity", label: "Cantidad", type: "number", width: "88px" },
-      { key: "previousStock", label: "Stock anterior", type: "number", width: "108px" },
+      {
+        key: "previousStock",
+        label: "Stock anterior",
+        type: "number",
+        width: "108px",
+      },
       { key: "newStock", label: "Stock nuevo", type: "number", width: "100px" },
       { key: "locationName", label: "Ubicación", width: "104px" },
       {
@@ -506,7 +590,7 @@ export default function MovementsPage() {
       },
       { key: "createdAt", label: "Fecha", type: "date", width: "108px" },
     ],
-    [products, userIdToName]
+    [products, userIdToName],
   );
 
   const openCreate = (type: 0 | 1 = 0) => {
@@ -524,16 +608,23 @@ export default function MovementsPage() {
   const validate = () => {
     const err: Record<string, string> = {};
     if (productMode === "existing") {
-      if (form.productId === "" || form.productId === null) err.productId = "Producto requerido";
+      if (form.productId === "" || form.productId === null)
+        err.productId = "Producto requerido";
     } else {
       if (!newProductForm.code.trim()) err.newProductCode = "Código requerido";
       if (!newProductForm.name.trim()) err.newProductName = "Nombre requerido";
       const precio = Number(newProductForm.precio);
       const costo = Number(newProductForm.costo);
-      if (Number.isNaN(precio) || precio < 0) err.newProductPrecio = "Precio inválido";
-      if (Number.isNaN(costo) || costo < 0) err.newProductCosto = "Costo inválido";
+      if (Number.isNaN(precio) || precio < 0)
+        err.newProductPrecio = "Precio inválido";
+      if (Number.isNaN(costo) || costo < 0)
+        err.newProductCosto = "Costo inválido";
     }
-    if (!isLocationLocked && (form.locationId === "" || form.locationId === null)) err.locationId = "Ubicación requerida";
+    if (
+      !isLocationLocked &&
+      (form.locationId === "" || form.locationId === null)
+    )
+      err.locationId = "Ubicación requerida";
     const q = Number(form.quantity);
     if (Number.isNaN(q) || q <= 0) err.quantity = "Cantidad inválida";
     setFormErrors(err);
@@ -553,7 +644,10 @@ export default function MovementsPage() {
           code: newProductForm.code.trim(),
           name: newProductForm.name.trim(),
           description: newProductForm.description.trim(),
-          categoryId: newProductForm.categoryId === "" ? null : Number(newProductForm.categoryId),
+          categoryId:
+            newProductForm.categoryId === ""
+              ? null
+              : Number(newProductForm.categoryId),
           precio: Number(newProductForm.precio) || 0,
           costo: Number(newProductForm.costo) || 0,
           imagenUrl: newProductForm.imagenUrl.trim(),
@@ -564,7 +658,10 @@ export default function MovementsPage() {
         // 2) productId del movimiento = id exacto devuelto por el endpoint de creación (ej. response.data.id).
         productId = Number(createdProduct.id);
         if (Number.isNaN(productId) || productId <= 0) {
-          setFormErrors({ submit: "El producto se creó pero no se pudo obtener su ID. Cree el movimiento manualmente." });
+          setFormErrors({
+            submit:
+              "El producto se creó pero no se pudo obtener su ID. Cree el movimiento manualmente.",
+          });
           setFormSubmitting(false);
           return;
         }
@@ -585,7 +682,9 @@ export default function MovementsPage() {
       setPage(1);
       closeForm();
     } catch (err) {
-      setFormErrors({ submit: err instanceof Error ? err.message : "Error al guardar" });
+      setFormErrors({
+        submit: err instanceof Error ? err.message : "Error al guardar",
+      });
     } finally {
       setFormSubmitting(false);
     }
@@ -596,19 +695,29 @@ export default function MovementsPage() {
     if (!term) return products;
     return products.filter(
       (p) =>
-        String(p.code ?? "").toLowerCase().includes(term) ||
-        String(p.name ?? "").toLowerCase().includes(term)
+        String(p.code ?? "")
+          .toLowerCase()
+          .includes(term) ||
+        String(p.name ?? "")
+          .toLowerCase()
+          .includes(term),
     );
   }, [products, productSearch]);
 
   const selectedProduct = useMemo(
-    () => (form.productId ? products.find((p) => p.id === Number(form.productId)) : null),
-    [products, form.productId]
+    () =>
+      form.productId
+        ? products.find((p) => p.id === Number(form.productId))
+        : null,
+    [products, form.productId],
   );
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (productDropdownRef.current && !productDropdownRef.current.contains(e.target as Node)) {
+      if (
+        productDropdownRef.current &&
+        !productDropdownRef.current.contains(e.target as Node)
+      ) {
         setProductDropdownOpen(false);
       }
     }
@@ -624,7 +733,9 @@ export default function MovementsPage() {
         disabled={!canCreateMovement}
         onClick={() => canCreateMovement && openCreate(0)}
         style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-        title={!canCreateMovement ? "Sin permiso para crear movimientos" : undefined}
+        title={
+          !canCreateMovement ? "Sin permiso para crear movimientos" : undefined
+        }
       >
         <Icon name="add_circle_outline" />
         Registrar entrada
@@ -641,7 +752,9 @@ export default function MovementsPage() {
           background: "#FEF2F2",
           color: "#B91C1C",
         }}
-        title={!canCreateMovement ? "Sin permiso para crear movimientos" : undefined}
+        title={
+          !canCreateMovement ? "Sin permiso para crear movimientos" : undefined
+        }
       >
         <Icon name="remove_circle_outline" />
         Registrar salida
@@ -652,138 +765,140 @@ export default function MovementsPage() {
   return (
     <>
       <div className="movements-table-wrap">
-      <DataTable
-        gridConfig={{
-          storageKey: "dashboard-movements",
-          exportFilenamePrefix: "movimientos",
-          primaryColumnKey: "productId",
-          bulkEntityLabel: "movimientos",
-        }}
-        filters={
-          <GridFilterBar onClear={clearGridFilters}>
-            <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Buscar</span>
-              <input
-                type="search"
-                className={`grid-filter-bar__control grid-filter-bar__control--wide ${filterText.trim() ? "grid-filter-bar__control--active" : ""}`}
-                placeholder="Producto, referencia…"
-                value={filterText}
-                onChange={(e) => setFilterText(e.target.value)}
-              />
-            </div>
-            <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Tipo</span>
-              <GridFilterSelect
-                aria-label="Tipo de movimiento"
-                value={filterType}
-                onChange={setFilterType}
-                active={filterType !== ""}
-                className="grid-filter-bar__control--medium"
-                options={[
-                  { value: "", label: "Todos" },
-                  { value: "0", label: "Entrada" },
-                  { value: "1", label: "Salida" },
-                  { value: "2", label: "Ajuste" },
-                ]}
-              />
-            </div>
-            {locationsForGridFilter.length > 0 ? (
+        <DataTable
+          gridConfig={{
+            storageKey: "dashboard-movements",
+            exportFilenamePrefix: "movimientos",
+            primaryColumnKey: "productId",
+            bulkEntityLabel: "movimientos",
+          }}
+          filters={
+            <GridFilterBar onClear={clearGridFilters}>
               <div className="grid-filter-bar__field">
-                <span className="grid-filter-bar__label">Ubicación</span>
-                <GridFilterSelect
-                  aria-label="Ubicación"
-                  value={filterLocationId}
-                  onChange={setFilterLocationId}
-                  active={filterLocationId !== ""}
-                  className="grid-filter-bar__control--medium"
-                  options={[
-                    { value: "", label: "Todas" },
-                    ...locationsForGridFilter.map((loc) => ({
-                      value: String(loc.id),
-                      label: loc.name,
-                    })),
-                  ]}
+                <span className="grid-filter-bar__label">Buscar</span>
+                <input
+                  type="search"
+                  className={`grid-filter-bar__control grid-filter-bar__control--wide ${filterText.trim() ? "grid-filter-bar__control--active" : ""}`}
+                  placeholder="Producto, referencia…"
+                  value={filterText}
+                  onChange={(e) => setFilterText(e.target.value)}
                 />
               </div>
-            ) : null}
-            <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Desde</span>
-              <DatePickerSimple
-                date={movDateFrom}
-                setDate={setMovDateFrom}
-                emptyLabel="Seleccionar"
-                buttonClassName={`grid-filter-bar__date-trigger grid-filter-bar__control--medium ${movDateFrom ? "grid-filter-bar__control--active" : ""}`}
-              />
-            </div>
-            <div className="grid-filter-bar__field">
-              <span className="grid-filter-bar__label">Hasta</span>
-              <DatePickerSimple
-                date={movDateTo}
-                setDate={setMovDateTo}
-                emptyLabel="Seleccionar"
-                buttonClassName={`grid-filter-bar__date-trigger grid-filter-bar__control--medium ${movDateTo ? "grid-filter-bar__control--active" : ""}`}
-              />
-            </div>
-            {userIdsInData.length > 0 ? (
               <div className="grid-filter-bar__field">
-                <span className="grid-filter-bar__label">Usuario</span>
+                <span className="grid-filter-bar__label">Tipo</span>
                 <GridFilterSelect
-                  aria-label="Usuario"
-                  value={filterUserId}
-                  onChange={setFilterUserId}
-                  active={filterUserId !== ""}
+                  aria-label="Tipo de movimiento"
+                  value={filterType}
+                  onChange={setFilterType}
+                  active={filterType !== ""}
                   className="grid-filter-bar__control--medium"
                   options={[
                     { value: "", label: "Todos" },
-                    ...userIdsInData.map((id) => ({
-                      value: String(id),
-                      label: userIdToName.get(id) ?? String(id),
-                    })),
+                    { value: "0", label: "Entrada" },
+                    { value: "1", label: "Salida" },
+                    { value: "2", label: "Ajuste" },
                   ]}
                 />
               </div>
-            ) : null}
-          </GridFilterBar>
-        }
-        data={filteredData}
-        columns={columns}
-        loading={allRows.length === 0 && (isLoading || isFetching)}
-        title="Movimientos de inventario"
-        titleIcon="swap_horiz"
-        toolbarExtra={movementToolbar}
-        infiniteScroll
-        hasMore={!allPagesLoaded}
-        loadingMore={isFetching && !allPagesLoaded}
-        emptyIcon="swap_horiz"
-        emptyTitle="Sin registros"
-        emptyDesc={
-          gridFiltersActive && loadedRows.length > 0
-            ? "Ningún movimiento coincide con los filtros."
-            : "Aún no hay movimientos"
-        }
-        detailDrawer={{
-          entityLabelPlural: "movimientos",
-          getTitle: (row) =>
-            row.productName?.trim() ||
-            productLabelById.get(row.productId) ||
-            `Movimiento #${row.id}`,
-          getStatusBadge: (row) => {
-            const tone = movementTypeTone(row.type);
-            const label = movementTypeLabel(row.type);
-            if (tone === "in") return <span className="dt-tag dt-tag--green">{label}</span>;
-            if (tone === "out") return <span className="dt-tag dt-tag--red">{label}</span>;
-            return <span className="dt-tag">{label}</span>;
-          },
-          render: (row) => (
-            <MovementDetailBody
-              row={row}
-              userIdToName={userIdToName}
-              productLabelById={productLabelById}
-            />
-          ),
-          showEditButton: false,
-        }}
-      />
+              {locationsForGridFilter.length > 0 ? (
+                <div className="grid-filter-bar__field">
+                  <span className="grid-filter-bar__label">Ubicación</span>
+                  <GridFilterSelect
+                    aria-label="Ubicación"
+                    value={filterLocationId}
+                    onChange={setFilterLocationId}
+                    active={filterLocationId !== ""}
+                    className="grid-filter-bar__control--medium"
+                    options={[
+                      { value: "", label: "Todas" },
+                      ...locationsForGridFilter.map((loc) => ({
+                        value: String(loc.id),
+                        label: loc.name,
+                      })),
+                    ]}
+                  />
+                </div>
+              ) : null}
+              <div className="grid-filter-bar__field">
+                <span className="grid-filter-bar__label">Desde</span>
+                <DatePickerSimple
+                  date={movDateFrom}
+                  setDate={setMovDateFrom}
+                  emptyLabel="Seleccionar"
+                  buttonClassName={`grid-filter-bar__date-trigger grid-filter-bar__control--medium ${movDateFrom ? "grid-filter-bar__control--active" : ""}`}
+                />
+              </div>
+              <div className="grid-filter-bar__field">
+                <span className="grid-filter-bar__label">Hasta</span>
+                <DatePickerSimple
+                  date={movDateTo}
+                  setDate={setMovDateTo}
+                  emptyLabel="Seleccionar"
+                  buttonClassName={`grid-filter-bar__date-trigger grid-filter-bar__control--medium ${movDateTo ? "grid-filter-bar__control--active" : ""}`}
+                />
+              </div>
+              {userIdsInData.length > 0 ? (
+                <div className="grid-filter-bar__field">
+                  <span className="grid-filter-bar__label">Usuario</span>
+                  <GridFilterSelect
+                    aria-label="Usuario"
+                    value={filterUserId}
+                    onChange={setFilterUserId}
+                    active={filterUserId !== ""}
+                    className="grid-filter-bar__control--medium"
+                    options={[
+                      { value: "", label: "Todos" },
+                      ...userIdsInData.map((id) => ({
+                        value: String(id),
+                        label: userIdToName.get(id) ?? String(id),
+                      })),
+                    ]}
+                  />
+                </div>
+              ) : null}
+            </GridFilterBar>
+          }
+          data={filteredData}
+          columns={columns}
+          loading={allRows.length === 0 && (isLoading || isFetching)}
+          title="Movimientos de inventario"
+          titleIcon="swap_horiz"
+          toolbarExtra={movementToolbar}
+          infiniteScroll
+          hasMore={!allPagesLoaded}
+          loadingMore={isFetching && !allPagesLoaded}
+          emptyIcon="swap_horiz"
+          emptyTitle="Sin registros"
+          emptyDesc={
+            gridFiltersActive && loadedRows.length > 0
+              ? "Ningún movimiento coincide con los filtros."
+              : "Aún no hay movimientos"
+          }
+          detailDrawer={{
+            entityLabelPlural: "movimientos",
+            getTitle: (row) =>
+              row.productName?.trim() ||
+              productLabelById.get(row.productId) ||
+              `Movimiento #${row.id}`,
+            getStatusBadge: (row) => {
+              const tone = movementTypeTone(row.type);
+              const label = movementTypeLabel(row.type);
+              if (tone === "in")
+                return <span className="dt-tag dt-tag--green">{label}</span>;
+              if (tone === "out")
+                return <span className="dt-tag dt-tag--red">{label}</span>;
+              return <span className="dt-tag">{label}</span>;
+            },
+            render: (row) => (
+              <MovementDetailBody
+                row={row}
+                userIdToName={userIdToName}
+                productLabelById={productLabelById}
+              />
+            ),
+            showEditButton: false,
+          }}
+        />
       </div>
 
       {formOpen && (
@@ -791,7 +906,9 @@ export default function MovementsPage() {
           open={formOpen}
           onClose={closeForm}
           title={form.type === 1 ? "Registrar salida" : "Registrar entrada"}
-          icon={form.type === 1 ? "remove_circle_outline" : "add_circle_outline"}
+          icon={
+            form.type === 1 ? "remove_circle_outline" : "add_circle_outline"
+          }
           onSubmit={handleSubmit}
           submitting={formSubmitting}
           submitLabel="Registrar"
@@ -807,8 +924,12 @@ export default function MovementsPage() {
                   padding: "8px 14px",
                   borderRadius: 8,
                   border: `1px solid ${productMode === "existing" ? theme.accent : theme.divider}`,
-                  background: productMode === "existing" ? "#EEF2FF" : theme.surface,
-                  color: productMode === "existing" ? theme.accent : theme.secondaryText,
+                  background:
+                    productMode === "existing" ? "#EEF2FF" : theme.surface,
+                  color:
+                    productMode === "existing"
+                      ? theme.accent
+                      : theme.secondaryText,
                   cursor: "pointer",
                   fontSize: 14,
                   fontWeight: 500,
@@ -816,22 +937,28 @@ export default function MovementsPage() {
               >
                 Producto existente
               </button>
-              {form.type===0&&<button
-                type="button"
-                onClick={() => setProductMode("new")}
-                style={{
-                  padding: "8px 14px",
-                  borderRadius: 8,
-                  border: `1px solid ${productMode === "new" ? theme.accent : theme.divider}`,
-                  background: productMode === "new" ? "#EEF2FF" : theme.surface,
-                  color: productMode === "new" ? theme.accent : theme.secondaryText,
-                  cursor: "pointer",
-                  fontSize: 14,
-                  fontWeight: 500,
-                }}
-              >
-                Crear producto nuevo
-              </button>}
+              {form.type === 0 && (
+                <button
+                  type="button"
+                  onClick={() => setProductMode("new")}
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: 8,
+                    border: `1px solid ${productMode === "new" ? theme.accent : theme.divider}`,
+                    background:
+                      productMode === "new" ? "#EEF2FF" : theme.surface,
+                    color:
+                      productMode === "new"
+                        ? theme.accent
+                        : theme.secondaryText,
+                    cursor: "pointer",
+                    fontSize: 14,
+                    fontWeight: 500,
+                  }}
+                >
+                  Crear producto nuevo
+                </button>
+              )}
             </div>
             {productMode === "existing" ? (
               <div ref={productDropdownRef}>
@@ -840,17 +967,32 @@ export default function MovementsPage() {
                   type="text"
                   autoComplete="off"
                   placeholder="Escribe para buscar por código o nombre..."
-                  value={productDropdownOpen ? productSearch : (selectedProduct ? `${selectedProduct.code} - ${selectedProduct.name}` : productSearch)}
+                  value={
+                    productDropdownOpen
+                      ? productSearch
+                      : selectedProduct
+                        ? `${selectedProduct.code} - ${selectedProduct.name}`
+                        : productSearch
+                  }
                   onChange={(e) => {
                     setProductSearch(e.target.value);
                     setProductDropdownOpen(true);
-                    if (form.productId) setForm((f) => ({ ...f, productId: "" }));
+                    if (form.productId)
+                      setForm((f) => ({ ...f, productId: "" }));
                   }}
                   onFocus={() => {
                     setProductDropdownOpen(true);
-                    if (selectedProduct && !productSearch) setProductSearch(`${selectedProduct.code} - ${selectedProduct.name}`);
+                    if (selectedProduct && !productSearch)
+                      setProductSearch(
+                        `${selectedProduct.code} - ${selectedProduct.name}`,
+                      );
                   }}
-                  style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${theme.divider}` }}
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    border: `1px solid ${theme.divider}`,
+                  }}
                 />
                 {productDropdownOpen && (
                   <ul
@@ -869,12 +1011,19 @@ export default function MovementsPage() {
                     }}
                   >
                     {filteredProducts.length === 0 ? (
-                      <li style={{ padding: "12px 14px", color: theme.secondaryText, fontSize: 14 }}>Sin coincidencias</li>
+                      <li
+                        style={{
+                          padding: "12px 14px",
+                          color: theme.secondaryText,
+                          fontSize: 14,
+                        }}
+                      >
+                        Sin coincidencias
+                      </li>
                     ) : (
                       filteredProducts.map((p: ProductResponse) => (
                         <li
                           key={p.id}
-                          role="option"
                           aria-selected={form.productId === p.id}
                           style={{
                             padding: "10px 14px",
@@ -882,7 +1031,10 @@ export default function MovementsPage() {
                             fontSize: 14,
                             color: theme.primaryText,
                             borderBottom: `1px solid ${theme.divider}`,
-                            background: form.productId === p.id ? "#EEF2FF" : "transparent",
+                            background:
+                              form.productId === p.id
+                                ? "#EEF2FF"
+                                : "transparent",
                           }}
                           onMouseDown={(e) => {
                             e.preventDefault();
@@ -897,36 +1049,53 @@ export default function MovementsPage() {
                     )}
                   </ul>
                 )}
-                {formErrors.productId && <p className="form-error">{formErrors.productId}</p>}
+                {formErrors.productId && (
+                  <p className="form-error">{formErrors.productId}</p>
+                )}
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 12 }}
+              >
                 <div className="modal-field">
                   <label htmlFor="newProductCode">Código *</label>
                   <input
                     id="newProductCode"
                     value={newProductForm.code}
-                    onChange={(e) => setNewProductForm((f) => ({ ...f, code: e.target.value }))}
+                    onChange={(e) =>
+                      setNewProductForm((f) => ({ ...f, code: e.target.value }))
+                    }
                     placeholder="Código del producto"
                   />
-                  {formErrors.newProductCode && <p className="form-error">{formErrors.newProductCode}</p>}
+                  {formErrors.newProductCode && (
+                    <p className="form-error">{formErrors.newProductCode}</p>
+                  )}
                 </div>
                 <div className="modal-field">
                   <label htmlFor="newProductName">Nombre *</label>
                   <input
                     id="newProductName"
                     value={newProductForm.name}
-                    onChange={(e) => setNewProductForm((f) => ({ ...f, name: e.target.value }))}
+                    onChange={(e) =>
+                      setNewProductForm((f) => ({ ...f, name: e.target.value }))
+                    }
                     placeholder="Nombre del producto"
                   />
-                  {formErrors.newProductName && <p className="form-error">{formErrors.newProductName}</p>}
+                  {formErrors.newProductName && (
+                    <p className="form-error">{formErrors.newProductName}</p>
+                  )}
                 </div>
                 <div className="modal-field field-full">
                   <label htmlFor="newProductDescription">Descripción</label>
                   <textarea
                     id="newProductDescription"
                     value={newProductForm.description}
-                    onChange={(e) => setNewProductForm((f) => ({ ...f, description: e.target.value }))}
+                    onChange={(e) =>
+                      setNewProductForm((f) => ({
+                        ...f,
+                        description: e.target.value,
+                      }))
+                    }
                     placeholder="Descripción (opcional)"
                     rows={2}
                   />
@@ -939,13 +1108,16 @@ export default function MovementsPage() {
                     onChange={(e) =>
                       setNewProductForm((f) => ({
                         ...f,
-                        categoryId: e.target.value === "" ? "" : Number(e.target.value),
+                        categoryId:
+                          e.target.value === "" ? "" : Number(e.target.value),
                       }))
                     }
                   >
                     <option value="">Sin categoría</option>
                     {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -957,10 +1129,17 @@ export default function MovementsPage() {
                     min={0}
                     step="0.01"
                     value={newProductForm.precio}
-                    onChange={(e) => setNewProductForm((f) => ({ ...f, precio: e.target.value }))}
+                    onChange={(e) =>
+                      setNewProductForm((f) => ({
+                        ...f,
+                        precio: e.target.value,
+                      }))
+                    }
                     placeholder="0.00"
                   />
-                  {formErrors.newProductPrecio && <p className="form-error">{formErrors.newProductPrecio}</p>}
+                  {formErrors.newProductPrecio && (
+                    <p className="form-error">{formErrors.newProductPrecio}</p>
+                  )}
                 </div>
                 <div className="modal-field">
                   <label htmlFor="newProductCosto">Costo *</label>
@@ -970,22 +1149,33 @@ export default function MovementsPage() {
                     min={0}
                     step="0.01"
                     value={newProductForm.costo}
-                    onChange={(e) => setNewProductForm((f) => ({ ...f, costo: e.target.value }))}
+                    onChange={(e) =>
+                      setNewProductForm((f) => ({
+                        ...f,
+                        costo: e.target.value,
+                      }))
+                    }
                     placeholder="0.00"
                   />
-                  {formErrors.newProductCosto && <p className="form-error">{formErrors.newProductCosto}</p>}
+                  {formErrors.newProductCosto && (
+                    <p className="form-error">{formErrors.newProductCosto}</p>
+                  )}
                 </div>
                 <div className="modal-field field-full">
                   <label>Imagen del producto</label>
                   <ImageUploader
                     value={newProductForm.imagenUrl}
-                    onChange={(url: string) => setNewProductForm((f) => ({ ...f, imagenUrl: url }))}
+                    onChange={(url: string) =>
+                      setNewProductForm((f) => ({ ...f, imagenUrl: url }))
+                    }
                   />
                 </div>
                 <div className="modal-field field-full modal-toggle">
                   <Switch
                     checked={newProductForm.isForSale}
-                    onChange={(checked) => setNewProductForm((f) => ({ ...f, isForSale: checked }))}
+                    onChange={(checked) =>
+                      setNewProductForm((f) => ({ ...f, isForSale: checked }))
+                    }
                   />
                   <label>En venta (visible en catálogo público)</label>
                 </div>
@@ -995,7 +1185,9 @@ export default function MovementsPage() {
           <div className="modal-field">
             <label htmlFor="locationId">Ubicación *</label>
             {formContextLoading ? (
-              <p style={{ margin: 0, fontSize: 14, color: "#64748b" }}>Cargando…</p>
+              <p style={{ margin: 0, fontSize: 14, color: "#64748b" }}>
+                Cargando…
+              </p>
             ) : isLocationLocked && formContext?.locationName ? (
               <input
                 id="locationId"
@@ -1018,7 +1210,11 @@ export default function MovementsPage() {
                   id="locationId"
                   value={form.locationId}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, locationId: e.target.value === "" ? "" : Number(e.target.value) }))
+                    setForm((f) => ({
+                      ...f,
+                      locationId:
+                        e.target.value === "" ? "" : Number(e.target.value),
+                    }))
                   }
                 >
                   <option value="">Seleccionar</option>
@@ -1028,7 +1224,9 @@ export default function MovementsPage() {
                     </option>
                   ))}
                 </select>
-                {formErrors.locationId && <p className="form-error">{formErrors.locationId}</p>}
+                {formErrors.locationId && (
+                  <p className="form-error">{formErrors.locationId}</p>
+                )}
               </>
             )}
           </div>
@@ -1037,7 +1235,9 @@ export default function MovementsPage() {
             <select
               id="type"
               value={form.type}
-              onChange={(e) => setForm((f) => ({ ...f, type: Number(e.target.value) }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, type: Number(e.target.value) }))
+              }
             >
               {MOVEMENT_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -1053,16 +1253,22 @@ export default function MovementsPage() {
               type="number"
               min={1}
               value={form.quantity}
-              onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, quantity: e.target.value }))
+              }
             />
-            {formErrors.quantity && <p className="form-error">{formErrors.quantity}</p>}
+            {formErrors.quantity && (
+              <p className="form-error">{formErrors.quantity}</p>
+            )}
           </div>
           <div className="modal-field field-full">
             <label htmlFor="reason">Razón</label>
             <select
               id="reason"
               value={form.reason}
-              onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, reason: e.target.value }))
+              }
             >
               <option value="">Seleccione razón</option>
               {INVENTORY_MOVEMENT_REASONS.map((r) => (
@@ -1077,7 +1283,9 @@ export default function MovementsPage() {
             <input
               id="referenceDocument"
               value={form.referenceDocument}
-              onChange={(e) => setForm((f) => ({ ...f, referenceDocument: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, referenceDocument: e.target.value }))
+              }
             />
           </div>
           {formErrors.submit && (

@@ -1,15 +1,15 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import type { ApexOptions } from "apexcharts";
-import { ChartCardMenu } from "./ChartCardMenu";
-import { theme } from "./theme";
+import dynamic from "next/dynamic";
 import {
   apexChartFontFamily,
   apexChartLocaleEs,
   apexNoDataEs,
   formatChartNumber,
 } from "@/lib/apexcharts-es";
+import { ChartCardMenu } from "./ChartCardMenu";
+import { theme } from "./theme";
 
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
@@ -72,7 +72,8 @@ export function BarChartCard({
       axisTicks: { show: false },
       labels: horizontal
         ? {
-            formatter: (val) => (typeof val === "number" ? formatChartNumber(val) : String(val)),
+            formatter: (val) =>
+              typeof val === "number" ? formatChartNumber(val) : String(val),
             style: { colors: theme.secondaryText, fontSize: "12px" },
           }
         : { style: { colors: theme.secondaryText, fontSize: "12px" } },
@@ -93,7 +94,10 @@ export function BarChartCard({
     },
     tooltip: {
       y: {
-        formatter: (val) => (formatValue ? formatValue(Number(val)) : formatChartNumber(Number(val))),
+        formatter: (val) =>
+          formatValue
+            ? formatValue(Number(val))
+            : formatChartNumber(Number(val)),
       },
     },
     legend: { show: false },
@@ -113,13 +117,21 @@ export function BarChartCard({
       <div className="dashboard-card__head">
         <div>
           <div className="dashboard-card__title">{title}</div>
-          {subtitle && <div className="dashboard-card__subtitle">{subtitle}</div>}
+          {subtitle && (
+            <div className="dashboard-card__subtitle">{subtitle}</div>
+          )}
         </div>
         <ChartCardMenu />
       </div>
       <div
         className="dashboard-chart-plot max-w-full"
-        style={{ width: "100%", height, minHeight: height, minWidth: 200, flexShrink: 0 }}
+        style={{
+          width: "100%",
+          height,
+          minHeight: height,
+          minWidth: 200,
+          flexShrink: 0,
+        }}
       >
         <ReactApexChart
           options={options}

@@ -1,16 +1,16 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback } from "react";
-import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Icon } from "@/components/ui/Icon";
-import { useAppSelector, useAppDispatch } from "@/store/store";
-import { clearSession } from "@/lib/auth-api";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { createContext, useCallback, useContext, useState } from "react";
 import { useLogoutMutation } from "@/app/login/_service/authApi";
-import { logoutSuccessfull } from "@/app/login/_slices/authSlice";
 import { removeAuthCookie } from "@/app/login/_service/sessionCookie";
-import { CartDrawer } from "./components/CartDrawer";
+import { logoutSuccessfull } from "@/app/login/_slices/authSlice";
 import { TopbarCurrencySelector } from "@/components/TopbarCurrencySelector";
+import { Icon } from "@/components/ui/Icon";
+import { clearSession } from "@/lib/auth-api";
+import { useAppDispatch, useAppSelector } from "@/store/store";
+import { CartDrawer } from "./components/CartDrawer";
 import "./catalog.css";
 
 interface CatalogCtx {
@@ -27,7 +27,11 @@ const CatalogContext = createContext<CatalogCtx>({
 
 export const useCatalogCtx = () => useContext(CatalogContext);
 
-export default function CatalogLayout({ children }: { children: React.ReactNode }) {
+export default function CatalogLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [search, setSearch] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const openCart = useCallback(() => setCartOpen(true), []);
@@ -39,7 +43,7 @@ export default function CatalogLayout({ children }: { children: React.ReactNode 
   const authUser = useAppSelector((s) => s.auth);
 
   const count = useAppSelector((s) =>
-    s.cart.items.reduce((a, i) => a + i.quantity, 0)
+    s.cart.items.reduce((a, i) => a + i.quantity, 0),
   );
 
   const handleLogout = async () => {
@@ -62,7 +66,11 @@ export default function CatalogLayout({ children }: { children: React.ReactNode 
       <div className="store-layout">
         <nav className="store-nav">
           <Link href="/" className="store-nav__brand">
-            <img src="/assets/elcuadre.png?v=2" alt="Tu Cuadre" className="store-nav__logo" />
+            <img
+              src="/assets/elcuadre.png?v=2"
+              alt="Tu Cuadre"
+              className="store-nav__logo"
+            />
             <span className="store-nav__brand-label">Tienda</span>
           </Link>
 
@@ -72,17 +80,31 @@ export default function CatalogLayout({ children }: { children: React.ReactNode 
 
           <div className="store-nav__actions">
             {!hideCart && (
-              <button type="button" className="store-nav__cart" onClick={openCart}>
+              <button
+                type="button"
+                className="store-nav__cart"
+                onClick={openCart}
+              >
                 <Icon name="shopping_cart" />
-                {count > 0 && <span className="store-nav__cart-count">{count}</span>}
+                {count > 0 && (
+                  <span className="store-nav__cart-count">{count}</span>
+                )}
                 <span className="store-nav__cart-label">Carrito</span>
-                {count > 0 && <span className="store-nav__badge">{count > 99 ? "99+" : count}</span>}
+                {count > 0 && (
+                  <span className="store-nav__badge">
+                    {count > 99 ? "99+" : count}
+                  </span>
+                )}
               </button>
             )}
 
             {authUser ? (
               <>
-                <Link href="/dashboard" className="store-nav__link-btn" title="Panel">
+                <Link
+                  href="/dashboard"
+                  className="store-nav__link-btn"
+                  title="Panel"
+                >
                   <Icon name="dashboard" />
                   <span className="store-nav__link-text">Panel</span>
                 </Link>
@@ -97,7 +119,11 @@ export default function CatalogLayout({ children }: { children: React.ReactNode 
                 </button>
               </>
             ) : (
-              <Link href="/login" className="store-nav__link-btn" title="Iniciar sesión">
+              <Link
+                href="/login"
+                className="store-nav__link-btn"
+                title="Iniciar sesión"
+              >
                 <Icon name="person_outline" />
                 <span className="store-nav__link-text">Iniciar sesión</span>
               </Link>
