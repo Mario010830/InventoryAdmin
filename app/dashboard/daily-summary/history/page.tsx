@@ -1,8 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 import { DatePickerSimple } from "@/components/DatePickerSimple";
+import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/Icon";
 import { formatDisplayCurrency } from "@/lib/formatCurrency";
 import type { DailySummary } from "@/lib/types/daily-summary";
@@ -43,33 +44,28 @@ function formatDate(iso: string): string {
 
 type SummaryStatus = DailySummary["status"];
 
-const STATUS_CONFIG: Record<
-  SummaryStatus,
-  { badgeClass: string; label: string }
-> = {
-  Balanced: { badgeClass: "ds-status--balanced", label: "✓ Cuadrado" },
-  Surplus:  { badgeClass: "ds-status--surplus",  label: "⚠ Sobrante" },
-  Shortage: { badgeClass: "ds-status--shortage", label: "✗ Faltante" },
+const STATUS_CFG: Record<SummaryStatus, { cls: string; label: string }> = {
+  Balanced: { cls: "ds-status-badge--balanced", label: "✓ Cuadrado" },
+  Surplus:  { cls: "ds-status-badge--surplus",  label: "⚠ Sobrante" },
+  Shortage: { cls: "ds-status-badge--shortage", label: "✗ Faltante" },
 };
 
 function StatusBadge({ status }: { status: SummaryStatus }) {
-  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.Balanced;
-  return <span className={`ds-status ${cfg.badgeClass}`}>{cfg.label}</span>;
+  const cfg = STATUS_CFG[status] ?? STATUS_CFG.Balanced;
+  return <span className={`ds-status-badge ${cfg.cls}`}>{cfg.label}</span>;
 }
 
-// ─── Skeleton row ─────────────────────────────────────────────────────────────
+// ─── Skeleton rows ────────────────────────────────────────────────────────────
 
 function SkeletonRows() {
   return (
     <>
       {[1, 2, 3, 4, 5].map((i) => (
         <tr key={i}>
-          {[1, 2, 3, 4, 5, 6, 7].map((j) => (
+          {[100, 90, 90, 90, 90, 80, 70].map((w, j) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: índices estáticos de skeleton
             <td key={j}>
-              <div
-                className="ds-skeleton"
-                style={{ height: 18, width: j === 1 ? 90 : 70 }}
-              />
+              <div className="ds-skeleton" style={{ height: 16, width: w }} />
             </td>
           ))}
         </tr>
@@ -81,98 +77,80 @@ function SkeletonRows() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DailySummaryHistoryPage() {
-  const router = useRouter();
-
   const [from, setFrom] = useState(daysAgoIso(30));
   const [to, setTo] = useState(todayIso());
   const [appliedFrom, setAppliedFrom] = useState(daysAgoIso(30));
   const [appliedTo, setAppliedTo] = useState(todayIso());
 
-  const { data: history = [], isLoading, isFetching } = useGetDailySummaryHistoryQuery(
-    { from: appliedFrom, to: appliedTo },
-    { skip: !appliedFrom || !appliedTo },
-  );
+  const { data: history = [], isLoading, isFetching } =
+    useGetDailySummaryHistoryQuery(
+      { from: appliedFrom, to: appliedTo },
+      { skip: !appliedFrom || !appliedTo },
+    );
+
+  const isBusy = isLoading || isFetching;
 
   const handleSearch = () => {
     setAppliedFrom(from);
     setAppliedTo(to);
   };
 
-  const handleViewDetail = (date: string) => {
-    router.push(`/dashboard/daily-summary?date=${encodeURIComponent(date)}`);
-  };
-
-  const isBusy = isLoading || isFetching;
-
   return (
-    <div className="ds-page">
-      {/* ── ENCABEZADO ── */}
-      <div className="ds-header">
-        <div className="ds-header__title-row">
-          <div className="ds-header__icon">
-            <Icon name="history" />
-          </div>
-          <h1 className="ds-header__title">Historial de Cuadres</h1>
+    <div className="dashboard-page">
+      {/* ── Encabezado ── */}
+      <header className="dashboard-report-layout__head" style={{ flexWrap: "wrap", gap: 12 }}>
+        <div className="dashboard-report-layout__title">
+          <h1>Historial de Cuadres</h1>
+          <p>Consulta los cierres de caja de cualquier período</p>
         </div>
-        <button
-          type="button"
-          className="ds-btn ds-btn--outline"
-          onClick={() => router.push("/dashboard/daily-summary")}
-        >
-          <Icon name="arrow_back" />
-          Cuadre del día
-        </button>
-      </div>
+        <Button variant="outline" asChild>
+          <Link href="/dashboard/daily-summary">
+            <Icon name="arrow_back" />
+            Cuadre del día
+          </Link>
+        </Button>
+      </header>
 
-      {/* ── FILTROS ── */}
-      <div className="ds-history-filters">
-        <div className="ds-history-filter-field">
-          <span className="ds-history-filter-label">Desde</span>
-          <DatePickerSimple
-            date={from}
-            setDate={setFrom}
-            emptyLabel="Fecha inicial"
-          />
+      {/* ── Filtros ── */}
+      <div className="ds-filter-bar">
+        <div className="ds-filter-field">
+          <span className="ds-filter-label">Desde</span>
+          <DatePickerSimple date={from} setDate={setFrom} emptyLabel="Fecha inicial" />
         </div>
-        <div className="ds-history-filter-field">
-          <span className="ds-history-filter-label">Hasta</span>
-          <DatePickerSimple
-            date={to}
-            setDate={setTo}
-            emptyLabel="Fecha final"
-          />
+        <div className="ds-filter-field">
+          <span className="ds-filter-label">Hasta</span>
+          <DatePickerSimple date={to} setDate={setTo} emptyLabel="Fecha final" />
         </div>
-        <button
-          type="button"
-          className="ds-btn ds-btn--primary"
+        <Button
           onClick={handleSearch}
           disabled={isBusy || !from || !to}
         >
           {isBusy ? (
-            <span className="ds-spinner" />
+            <span
+              className="dt-state__spinner"
+              style={{ width: 14, height: 14, borderWidth: 2, borderColor: "rgba(255,255,255,.35)", borderTopColor: "#fff" }}
+            />
           ) : (
             <Icon name="search" />
           )}
           Buscar
-        </button>
+        </Button>
       </div>
 
-      {/* ── TABLA ── */}
-      <div className="ds-section">
-        <div className="ds-section__header">
+      {/* ── Tabla ── */}
+      <div className="ds-table-section">
+        <div className="ds-table-section__header">
           <Icon name="table_rows" />
-          <h2 className="ds-section__title">
-            {history.length > 0
-              ? `${history.length} cuadre${history.length !== 1 ? "s" : ""} encontrado${history.length !== 1 ? "s" : ""}`
+          <h2 className="ds-table-section__title">
+            {!isBusy && history.length > 0
+              ? `${history.length} cuadre${history.length !== 1 ? "s" : ""}`
               : "Resultados"}
           </h2>
         </div>
 
         {!isBusy && history.length === 0 ? (
           <div className="ds-empty">
-            <span className="ds-empty__icon">
-              <Icon name="search_off" />
-            </span>
+            <Icon name="search_off" />
             <h3 className="ds-empty__title">Sin resultados</h3>
             <p className="ds-empty__desc">
               No hay cuadres en el rango de fechas seleccionado.
@@ -184,10 +162,10 @@ export default function DailySummaryHistoryPage() {
               <thead>
                 <tr>
                   <th>Fecha</th>
-                  <th>Ventas</th>
-                  <th>Caja esperada</th>
-                  <th>Contado</th>
-                  <th>Diferencia</th>
+                  <th className="td-num">Ventas</th>
+                  <th className="td-num">Caja esperada</th>
+                  <th className="td-num">Contado</th>
+                  <th className="td-num">Diferencia</th>
                   <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
@@ -199,23 +177,11 @@ export default function DailySummaryHistoryPage() {
                   history.map((row) => (
                     <tr key={row.id}>
                       <td>{formatDate(row.date)}</td>
-                      <td className="ds-table td--number">
-                        {formatCup(row.totalSales)}
-                      </td>
-                      <td className="ds-table td--number">
-                        {formatCup(row.expectedCash)}
-                      </td>
-                      <td className="ds-table td--number">
-                        {formatCup(row.actualCash)}
-                      </td>
-                      <td className="ds-table td--number">
-                        <span
-                          className={
-                            row.status !== "Balanced"
-                              ? "ds-table__diff--nonzero"
-                              : ""
-                          }
-                        >
+                      <td className="td-num">{formatCup(row.totalSales)}</td>
+                      <td className="td-num">{formatCup(row.expectedCash)}</td>
+                      <td className="td-num">{formatCup(row.actualCash)}</td>
+                      <td className="td-num">
+                        <span className={row.status !== "Balanced" ? "td-diff-warn" : ""}>
                           {formatCup(row.difference)}
                         </span>
                       </td>
@@ -223,15 +189,12 @@ export default function DailySummaryHistoryPage() {
                         <StatusBadge status={row.status} />
                       </td>
                       <td>
-                        <button
-                          type="button"
-                          className="ds-btn ds-btn--ghost"
-                          onClick={() => handleViewDetail(row.date)}
-                          title="Ver detalle"
-                        >
-                          <Icon name="open_in_new" />
-                          Ver detalle
-                        </button>
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/dashboard/daily-summary?date=${encodeURIComponent(row.date)}`}>
+                            <Icon name="open_in_new" />
+                            Ver detalle
+                          </Link>
+                        </Button>
                       </td>
                     </tr>
                   ))

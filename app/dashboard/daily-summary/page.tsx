@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DatePickerSimple } from "@/components/DatePickerSimple";
 import { FormModal } from "@/components/FormModal";
+import { ReportKpiCard } from "@/components/reportes/ReportKpiCard";
+import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/Icon";
 import { formatDisplayCurrency } from "@/lib/formatCurrency";
 import type {
@@ -13,6 +15,8 @@ import type {
   GenerateDailySummaryRequest,
 } from "@/lib/types/daily-summary";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
+import { useAppSelector } from "@/store/store";
+import { useGetLocationsQuery } from "../locations/_service/locationsApi";
 import {
   exportDailySummaryCsv,
   exportDailySummaryPdf,
@@ -28,113 +32,64 @@ function todayIso(): string {
 }
 
 function formatCup(value: number): string {
-  return `${formatDisplayCurrency(value, "es-ES", { minFractionDigits: 2, maxFractionDigits: 2 })}`;
+  return formatDisplayCurrency(value, "es-ES", {
+    minFractionDigits: 2,
+    maxFractionDigits: 2,
+  });
 }
 
 type SummaryStatus = DailySummary["status"];
 
-const STATUS_CONFIG: Record<
+const STATUS_CFG: Record<
   SummaryStatus,
-  { valueClass: string; badgeClass: string; label: string; icon: string }
+  { valueClass: string; badgeClass: string; label: string }
 > = {
   Balanced: {
-    valueClass: "ds-card__value--balanced",
-    badgeClass: "ds-badge--balanced",
+    valueClass: "ds-kpi-value--balanced",
+    badgeClass: "ds-kpi-badge--balanced",
     label: "✓ Cuadrado",
-    icon: "check_circle",
   },
   Surplus: {
-    valueClass: "ds-card__value--surplus",
-    badgeClass: "ds-badge--surplus",
+    valueClass: "ds-kpi-value--surplus",
+    badgeClass: "ds-kpi-badge--surplus",
     label: "⚠ Sobrante",
-    icon: "warning",
   },
   Shortage: {
-    valueClass: "ds-card__value--shortage",
-    badgeClass: "ds-badge--shortage",
+    valueClass: "ds-kpi-value--shortage",
+    badgeClass: "ds-kpi-badge--shortage",
     label: "✗ Faltante",
-    icon: "error",
   },
 };
 
-// ─── Subcomponents ────────────────────────────────────────────────────────────
+// ─── Tabla de inventario ──────────────────────────────────────────────────────
 
-function KpiCard({
-  label,
-  value,
-  sub,
-  status,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  status?: SummaryStatus;
-}) {
-  const cfg = status ? STATUS_CONFIG[status] : null;
+function InventoryTable({ items }: { items: DailySummaryInventoryItem[] }) {
   return (
-    <div className="ds-card">
-      <span className="ds-card__label">{label}</span>
-      <span className={`ds-card__value ${cfg ? cfg.valueClass : ""}`}>
-        {value}
-      </span>
-      {sub && <span className="ds-card__sub">{sub}</span>}
-      {cfg && (
-        <span className={`ds-card__badge ${cfg.badgeClass}`}>
-          <Icon name={cfg.icon} />
-          {cfg.label}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function SkeletonCards() {
-  return (
-    <div className="ds-skeleton-cards">
-      {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="ds-skeleton ds-skeleton-card" />
-      ))}
-    </div>
-  );
-}
-
-function InventoryTable({
-  items,
-}: {
-  items: DailySummaryInventoryItem[];
-}) {
-  return (
-    <div className="ds-section">
-      <div className="ds-section__header">
+    <div className="ds-table-section">
+      <div className="ds-table-section__header">
         <Icon name="inventory" />
-        <h2 className="ds-section__title">Inventario Consumido</h2>
+        <h2 className="ds-table-section__title">Inventario Consumido</h2>
       </div>
       <div className="ds-table-wrapper">
         <table className="ds-table">
           <thead>
             <tr>
               <th>Producto</th>
-              <th>Vendido</th>
-              <th>Stock Anterior</th>
-              <th>Stock Actual</th>
-              <th>Diferencia</th>
+              <th className="td-num">Vendido</th>
+              <th className="td-num">Stock anterior</th>
+              <th className="td-num">Stock actual</th>
+              <th className="td-num">Diferencia</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item) => (
               <tr key={item.productId}>
                 <td>{item.productName}</td>
-                <td className="ds-table td--number">{item.quantitySold}</td>
-                <td className="ds-table td--number">{item.stockBefore}</td>
-                <td className="ds-table td--number">{item.stockAfter}</td>
-                <td className="ds-table td--number">
-                  <span
-                    className={
-                      item.stockDifference !== 0
-                        ? "ds-table__diff--nonzero"
-                        : ""
-                    }
-                  >
+                <td className="td-num">{item.quantitySold}</td>
+                <td className="td-num">{item.stockBefore}</td>
+                <td className="td-num">{item.stockAfter}</td>
+                <td className="td-num">
+                  <span className={item.stockDifference !== 0 ? "td-diff-warn" : ""}>
                     {item.stockDifference}
                   </span>
                 </td>
@@ -147,65 +102,79 @@ function InventoryTable({
   );
 }
 
-// ─── Generate Modal ────────────────────────────────────────────────────────────
-
-interface GenerateModalProps {
-  open: boolean;
-  onClose: () => void;
-  defaultDate: string;
-  onSuccess: () => void;
-}
+// ─── Modal Generar Cuadre ─────────────────────────────────────────────────────
 
 function GenerateModal({
   open,
   onClose,
   defaultDate,
   onSuccess,
-}: GenerateModalProps) {
+}: {
+  open: boolean;
+  onClose: () => void;
+  defaultDate: string;
+  onSuccess: () => void;
+}) {
+  const user = useAppSelector((s) => s.auth);
+  const isEmployee = (user?.locationId ?? 0) > 0;
+  const today = todayIso();
+
   const [date, setDate] = useState(defaultDate);
+  const [locationId, setLocationId] = useState("");
   const [openingCash, setOpeningCash] = useState("");
   const [actualCash, setActualCash] = useState("");
   const [notes, setNotes] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
 
+  const { data: locationsResult } = useGetLocationsQuery(
+    { page: 1, perPage: 200 },
+    { skip: isEmployee || !open },
+  );
+  const locations = locationsResult?.data ?? [];
+
   const [generateMutation, { isLoading: isGenerating }] =
     useGenerateDailySummaryMutation();
 
-  const today = todayIso();
+  // Reset al abrir
+  useEffect(() => {
+    if (!open) return;
+    setDate(defaultDate);
+    setLocationId("");
+    setOpeningCash("");
+    setActualCash("");
+    setNotes("");
+    setFieldError(null);
+  }, [open, defaultDate]);
 
   const validate = (): string | null => {
     if (!date) return "Selecciona una fecha.";
     if (date > today) return "La fecha no puede ser futura.";
-    const opening = parseFloat(openingCash.replace(",", "."));
-    if (Number.isNaN(opening) || opening < 0)
-      return "El fondo inicial debe ser un número ≥ 0.";
-    const actual = parseFloat(actualCash.replace(",", "."));
-    if (Number.isNaN(actual) || actual < 0)
-      return "El dinero contado debe ser un número ≥ 0.";
+    if (!isEmployee && !locationId) return "Selecciona la ubicación.";
+    const op = parseFloat(openingCash.replace(",", "."));
+    if (Number.isNaN(op) || op < 0) return "El fondo inicial debe ser ≥ 0.";
+    const ac = parseFloat(actualCash.replace(",", "."));
+    if (Number.isNaN(ac) || ac < 0) return "El dinero contado debe ser ≥ 0.";
     return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const err = validate();
-    if (err) {
-      setFieldError(err);
-      return;
-    }
+    if (err) { setFieldError(err); return; }
     setFieldError(null);
+
     const payload: GenerateDailySummaryRequest = {
       date,
       openingCash: parseFloat(openingCash.replace(",", ".")),
       actualCash: parseFloat(actualCash.replace(",", ".")),
       ...(notes.trim() ? { notes: notes.trim() } : {}),
+      ...(!isEmployee && locationId ? { locationId: Number(locationId) } : {}),
     };
+
     try {
       await generateMutation(payload).unwrap();
       onSuccess();
       onClose();
-      setOpeningCash("");
-      setActualCash("");
-      setNotes("");
     } catch (err) {
       const msg =
         (err as { data?: { message?: string } })?.data?.message ??
@@ -226,10 +195,9 @@ function GenerateModal({
       error={fieldError ?? undefined}
       maxWidth="480px"
     >
-      <div className="ds-form-field">
-        <label className="ds-form-label">
-          Fecha
-        </label>
+      {/* Fecha */}
+      <div className="modal-field field-full">
+        <label htmlFor="ds-date">Fecha</label>
         <DatePickerSimple
           date={date}
           setDate={setDate}
@@ -237,15 +205,37 @@ function GenerateModal({
         />
       </div>
 
-      <div className="ds-form-field">
-        <label className="ds-form-label" htmlFor="ds-opening-cash">
-          Fondo inicial en caja (CUP) <span>*</span>
+      {/* Ubicación — solo visible para admins */}
+      {!isEmployee && (
+        <div className="modal-field field-full">
+          <label htmlFor="ds-location">
+            Ubicación <span style={{ color: "#dc2626" }}>*</span>
+          </label>
+          <select
+            id="ds-location"
+            value={locationId}
+            onChange={(e) => setLocationId(e.target.value)}
+            required
+          >
+            <option value="">Seleccionar ubicación…</option>
+            {locations.map((loc) => (
+              <option key={loc.id} value={loc.id}>
+                {loc.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Fondo inicial */}
+      <div className="modal-field">
+        <label htmlFor="ds-opening">
+          Fondo inicial (CUP) <span style={{ color: "#dc2626" }}>*</span>
         </label>
         <input
-          id="ds-opening-cash"
+          id="ds-opening"
           type="text"
           inputMode="decimal"
-          className="ds-form-input"
           placeholder="0.00"
           value={openingCash}
           onChange={(e) => setOpeningCash(e.target.value)}
@@ -253,15 +243,15 @@ function GenerateModal({
         />
       </div>
 
-      <div className="ds-form-field">
-        <label className="ds-form-label" htmlFor="ds-actual-cash">
-          Dinero físico contado (CUP) <span>*</span>
+      {/* Dinero contado */}
+      <div className="modal-field">
+        <label htmlFor="ds-actual">
+          Dinero contado (CUP) <span style={{ color: "#dc2626" }}>*</span>
         </label>
         <input
-          id="ds-actual-cash"
+          id="ds-actual"
           type="text"
           inputMode="decimal"
-          className="ds-form-input"
           placeholder="0.00"
           value={actualCash}
           onChange={(e) => setActualCash(e.target.value)}
@@ -269,16 +259,15 @@ function GenerateModal({
         />
       </div>
 
-      <div className="ds-form-field">
-        <label className="ds-form-label" htmlFor="ds-notes">
-          Notas (opcional)
-        </label>
+      {/* Notas */}
+      <div className="modal-field field-full">
+        <label htmlFor="ds-notes">Notas (opcional)</label>
         <textarea
           id="ds-notes"
-          className="ds-form-textarea"
-          placeholder="Observaciones del cierre de caja…"
+          placeholder="Observaciones del cierre…"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
+          rows={3}
         />
       </div>
     </FormModal>
@@ -290,26 +279,24 @@ function GenerateModal({
 export default function DailySummaryPage() {
   const searchParams = useSearchParams();
   const paramDate = searchParams.get("date");
-  const [selectedDate, setSelectedDate] = useState(
-    paramDate ?? todayIso(),
-  );
+
+  const [selectedDate, setSelectedDate] = useState(paramDate ?? todayIso());
+  const [modalOpen, setModalOpen] = useState(false);
+  const [isExportingCsv, setIsExportingCsv] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   useEffect(() => {
     if (paramDate) setSelectedDate(paramDate);
   }, [paramDate]);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [isExportingCsv, setIsExportingCsv] = useState(false);
-  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const { has: hasPermission } = useUserPermissionCodes();
   const canCreate = hasPermission("daily_summary.create");
   const canExport = hasPermission("daily_summary.export");
 
-  const {
-    data: summary,
-    isLoading,
-    refetch,
-  } = useGetDailySummaryByDateQuery(selectedDate, { skip: !selectedDate });
+  const { data: summary, isLoading, refetch } = useGetDailySummaryByDateQuery(
+    selectedDate,
+    { skip: !selectedDate },
+  );
 
   const hasSummary = !!summary;
 
@@ -318,8 +305,9 @@ export default function DailySummaryPage() {
     try {
       await exportDailySummaryCsv(selectedDate);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Error al exportar CSV";
-      toast.error(msg, { duration: 5000 });
+      toast.error(err instanceof Error ? err.message : "Error al exportar CSV", {
+        duration: 5000,
+      });
     } finally {
       setIsExportingCsv(false);
     }
@@ -330,112 +318,113 @@ export default function DailySummaryPage() {
     try {
       await exportDailySummaryPdf(selectedDate);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Error al exportar PDF";
-      toast.error(msg, { duration: 5000 });
+      toast.error(err instanceof Error ? err.message : "Error al exportar PDF", {
+        duration: 5000,
+      });
     } finally {
       setIsExportingPdf(false);
     }
   };
 
-  const isExporting = isExportingCsv || isExportingPdf;
-
   return (
-    <div className="ds-page">
-      {/* ── ENCABEZADO ── */}
-      <div className="ds-header">
-        <div className="ds-header__title-row">
-          <div className="ds-header__icon">
-            <Icon name="calculate" />
-          </div>
-          <h1 className="ds-header__title">Cuadre Diario</h1>
+    <div className="dashboard-page">
+      {/* ── Encabezado ── */}
+      <header className="dashboard-report-layout__head" style={{ flexWrap: "wrap", gap: 12 }}>
+        <div className="dashboard-report-layout__title">
+          <h1>Cuadre Diario</h1>
+          <p>Cierre de caja y verificación de inventario consumido</p>
         </div>
 
-        <div className="ds-datepicker-row">
-          <span className="ds-datepicker-label">Fecha</span>
+        <div className="ds-page-controls">
           <DatePickerSimple
             date={selectedDate}
             setDate={setSelectedDate}
             emptyLabel="Seleccionar fecha"
           />
-        </div>
 
-        <div className="ds-header__actions">
           {canCreate && (
-            <button
-              type="button"
-              className="ds-btn ds-btn--primary"
-              onClick={() => setModalOpen(true)}
-            >
+            <Button onClick={() => setModalOpen(true)}>
               <Icon name="add_circle" />
               Generar Cuadre
-            </button>
+            </Button>
           )}
 
           {canExport && (
             <>
-              <button
-                type="button"
-                className="ds-btn ds-btn--outline"
-                disabled={!hasSummary || isExporting}
+              <Button
+                variant="outline"
+                disabled={!hasSummary || isExportingCsv || isExportingPdf}
                 onClick={() => void handleExportCsv()}
                 title={!hasSummary ? "Genera un cuadre primero" : undefined}
               >
                 {isExportingCsv ? (
-                  <span className="ds-spinner ds-spinner--dark" />
+                  <span className="dt-state__spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
                 ) : (
                   <Icon name="download" />
                 )}
                 CSV
-              </button>
-              <button
-                type="button"
-                className="ds-btn ds-btn--outline"
-                disabled={!hasSummary || isExporting}
+              </Button>
+              <Button
+                variant="outline"
+                disabled={!hasSummary || isExportingCsv || isExportingPdf}
                 onClick={() => void handleExportPdf()}
                 title={!hasSummary ? "Genera un cuadre primero" : undefined}
               >
                 {isExportingPdf ? (
-                  <span className="ds-spinner ds-spinner--dark" />
+                  <span className="dt-state__spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
                 ) : (
                   <Icon name="picture_as_pdf" />
                 )}
                 PDF
-              </button>
+              </Button>
             </>
           )}
         </div>
-      </div>
+      </header>
 
-      {/* ── TARJETAS DE RESUMEN ── */}
+      {/* ── Tarjetas KPI ── */}
       {isLoading ? (
-        <SkeletonCards />
+        <div className="ds-kpi-grid">
+          {[1, 2, 3, 4].map((i) => (
+            <ReportKpiCard key={i} label="" value="" loading />
+          ))}
+        </div>
       ) : summary ? (
-        <div className="ds-cards">
-          <KpiCard
+        <div className="ds-kpi-grid">
+          <ReportKpiCard
             label="Ventas del día"
             value={formatCup(summary.totalSales)}
-            sub={`${formatCup(summary.totalReturns)} en devoluciones`}
+            subvalue={`${formatCup(summary.totalReturns)} en devoluciones`}
           />
-          <KpiCard
+          <ReportKpiCard
             label="Caja esperada"
             value={formatCup(summary.expectedCash)}
-            sub={`Fondo inicial: ${formatCup(summary.openingCash)}`}
+            subvalue={`Fondo inicial: ${formatCup(summary.openingCash)}`}
           />
-          <KpiCard
+          <ReportKpiCard
             label="Dinero contado"
             value={formatCup(summary.actualCash)}
           />
-          <KpiCard
-            label="Diferencia"
-            value={formatCup(summary.difference)}
-            status={summary.status}
-          />
+          {/* Tarjeta diferencia con color dinámico */}
+          <div className="dashboard-card dashboard-card--stat flex min-h-[112px] min-w-[160px] flex-1 flex-col p-5">
+            <div className="mb-2 flex items-start justify-between gap-2">
+              <span className="text-[0.7rem] font-bold uppercase tracking-wide text-slate-500">
+                Diferencia
+              </span>
+            </div>
+            <span
+              className={`text-2xl font-bold tabular-nums ${STATUS_CFG[summary.status].valueClass}`}
+            >
+              {formatCup(summary.difference)}
+            </span>
+            <span className={`ds-kpi-badge ${STATUS_CFG[summary.status].badgeClass}`}>
+              {STATUS_CFG[summary.status].label}
+            </span>
+          </div>
         </div>
       ) : (
-        <div className="ds-empty">
-          <span className="ds-empty__icon">
-            <Icon name="calculate" />
-          </span>
+        <div className="dashboard-card ds-empty">
+          <Icon name="calculate" />
           <h2 className="ds-empty__title">Sin cuadre para esta fecha</h2>
           <p className="ds-empty__desc">
             {canCreate
@@ -445,12 +434,12 @@ export default function DailySummaryPage() {
         </div>
       )}
 
-      {/* ── TABLA DE INVENTARIO ── */}
+      {/* ── Tabla de inventario consumido ── */}
       {summary && summary.inventoryItems.length > 0 && (
         <InventoryTable items={summary.inventoryItems} />
       )}
 
-      {/* ── MODAL ── */}
+      {/* ── Modal ── */}
       <GenerateModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}

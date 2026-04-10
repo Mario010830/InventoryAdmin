@@ -25,6 +25,8 @@ export interface DailySummary {
 
 export interface GenerateDailySummaryRequest {
   date: string;
+  /** Solo requerido para admins sin ubicación fija (locationId <= 0 en el usuario) */
+  locationId?: number;
   openingCash: number;
   actualCash: number;
   notes?: string;
