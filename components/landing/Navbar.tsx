@@ -63,7 +63,7 @@ export function Navbar() {
           <Link href="/login" className="btn-ghost">
             Iniciar Sesión
           </Link>
-          <Link href="/login" className="btn-nav-primary">
+          <Link href="/login/register" className="btn-nav-primary">
             Comenzar Gratis
             <Icon name="arrow_forward" />
           </Link>
@@ -102,7 +102,7 @@ export function Navbar() {
               Iniciar Sesión
             </Link>
             <Link
-              href="/login"
+              href="/login/register"
               className="btn-primary"
               onClick={() => setMobileOpen(false)}
             >

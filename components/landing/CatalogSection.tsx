@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   useGetPublicLocationsQuery,
@@ -240,9 +239,14 @@ export function CatalogSection() {
         </div>
 
         <div className="catalog-section__cta">
-          <Link href="/catalog" className="catalog-section__btn">
+          <a
+            href="https://tucuadre.com"
+            className="catalog-section__btn"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             Ir a comprar
-          </Link>
+          </a>
         </div>
       </div>
     </section>

@@ -101,7 +101,7 @@ export function Hero() {
           </p>
 
           <div className="hero__actions">
-            <Link href="/login" className="btn-primary btn-hero">
+            <Link href="/login/register" className="btn-primary btn-hero">
               Comenzar Gratis
               <Icon name="rocket_launch" />
             </Link>
