@@ -17,10 +17,15 @@
   display: flex;
   justify-content: center;
   margin-bottom: 32px;
+  width: 100%;
+  min-width: 0;
 }
 
 .pricing-billing__inner {
   display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
   padding: 5px;
   border-radius: 999px;
   background: linear-gradient(145deg, #f1f5f9 0%, #e8eef5 100%);
@@ -29,6 +34,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
     0 4px 16px rgba(15, 23, 42, 0.06);
   gap: 4px;
+  box-sizing: border-box;
 }
 
 .pricing-billing__btn {
@@ -61,15 +67,26 @@
 
 .pricing__grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px;
   align-items: stretch;
+  width: 100%;
+  min-width: 0;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .pricing__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     max-width: 440px;
+    margin: 0 auto;
+  }
+}
+
+/* Registro: apilar cuando el ancho del bloque es estrecho (evita 3 columnas que desbordan) */
+@container register-pricing (max-width: 820px) {
+  .pricing__grid {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: none;
     margin: 0 auto;
   }
 }
@@ -83,6 +100,8 @@
   flex-direction: column;
   transition: all var(--transition-smooth);
   position: relative;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .pricing-card:hover {
@@ -222,6 +241,8 @@
   padding: 8px 0;
   font-size: 0.9rem;
   color: var(--color-text-secondary);
+  min-width: 0;
+  word-break: break-word;
 }
 
 .pricing-card__features li .material-icons {

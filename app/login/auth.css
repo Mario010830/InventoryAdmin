@@ -103,6 +103,7 @@
 .auth-card--register-pricing {
   max-width: 960px;
   width: 100%;
+  min-width: 0;
   padding: 32px 28px 36px;
 }
 
@@ -114,6 +115,10 @@
 
 .register-pricing {
   text-align: center;
+  width: 100%;
+  min-width: 0;
+  container-name: register-pricing;
+  container-type: inline-size;
 }
 
 .register-pricing-head {
@@ -556,7 +561,34 @@
 
 .btn-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
+  align-items: center;
+}
+
+/* Sustituye el width:100% global de .auth-btn cuando van en fila */
+.btn-row > .auth-btn {
+  width: auto;
+}
+
+.btn-row > .auth-btn:not(.auth-btn--outline) {
+  flex: 0 1 auto;
+}
+
+.btn-row > .auth-btn--outline {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 480px) {
+  .btn-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-row > .auth-btn {
+    width: 100%;
+    flex: none;
+  }
 }
 
 /* Alert */
