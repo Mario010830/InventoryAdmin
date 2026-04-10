@@ -12,6 +12,7 @@ import {
   buildEntityGroups,
   getOtherPermissions,
   getReadPermission,
+  isPermissionHiddenFromRoleEditor,
 } from "@/lib/permissions-by-entity";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
@@ -407,10 +408,13 @@ export default function RolesPage() {
             <RoleDetailBody
               row={row}
               userCount={usersPerRole.get(row.id) ?? 0}
-              permissionNames={(row.permissionIds ?? []).map(
-                (id) =>
-                  permissionList.find((p) => p.id === id)?.name ?? String(id),
-              )}
+              permissionNames={(row.permissionIds ?? [])
+                .map((id) => permissionList.find((p) => p.id === id))
+                .filter(
+                  (p): p is (typeof permissionList)[number] =>
+                    p != null && !isPermissionHiddenFromRoleEditor(p.code),
+                )
+                .map((p) => p.name)}
             />
           ),
           onEdit: openEdit,

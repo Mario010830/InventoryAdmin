@@ -44,6 +44,30 @@ export function parsePermissionCode(code: string): {
   return { entity, op };
 }
 
+/**
+ * Entidades que no se muestran en el editor de roles ni en el listado del detalle.
+ * (Suscripción/planes SaaS suelen gobernarse por producto; manual/chat y métricas
+ * no son módulos de negocio típicos del tenant.) Las monedas sí se mantienen: Configuración
+ * usa `currency.*` para la sección de divisas.
+ */
+const ENTITIES_HIDDEN_FROM_ROLE_EDITOR = new Set([
+  "subscription",
+  "plan",
+  "manual",
+  "metrics",
+  "chat",
+]);
+
+export function isPermissionHiddenFromRoleEditor(code: string): boolean {
+  const { entity } = parsePermissionCode(code.trim());
+  if (!entity) return false;
+  const root = entity.split(".")[0] ?? entity;
+  return (
+    ENTITIES_HIDDEN_FROM_ROLE_EDITOR.has(entity) ||
+    ENTITIES_HIDDEN_FROM_ROLE_EDITOR.has(root)
+  );
+}
+
 /** Nombre legible cuando la API no envía name (evita mostrar "product.create"). */
 function friendlyName(code: string, op: string): string {
   const { entity } = parsePermissionCode(code);
@@ -66,8 +90,6 @@ function friendlyName(code: string, op: string): string {
     sale: "Venta",
     "sale.return": "Devolución de venta",
     tag: "Etiqueta",
-    subscription: "Suscripción",
-    plan: "Plan",
     currency: "Moneda",
   };
   const lastSeg = entity.includes(".")
@@ -88,6 +110,7 @@ export function buildEntityGroups(
 
   for (const p of list) {
     if (!p.code?.trim()) continue;
+    if (isPermissionHiddenFromRoleEditor(p.code)) continue;
     const { entity, op } = parsePermissionCode(p.code);
     const rawName = p.name?.trim() ? p.name : "";
     const name =
@@ -117,9 +140,7 @@ export function buildEntityGroups(
     sale: 14,
     "sale.return": 15,
     tag: 16,
-    subscription: 17,
-    plan: 18,
-    currency: 19,
+    currency: 17,
   };
 
   const LABELS: Record<string, string> = {
@@ -140,8 +161,6 @@ export function buildEntityGroups(
     sale: "Ventas",
     "sale.return": "Devoluciones de venta",
     tag: "Etiquetas",
-    subscription: "Suscripción",
-    plan: "Planes",
     currency: "Monedas",
   };
 
@@ -163,8 +182,6 @@ export function buildEntityGroups(
     sale: "Pedidos y ventas.",
     "sale.return": "Devoluciones asociadas a ventas.",
     tag: "Etiquetas para clasificar.",
-    subscription: "Suscripción y facturación del tenant.",
-    plan: "Planes de producto SaaS.",
     currency: "Monedas y tipos de cambio.",
   };
 
