@@ -23,6 +23,7 @@ import {
   useGenerateDailySummaryMutation,
   useGetDailySummaryByDateQuery,
 } from "./_service/dailySummaryApi";
+import "../products/products-modal.css";
 import "./daily-summary.css";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
