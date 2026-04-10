@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   title: "Tu Cuadre — Gestión de inventario simple y poderosa",
   description:
     "Controla productos, proveedores, ubicaciones y movimientos de stock desde una sola plataforma.",
+  icons: {
+    icon: [{ url: "/assets/elcuadre.png", type: "image/png" }],
+    apple: "/assets/elcuadre.png",
+  },
 };
 
 export const viewport: Viewport = {
