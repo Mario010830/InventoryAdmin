@@ -43,6 +43,10 @@ import {
 } from "@/lib/cuba-locations";
 import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import {
+  getCatalogPublicOrigin,
+  tryPublicStoreCatalogUrl,
+} from "@/lib/storeCatalogPublicUrl";
+import {
   BusinessHoursEditor,
   type BusinessHoursFormState,
   businessHoursCompareKey,
@@ -712,6 +716,21 @@ export default function LocationsPage() {
         onAdd={openCreate}
         addDisabled={!canCreateLocation}
         actions={[
+          {
+            icon: "open_in_new",
+            label: "Catálogo público",
+            onClick: (row) => {
+              const url = tryPublicStoreCatalogUrl(row.name ?? "");
+              if (!url) {
+                toast.error(
+                  "Falta NEXT_PUBLIC_CATALOG_URL: URL base del catálogo público (sin barra final).",
+                );
+                return;
+              }
+              window.open(url, "_blank", "noopener,noreferrer");
+            },
+            hidden: () => getCatalogPublicOrigin() === null,
+          },
           {
             icon: "edit",
             label: "Editar",

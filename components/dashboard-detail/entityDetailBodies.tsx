@@ -25,6 +25,7 @@ import {
 } from "@/lib/inventoryMovementUi";
 import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import { BoolBadge, DetailField, DetailSection } from "./DetailPrimitives";
+import { LocationPublicCatalogSection } from "./LocationPublicCatalogSection";
 
 function marginPercent(row: ProductResponse): string {
   const p = Number(row.precio);
@@ -371,6 +372,7 @@ export function LocationDetailBody({ row }: { row: LocationResponse }) {
           <span>Sin foto</span>
         </div>
       )}
+      <LocationPublicCatalogSection locationName={row.name ?? ""} />
       <DetailField label="Nombre" value={displayDash(row.name)} />
       <DetailField label="Código" value={displayDash(row.code)} />
       <DetailField
