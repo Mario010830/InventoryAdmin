@@ -98,6 +98,12 @@ const navItems: NavItem[] = [
     permission: "sale.read",
   },
   {
+    icon: "calculate",
+    label: "Cuadre Diario",
+    route: "/dashboard/daily-summary",
+    permission: "daily_summary.view",
+  },
+  {
     icon: "contacts",
     label: "Contactos",
     route: "/dashboard/contacts",

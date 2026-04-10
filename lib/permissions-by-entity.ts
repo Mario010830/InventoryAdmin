@@ -91,6 +91,7 @@ function friendlyName(code: string, op: string): string {
     "sale.return": "Devolución de venta",
     tag: "Etiqueta",
     currency: "Moneda",
+    daily_summary: "Cuadre Diario",
   };
   const lastSeg = entity.includes(".")
     ? (entity.split(".").pop() ?? entity)
@@ -141,6 +142,7 @@ export function buildEntityGroups(
     "sale.return": 15,
     tag: 16,
     currency: 17,
+    daily_summary: 18,
   };
 
   const LABELS: Record<string, string> = {
@@ -162,6 +164,7 @@ export function buildEntityGroups(
     "sale.return": "Devoluciones de venta",
     tag: "Etiquetas",
     currency: "Monedas",
+    daily_summary: "Cuadre Diario",
   };
 
   const DESCRIPTIONS: Record<string, string> = {
@@ -183,6 +186,7 @@ export function buildEntityGroups(
     "sale.return": "Devoluciones asociadas a ventas.",
     tag: "Etiquetas para clasificar.",
     currency: "Monedas y tipos de cambio.",
+    daily_summary: "Cierre de caja y cuadre de inventario diario.",
   };
 
   const OP_SORT_ORDER = [

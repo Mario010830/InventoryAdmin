@@ -22,6 +22,7 @@ import { categoriesApi } from "@/app/dashboard/categories/_service/categoriesApi
 import { contactsApi } from "@/app/dashboard/contacts/_service/contactsApi";
 import { inventoryApi } from "@/app/dashboard/inventory/_service/inventoryApi";
 import { leadsApi } from "@/app/dashboard/leads/_service/leadsApi";
+import { dailySummaryApi } from "@/app/dashboard/daily-summary/_service/dailySummaryApi";
 import { businessCategoryApi } from "@/app/dashboard/locations/_service/businessCategoryApi";
 import { locationsApi } from "@/app/dashboard/locations/_service/locationsApi";
 import { logsApi } from "@/app/dashboard/logs/_service/logsApi";
@@ -70,6 +71,7 @@ const combinedReducer = combineReducers({
   [promotionApi.reducerPath]: promotionApi.reducer,
   [contactsApi.reducerPath]: contactsApi.reducer,
   [leadsApi.reducerPath]: leadsApi.reducer,
+  [dailySummaryApi.reducerPath]: dailySummaryApi.reducer,
 });
 
 type CombinedState = ReturnType<typeof combinedReducer>;
@@ -112,6 +114,7 @@ const apiMiddleware = [
   promotionApi.middleware,
   contactsApi.middleware,
   leadsApi.middleware,
+  dailySummaryApi.middleware,
 ];
 
 export const store = configureStore({

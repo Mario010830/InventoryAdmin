@@ -89,4 +89,7 @@ export const PERMISSIONS = [
   { id: 1056, code: "currency.create", name: "Crear Moneda" },
   { id: 1057, code: "currency.update", name: "Editar Moneda" },
   { id: 1058, code: "currency.delete", name: "Eliminar Moneda" },
+  { id: 1062, code: "daily_summary.view", name: "Ver Cuadre Diario" },
+  { id: 1063, code: "daily_summary.create", name: "Generar Cuadre Diario" },
+  { id: 1064, code: "daily_summary.export", name: "Exportar Cuadre Diario" },
 ];

@@ -78,6 +78,9 @@ const SUCCESS_MESSAGES: Record<string, string> = {
   setPromotionActive: "Estado de la promoción actualizado",
   deletePromotion: "Promoción eliminada correctamente",
 
+  // Cuadre Diario
+  generateDailySummary: "Cuadre diario generado correctamente",
+
   // CRM
   createContact: "Contacto creado correctamente",
   updateContact: "Contacto actualizado correctamente",
