@@ -258,6 +258,11 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
+/* Escala global ~10% más compacta (rem/em, utilidades Tailwind y shadcn). */
+html {
+  font-size: 90%;
+}
+
 body {
   font-family: var(--font-body), Arial, Helvetica, sans-serif;
 }
