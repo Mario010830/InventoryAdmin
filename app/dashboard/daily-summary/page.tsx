@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DatePickerSimple } from "@/components/DatePickerSimple";
 import { FormModal } from "@/components/FormModal";
-import { ReportKpiCard } from "@/components/reportes/ReportKpiCard";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/Icon";
 import { formatDisplayCurrency } from "@/lib/formatCurrency";
@@ -23,7 +22,6 @@ import {
   useGenerateDailySummaryMutation,
   useGetDailySummaryByDateQuery,
 } from "./_service/dailySummaryApi";
-import "../products/products-modal.css";
 import "./daily-summary.css";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -33,36 +31,132 @@ function todayIso(): string {
 }
 
 function formatCup(value: number): string {
-  return formatDisplayCurrency(value, "es-ES", {
-    minFractionDigits: 2,
-    maxFractionDigits: 2,
-  });
+  return formatDisplayCurrency(value, "es-ES", { minFractionDigits: 2, maxFractionDigits: 2 });
+}
+
+function formatDate(iso: string): string {
+  try {
+    const [y, m, d] = iso.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("es-ES", {
+      day: "numeric", month: "long", year: "numeric",
+    });
+  } catch { return iso; }
 }
 
 type SummaryStatus = DailySummary["status"];
 
-const STATUS_CFG: Record<
-  SummaryStatus,
-  { valueClass: string; badgeClass: string; label: string }
-> = {
-  Balanced: {
-    valueClass: "ds-kpi-value--balanced",
-    badgeClass: "ds-kpi-badge--balanced",
-    label: "✓ Cuadrado",
-  },
-  Surplus: {
-    valueClass: "ds-kpi-value--surplus",
-    badgeClass: "ds-kpi-badge--surplus",
-    label: "⚠ Sobrante",
-  },
-  Shortage: {
-    valueClass: "ds-kpi-value--shortage",
-    badgeClass: "ds-kpi-badge--shortage",
-    label: "✗ Faltante",
-  },
+const STATUS_CFG: Record<SummaryStatus, { cls: string; label: string }> = {
+  Balanced: { cls: "ds-status-badge--balanced", label: "✓ Cuadrado" },
+  Surplus:  { cls: "ds-status-badge--surplus",  label: "⚠ Sobrante" },
+  Shortage: { cls: "ds-status-badge--shortage", label: "✗ Faltante" },
 };
 
-// ─── Tabla de inventario ──────────────────────────────────────────────────────
+// ─── Resumen financiero tipo ledger ───────────────────────────────────────────
+
+function SummaryLedger({ summary }: { summary: DailySummary }) {
+  const cfg = STATUS_CFG[summary.status];
+  const differenceClass =
+    summary.status === "Balanced"
+      ? "ds-ledger__value--balanced"
+      : summary.status === "Surplus"
+        ? "ds-ledger__value--surplus"
+        : "ds-ledger__value--shortage";
+
+  return (
+    <div className="ds-summary-card">
+      <div className="ds-summary-card__header">
+        <h2 className="ds-summary-card__title">
+          <Icon name="receipt_long" />
+          Resumen del cierre
+          <span className="ds-summary-card__date">{formatDate(summary.date)}</span>
+        </h2>
+        <span className={`ds-status-badge ${cfg.cls}`}>{cfg.label}</span>
+      </div>
+
+      <table className="ds-ledger">
+        <tbody>
+          {/* Bloque de ingresos */}
+          <tr>
+            <td className="ds-ledger__label">Ventas del día</td>
+            <td className="ds-ledger__value">{formatCup(summary.totalSales)}</td>
+          </tr>
+          <tr>
+            <td className="ds-ledger__label">Devoluciones</td>
+            <td className={`ds-ledger__value ${summary.totalReturns > 0 ? "ds-ledger__value--negative" : ""}`}>
+              {summary.totalReturns > 0 ? `− ${formatCup(summary.totalReturns)}` : formatCup(0)}
+            </td>
+          </tr>
+          <tr>
+            <td className="ds-ledger__label">Salidas de caja</td>
+            <td className={`ds-ledger__value ${summary.totalOutflows > 0 ? "ds-ledger__value--negative" : ""}`}>
+              {summary.totalOutflows > 0 ? `− ${formatCup(summary.totalOutflows)}` : formatCup(0)}
+            </td>
+          </tr>
+
+          {/* Bloque de caja */}
+          <tr className="ds-ledger__sep">
+            <td className="ds-ledger__label">Fondo inicial en caja</td>
+            <td className="ds-ledger__value">{formatCup(summary.openingCash)}</td>
+          </tr>
+          <tr>
+            <td className="ds-ledger__label">Caja esperada</td>
+            <td className="ds-ledger__value">{formatCup(summary.expectedCash)}</td>
+          </tr>
+
+          {/* Bloque de conteo real */}
+          <tr className="ds-ledger__sep">
+            <td className="ds-ledger__label">Dinero físico contado</td>
+            <td className="ds-ledger__value">{formatCup(summary.actualCash)}</td>
+          </tr>
+
+          {/* Diferencia */}
+          <tr className="ds-ledger__total">
+            <td className="ds-ledger__label">Diferencia</td>
+            <td className={`ds-ledger__value ${differenceClass}`}>
+              {formatCup(summary.difference)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      {summary.notes && (
+        <div style={{ padding: "12px 20px 16px", borderTop: "1px solid #f1f5f9" }}>
+          <span style={{ fontSize: "0.78rem", color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            Notas
+          </span>
+          <p style={{ margin: "4px 0 0", fontSize: "0.875rem", color: "#334155" }}>
+            {summary.notes}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Skeleton del ledger ──────────────────────────────────────────────────────
+
+function LedgerSkeleton() {
+  return (
+    <div className="ds-summary-card">
+      <div className="ds-summary-card__header">
+        <div className="ds-skeleton" style={{ height: 20, width: 240 }} />
+        <div className="ds-skeleton" style={{ height: 22, width: 90, borderRadius: 999 }} />
+      </div>
+      <table className="ds-ledger">
+        <tbody>
+          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <tr key={i}>
+              <td><div className="ds-skeleton" style={{ height: 16, width: `${120 + i * 10}px` }} /></td>
+              <td><div className="ds-skeleton" style={{ height: 16, width: 110, marginLeft: "auto" }} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── Tabla de inventario consumido ───────────────────────────────────────────
 
 function InventoryTable({ items }: { items: DailySummaryInventoryItem[] }) {
   return (
@@ -136,7 +230,6 @@ function GenerateModal({
   const [generateMutation, { isLoading: isGenerating }] =
     useGenerateDailySummaryMutation();
 
-  // Reset al abrir
   useEffect(() => {
     if (!open) return;
     setDate(defaultDate);
@@ -196,21 +289,15 @@ function GenerateModal({
       error={fieldError ?? undefined}
       maxWidth="480px"
     >
-      {/* Fecha */}
       <div className="modal-field field-full">
-        <label htmlFor="ds-date">Fecha</label>
-        <DatePickerSimple
-          date={date}
-          setDate={setDate}
-          emptyLabel="Seleccionar fecha"
-        />
+        <label>Fecha</label>
+        <DatePickerSimple date={date} setDate={setDate} emptyLabel="Seleccionar fecha" />
       </div>
 
-      {/* Ubicación — solo visible para admins */}
       {!isEmployee && (
         <div className="modal-field field-full">
           <label htmlFor="ds-location">
-            Ubicación <span style={{ color: "#dc2626" }}>*</span>
+            Ubicación <span style={{ color: "#ef4444" }}>*</span>
           </label>
           <select
             id="ds-location"
@@ -228,10 +315,9 @@ function GenerateModal({
         </div>
       )}
 
-      {/* Fondo inicial */}
       <div className="modal-field">
         <label htmlFor="ds-opening">
-          Fondo inicial (CUP) <span style={{ color: "#dc2626" }}>*</span>
+          Fondo inicial (CUP) <span style={{ color: "#ef4444" }}>*</span>
         </label>
         <input
           id="ds-opening"
@@ -240,14 +326,12 @@ function GenerateModal({
           placeholder="0.00"
           value={openingCash}
           onChange={(e) => setOpeningCash(e.target.value)}
-          required
         />
       </div>
 
-      {/* Dinero contado */}
       <div className="modal-field">
         <label htmlFor="ds-actual">
-          Dinero contado (CUP) <span style={{ color: "#dc2626" }}>*</span>
+          Dinero contado (CUP) <span style={{ color: "#ef4444" }}>*</span>
         </label>
         <input
           id="ds-actual"
@@ -256,11 +340,9 @@ function GenerateModal({
           placeholder="0.00"
           value={actualCash}
           onChange={(e) => setActualCash(e.target.value)}
-          required
         />
       </div>
 
-      {/* Notas */}
       <div className="modal-field field-full">
         <label htmlFor="ds-notes">Notas (opcional)</label>
         <textarea
@@ -306,9 +388,7 @@ export default function DailySummaryPage() {
     try {
       await exportDailySummaryCsv(selectedDate);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al exportar CSV", {
-        duration: 5000,
-      });
+      toast.error(err instanceof Error ? err.message : "Error al exportar CSV", { duration: 5000 });
     } finally {
       setIsExportingCsv(false);
     }
@@ -319,9 +399,7 @@ export default function DailySummaryPage() {
     try {
       await exportDailySummaryPdf(selectedDate);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al exportar PDF", {
-        duration: 5000,
-      });
+      toast.error(err instanceof Error ? err.message : "Error al exportar PDF", { duration: 5000 });
     } finally {
       setIsExportingPdf(false);
     }
@@ -329,27 +407,25 @@ export default function DailySummaryPage() {
 
   return (
     <div className="dashboard-page">
+
       {/* ── Encabezado ── */}
       <header className="dashboard-report-layout__head" style={{ flexWrap: "wrap", gap: 12 }}>
         <div className="dashboard-report-layout__title">
           <h1>Cuadre Diario</h1>
           <p>Cierre de caja y verificación de inventario consumido</p>
         </div>
-
         <div className="ds-page-controls">
           <DatePickerSimple
             date={selectedDate}
             setDate={setSelectedDate}
             emptyLabel="Seleccionar fecha"
           />
-
           {canCreate && (
             <Button onClick={() => setModalOpen(true)}>
               <Icon name="add_circle" />
               Generar Cuadre
             </Button>
           )}
-
           {canExport && (
             <>
               <Button
@@ -358,11 +434,9 @@ export default function DailySummaryPage() {
                 onClick={() => void handleExportCsv()}
                 title={!hasSummary ? "Genera un cuadre primero" : undefined}
               >
-                {isExportingCsv ? (
-                  <span className="dt-state__spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
-                ) : (
-                  <Icon name="download" />
-                )}
+                {isExportingCsv
+                  ? <span className="ds-modal-spinner" style={{ borderColor: "rgba(0,0,0,.15)", borderTopColor: "#334155" }} />
+                  : <Icon name="download" />}
                 CSV
               </Button>
               <Button
@@ -371,11 +445,9 @@ export default function DailySummaryPage() {
                 onClick={() => void handleExportPdf()}
                 title={!hasSummary ? "Genera un cuadre primero" : undefined}
               >
-                {isExportingPdf ? (
-                  <span className="dt-state__spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
-                ) : (
-                  <Icon name="picture_as_pdf" />
-                )}
+                {isExportingPdf
+                  ? <span className="ds-modal-spinner" style={{ borderColor: "rgba(0,0,0,.15)", borderTopColor: "#334155" }} />
+                  : <Icon name="picture_as_pdf" />}
                 PDF
               </Button>
             </>
@@ -383,46 +455,11 @@ export default function DailySummaryPage() {
         </div>
       </header>
 
-      {/* ── Tarjetas KPI ── */}
+      {/* ── Resumen financiero ── */}
       {isLoading ? (
-        <div className="ds-kpi-grid">
-          {[1, 2, 3, 4].map((i) => (
-            <ReportKpiCard key={i} label="" value="" loading />
-          ))}
-        </div>
+        <LedgerSkeleton />
       ) : summary ? (
-        <div className="ds-kpi-grid">
-          <ReportKpiCard
-            label="Ventas del día"
-            value={formatCup(summary.totalSales)}
-            subvalue={`${formatCup(summary.totalReturns)} en devoluciones`}
-          />
-          <ReportKpiCard
-            label="Caja esperada"
-            value={formatCup(summary.expectedCash)}
-            subvalue={`Fondo inicial: ${formatCup(summary.openingCash)}`}
-          />
-          <ReportKpiCard
-            label="Dinero contado"
-            value={formatCup(summary.actualCash)}
-          />
-          {/* Tarjeta diferencia con color dinámico */}
-          <div className="dashboard-card dashboard-card--stat flex min-h-[112px] min-w-[160px] flex-1 flex-col p-5">
-            <div className="mb-2 flex items-start justify-between gap-2">
-              <span className="text-[0.7rem] font-bold uppercase tracking-wide text-slate-500">
-                Diferencia
-              </span>
-            </div>
-            <span
-              className={`text-2xl font-bold tabular-nums ${STATUS_CFG[summary.status].valueClass}`}
-            >
-              {formatCup(summary.difference)}
-            </span>
-            <span className={`ds-kpi-badge ${STATUS_CFG[summary.status].badgeClass}`}>
-              {STATUS_CFG[summary.status].label}
-            </span>
-          </div>
-        </div>
+        <SummaryLedger summary={summary} />
       ) : (
         <div className="dashboard-card ds-empty">
           <Icon name="calculate" />
@@ -435,7 +472,7 @@ export default function DailySummaryPage() {
         </div>
       )}
 
-      {/* ── Tabla de inventario consumido ── */}
+      {/* ── Tabla de inventario ── */}
       {summary && summary.inventoryItems.length > 0 && (
         <InventoryTable items={summary.inventoryItems} />
       )}
