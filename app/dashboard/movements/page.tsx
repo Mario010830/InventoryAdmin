@@ -45,6 +45,11 @@ import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import { useDefaultLocation } from "@/lib/useDefaultLocation";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 import { useGetUsersQuery } from "../users/_service/usersApi";
+import { useGetMySubscriptionQuery } from "@/app/dashboard/settings/_service/settingsApi";
+import {
+  isAtSubscriptionLimit,
+  PRODUCT_QUOTA_TOOLTIP,
+} from "@/lib/subscriptionQuota";
 
 function movementTypeTone(type: unknown): "in" | "out" | "neutral" {
   const key = String(type ?? "").toLowerCase();
@@ -306,6 +311,15 @@ export default function MovementsPage() {
   });
   const [createMovement] = useCreateMovementMutation();
   const [createProduct] = useCreateProductMutation();
+
+  const { data: subscription } = useGetMySubscriptionQuery();
+  const productCatalogTotal = productsResult?.pagination?.totalCount;
+  const atProductLimit =
+    productCatalogTotal != null &&
+    isAtSubscriptionLimit(
+      productCatalogTotal,
+      subscription?.productsLimit ?? null,
+    );
 
   const products = productsResult?.data ?? [];
   const locations = locationsResult?.data ?? [];
@@ -634,6 +648,10 @@ export default function MovementsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+    if (productMode === "new" && atProductLimit) {
+      setFormErrors({ submit: PRODUCT_QUOTA_TOOLTIP });
+      return;
+    }
     setFormSubmitting(true);
     try {
       let productId: number;
@@ -724,6 +742,12 @@ export default function MovementsPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!formOpen || !atProductLimit) return;
+    if (productMode !== "new") return;
+    setProductMode("existing");
+  }, [formOpen, atProductLimit, productMode]);
 
   const movementToolbar = (
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -940,7 +964,9 @@ export default function MovementsPage() {
               {form.type === 0 && (
                 <button
                   type="button"
-                  onClick={() => setProductMode("new")}
+                  disabled={atProductLimit}
+                  title={atProductLimit ? PRODUCT_QUOTA_TOOLTIP : undefined}
+                  onClick={() => !atProductLimit && setProductMode("new")}
                   style={{
                     padding: "8px 14px",
                     borderRadius: 8,
@@ -951,7 +977,8 @@ export default function MovementsPage() {
                       productMode === "new"
                         ? theme.accent
                         : theme.secondaryText,
-                    cursor: "pointer",
+                    cursor: atProductLimit ? "not-allowed" : "pointer",
+                    opacity: atProductLimit ? 0.55 : 1,
                     fontSize: 14,
                     fontWeight: 500,
                   }}

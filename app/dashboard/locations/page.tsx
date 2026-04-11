@@ -56,6 +56,11 @@ import {
   validateBusinessHoursFormState,
 } from "./BusinessHoursEditor";
 import LocationPicker from "./LocationPicker";
+import {
+  isAtSubscriptionLimit,
+  LOCATION_QUOTA_TOOLTIP,
+} from "@/lib/subscriptionQuota";
+import { useGetMySubscriptionQuery } from "@/app/dashboard/settings/_service/settingsApi";
 
 function formatAddress(loc: {
   street?: string | null;
@@ -141,6 +146,7 @@ export default function LocationsPage() {
   const canEditLocation = hasPermission("location.update");
   const canDeleteLocation = hasPermission("location.delete");
 
+  const { data: subscription } = useGetMySubscriptionQuery();
   const {
     data: result,
     isLoading,
@@ -150,6 +156,15 @@ export default function LocationsPage() {
     perPage,
     ...(organizationId ? { organizationId } : {}),
   });
+
+  const locationTotalCount = result?.pagination?.totalCount;
+  const atLocationLimit =
+    locationTotalCount != null &&
+    isAtSubscriptionLimit(
+      locationTotalCount,
+      subscription?.locationsLimit ?? null,
+    );
+  const addLocationBlockedByQuota = atLocationLimit && canCreateLocation;
   const [createLocation] = useCreateLocationMutation();
   const [updateLocation] = useUpdateLocationMutation();
   const [deleteLocation] = useDeleteLocationMutation();
@@ -714,7 +729,10 @@ export default function LocationsPage() {
         titleIcon="warehouse"
         addLabel="Nueva ubicación"
         onAdd={openCreate}
-        addDisabled={!canCreateLocation}
+        addDisabled={!canCreateLocation || atLocationLimit}
+        addDisabledTitle={
+          addLocationBlockedByQuota ? LOCATION_QUOTA_TOOLTIP : undefined
+        }
         actions={[
           {
             icon: "open_in_new",

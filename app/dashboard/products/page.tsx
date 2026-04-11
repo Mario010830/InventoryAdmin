@@ -45,6 +45,11 @@ import { useGetLocationsQuery } from "@/app/dashboard/locations/_service/locatio
 import { ProductsBulkToolbar } from "@/components/DataTableBulkToolbar";
 import { ProductDetailBody } from "@/components/dashboard-detail/entityDetailBodies";
 import { useDefaultLocation } from "@/lib/useDefaultLocation";
+import {
+  isAtSubscriptionLimit,
+  PRODUCT_QUOTA_TOOLTIP,
+} from "@/lib/subscriptionQuota";
+import { useGetMySubscriptionQuery } from "@/app/dashboard/settings/_service/settingsApi";
 import { ProductImportWizard } from "./ProductImportWizard";
 
 /** Máximo de productos a pedir en una sola página para que «seleccionar todo» cubra el catálogo sin depender del scroll. */
@@ -479,6 +484,16 @@ export default function ProductsPage() {
   const canCreateProduct = hasPermission("product.create");
   const canEditProduct = hasPermission("product.update");
   const canDeleteProduct = hasPermission("product.delete");
+
+  const { data: subscription } = useGetMySubscriptionQuery();
+  const productTotalCount = result?.pagination?.totalCount;
+  const atProductLimit =
+    productTotalCount != null &&
+    isAtSubscriptionLimit(
+      productTotalCount,
+      subscription?.productsLimit ?? null,
+    );
+  const addProductBlockedByQuota = atProductLimit && canCreateProduct;
 
   const categories = categoriesResult?.data ?? [];
   const organizationLocations = locationsResult?.data ?? [];
@@ -996,14 +1011,19 @@ export default function ProductsPage() {
           titleIcon="inventory_2"
           addLabel="Nuevo Producto"
           onAdd={openCreate}
-          addDisabled={!canCreateProduct}
+          addDisabled={!canCreateProduct || atProductLimit}
+          addDisabledTitle={
+            addProductBlockedByQuota ? PRODUCT_QUOTA_TOOLTIP : undefined
+          }
           addButtonDataTutorial="tutorial-products-add"
           toolbarExtra={
             canCreateProduct ? (
               <button
                 type="button"
                 className="dt-btn-ghost"
-                onClick={() => setImportWizardOpen(true)}
+                disabled={atProductLimit}
+                title={atProductLimit ? PRODUCT_QUOTA_TOOLTIP : undefined}
+                onClick={() => !atProductLimit && setImportWizardOpen(true)}
               >
                 <Icon name="upload_file" />
                 <span className="dt-btn-ghost__label">Importar Excel</span>

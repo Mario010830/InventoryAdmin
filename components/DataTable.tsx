@@ -132,6 +132,8 @@ export interface DataTableProps<T extends { id: string | number }> {
   addIcon?: string;
   onAdd?: () => void;
   addDisabled?: boolean;
+  /** Si el botón está deshabilitado y se define, se usa como `title` (p. ej. cuota del plan). */
+  addDisabledTitle?: string;
   addButtonDataTutorial?: string;
   toolbarExtra?: React.ReactNode;
   actions?: DataTableAction<T>[];
@@ -311,6 +313,7 @@ export function DataTable<T extends { id: string | number }>({
   addIcon = "add",
   onAdd,
   addDisabled = false,
+  addDisabledTitle,
   addButtonDataTutorial,
   toolbarExtra,
   actions,
@@ -953,7 +956,11 @@ export function DataTable<T extends { id: string | number }>({
                   disabled={addDisabled}
                   onClick={() => !addDisabled && onAdd?.()}
                   data-tutorial={addButtonDataTutorial}
-                  title={addDisabled ? "Sin permiso para crear" : undefined}
+                  title={
+                    addDisabled
+                      ? (addDisabledTitle ?? "Sin permiso para crear")
+                      : undefined
+                  }
                 >
                   <Icon name={addIcon} />
                   {addLabel}
@@ -1020,7 +1027,11 @@ export function DataTable<T extends { id: string | number }>({
                 className="dt-btn-add"
                 disabled={addDisabled}
                 onClick={() => !addDisabled && onAdd?.()}
-                title={addDisabled ? "Sin permiso para crear" : undefined}
+                title={
+                  addDisabled
+                    ? (addDisabledTitle ?? "Sin permiso para crear")
+                    : undefined
+                }
               >
                 <Icon name={addIcon} />
                 {addLabel}
