@@ -70,6 +70,14 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
+      /**
+       * Muchos clientes piden GET /favicon.ico antes de parsear el HTML.
+       * Sin un .ico real, Next puede servir el favicon por defecto; reescribimos al PNG del logo.
+       */
+      {
+        source: "/favicon.ico",
+        destination: "/images/logocuadre.png",
+      },
       {
         source: "/api/:path*",
         destination: `${apiRewriteOrigin()}/api/:path*`,
