@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   description:
     "Controla productos, proveedores, ubicaciones y movimientos de stock desde una sola plataforma.",
   icons: {
-    icon: [{ url: "/assets/elcuadre.png", type: "image/png" }],
-    apple: "/assets/elcuadre.png",
+    icon: [{ url: "/assets/logocuadre.PNG?v=2", type: "image/png" }],
+    apple: "/assets/logocuadre.PNG?v=2",
   },
 };
 
