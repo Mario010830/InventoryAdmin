@@ -1,0 +1,20 @@
+{
+  "name": "Tu Cuadre",
+  "short_name": "Tu Cuadre",
+  "description": "Gestión de inventario simple y poderosa",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0F766E",
+  "background_color": "#ffffff",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "/images/logocuadre.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
