@@ -21,6 +21,8 @@ import {
 } from "./_service/salesApi";
 import "./sales.css";
 import { SaleOrderDetailBody } from "@/components/dashboard-detail/SaleOrderDetailBody";
+import { SaleCreateModal } from "./SaleCreateModal";
+import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 
 /** Normaliza el estado que puede venir "Draft"/"draft" etc. de la API */
 function normalizeStatus(status: string): string {
@@ -127,7 +129,12 @@ export default function SalesPage() {
   const [confirmOrder, { isLoading: isConfirming }] = useConfirmOrderMutation();
   const [cancelOrder, { isLoading: isCancelling }] = useCancelOrderMutation();
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const [createSaleOpen, setCreateSaleOpen] = useState(false);
   const filtersChanged = useRef(false);
+
+  const { has: hasPermission } = useUserPermissionCodes();
+  const canCreateSale = hasPermission("sale.create");
+  const canCancelSale = hasPermission("sale.cancel");
 
   useEffect(() => {
     if (!result?.data) return;
@@ -255,7 +262,8 @@ export default function SalesPage() {
           setProcessingId(null);
         }
       },
-      hidden: (row) => normalizeStatus(row.status) !== "Draft",
+      hidden: (row) =>
+        normalizeStatus(row.status) !== "Draft" || !canCreateSale,
       disabled: (row) => isBusy && processingId !== row.id,
     },
     {
@@ -273,12 +281,14 @@ export default function SalesPage() {
         }
       },
       variant: "danger",
-      hidden: (row) => normalizeStatus(row.status) === "Cancelled",
+      hidden: (row) =>
+        normalizeStatus(row.status) === "Cancelled" || !canCancelSale,
       disabled: (row) => isBusy && processingId !== row.id,
     },
   ];
 
   return (
+    <>
     <DataTable
       gridConfig={{
         storageKey: "dashboard-sales",
@@ -387,6 +397,19 @@ export default function SalesPage() {
       loading={allRows.length === 0 && (isLoading || isFetching)}
       title="Órdenes de Venta"
       titleIcon="point_of_sale"
+      toolbarExtra={
+        canCreateSale ? (
+          <button
+            type="button"
+            className="dt-btn-add"
+            onClick={() => setCreateSaleOpen(true)}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+          >
+            <Icon name="add_shopping_cart" />
+            Nueva venta
+          </button>
+        ) : undefined
+      }
       actions={actions}
       infiniteScroll
       hasMore={!allPagesLoaded}
@@ -406,5 +429,14 @@ export default function SalesPage() {
         showEditButton: false,
       }}
     />
+    <SaleCreateModal
+      open={createSaleOpen}
+      onClose={() => setCreateSaleOpen(false)}
+      onSuccess={() => {
+        setPage(1);
+        setAllRows([]);
+      }}
+    />
+    </>
   );
 }

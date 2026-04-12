@@ -358,3 +358,63 @@
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* ─── Modal «Nueva venta» ─── */
+.sale-create-lines-wrap {
+  overflow-x: auto;
+  border: 1px solid #e8ecf1;
+  border-radius: 10px;
+}
+
+.sale-create-lines {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.sale-create-lines th {
+  text-align: left;
+  padding: 8px 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-weight: 600;
+  border-bottom: 1px solid #e8ecf1;
+}
+
+.sale-create-lines td {
+  padding: 8px 10px;
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.sale-create-lines__name {
+  display: block;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.sale-create-lines__hint {
+  display: block;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.sale-create-lines__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.sale-create-lines__remove:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}

@@ -13,6 +13,8 @@ interface FormModalProps {
   loading?: boolean;
   submitLabel?: string;
   cancelLabel?: string;
+  /** Botones u otros controles entre «Cancelar» y el envío principal (p. ej. acción secundaria). */
+  extraFooterActions?: React.ReactNode;
   error?: string;
   maxWidth?: string;
   children: React.ReactNode;
@@ -28,6 +30,7 @@ export function FormModal({
   loading = false,
   submitLabel = "Guardar",
   cancelLabel = "Cancelar",
+  extraFooterActions,
   error,
   maxWidth = "560px",
   children,
@@ -79,6 +82,7 @@ export function FormModal({
             >
               {cancelLabel}
             </button>
+            {extraFooterActions}
             <button
               type="submit"
               className="modal-btn modal-btn--primary"

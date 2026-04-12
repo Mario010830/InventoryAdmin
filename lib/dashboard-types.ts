@@ -696,8 +696,10 @@ export interface SaleOrderResponse {
 export interface CreateSaleOrderItem {
   productId: number;
   quantity: number;
-  unitPrice: number | null;
-  discount: number;
+  /** Si se omite o es null, la API usa el precio actual del producto. */
+  unitPrice?: number | null;
+  /** Por defecto 0 en servidor si no se envía. */
+  discount?: number;
 }
 
 export interface CreateSaleOrderRequest {

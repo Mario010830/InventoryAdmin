@@ -16,8 +16,16 @@ interface GetOrdersArgs {
 }
 
 function extractOrder(raw: unknown): SaleOrderResponse {
+  if (raw == null || typeof raw !== "object") {
+    return raw as SaleOrderResponse;
+  }
   const obj = raw as Record<string, unknown>;
-  return (obj?.result ?? raw) as SaleOrderResponse;
+  const inner =
+    (obj.result ?? obj.Result ?? obj.data ?? obj.Data ?? raw) as unknown;
+  if (inner && typeof inner === "object" && !Array.isArray(inner)) {
+    return inner as SaleOrderResponse;
+  }
+  return raw as SaleOrderResponse;
 }
 
 export const salesApi = createApi({
