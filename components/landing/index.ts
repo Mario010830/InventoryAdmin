@@ -6,3 +6,4 @@ export { Hero } from "./Hero";
 export { HowItWorks } from "./HowItWorks";
 export { Navbar } from "./Navbar";
 export { StatsSection } from "./StatsSection";
+export { StatsSectionDesktopOnly } from "./StatsSectionDesktopOnly";

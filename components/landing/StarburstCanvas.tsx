@@ -2,13 +2,9 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import * as THREE from "three";
-import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
-import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
-import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 
-/* ─── Config ─── */
-const RAY_COUNT = 400;
+/* ─── Config (menos rayos = menos CPU por frame; sin bloom = mucha menos GPU) ─── */
+const RAY_COUNT = 200;
 const SEGMENTS = 5;
 const DOT_R = 3.5;
 const REPEL_R = 180;
@@ -124,6 +120,23 @@ function buildRays(w: number, h: number): Ray[] {
   return out;
 }
 
+function disposeScene(scene: THREE.Scene, dotGeo: THREE.BufferGeometry) {
+  scene.traverse((obj) => {
+    if (obj instanceof THREE.Line) {
+      obj.geometry.dispose();
+      const m = obj.material;
+      if (Array.isArray(m)) m.forEach((x) => x.dispose());
+      else m.dispose();
+    }
+    if (obj instanceof THREE.Mesh) {
+      const m = obj.material;
+      if (Array.isArray(m)) m.forEach((x) => x.dispose());
+      else m.dispose();
+    }
+  });
+  dotGeo.dispose();
+}
+
 /* ─── Component ─── */
 export function StarburstCanvas() {
   const boxRef = useRef<HTMLDivElement>(null);
@@ -154,30 +167,25 @@ export function StarburstCanvas() {
     const box = boxRef.current;
     if (!box) return;
 
-    const W = box.clientWidth;
-    const H = box.clientHeight;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    const W = Math.max(1, box.clientWidth);
+    const H = Math.max(1, box.clientHeight);
 
     const scene = new THREE.Scene();
     const cam = new THREE.OrthographicCamera(0, W, 0, H, -1, 1);
 
-    const gl = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const gl = new THREE.WebGLRenderer({
+      antialias: false,
+      alpha: true,
+      powerPreference: "low-power",
+    });
     gl.setSize(W, H);
-    gl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    gl.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
     gl.toneMapping = THREE.NoToneMapping;
     box.appendChild(gl.domElement);
-
-    /* Bloom postprocessing */
-    const composer = new EffectComposer(gl);
-    composer.addPass(new RenderPass(scene, cam));
-
-    const bloom = new UnrealBloomPass(
-      new THREE.Vector2(W, H),
-      0.6, // strength
-      0.5, // radius
-      0.3, // threshold
-    );
-    composer.addPass(bloom);
-    composer.addPass(new OutputPass());
 
     const ox = W * 0.5;
     const oy = H * 0.97;
@@ -235,9 +243,25 @@ export function StarburstCanvas() {
     }
 
     let t = 0;
-    let af: number;
+    let af = 0;
+    let sectionVisible = true;
+    let tabVisible = true;
+
+    const shouldRun = () => sectionVisible && tabVisible;
+
+    const stopLoop = () => {
+      if (af) {
+        cancelAnimationFrame(af);
+        af = 0;
+      }
+    };
 
     const tick = () => {
+      if (!shouldRun()) {
+        af = 0;
+        return;
+      }
+
       af = requestAnimationFrame(tick);
       t += 0.003;
 
@@ -300,20 +324,45 @@ export function StarburstCanvas() {
           flicker * (0.15 + pulse * 0.35);
       }
 
-      composer.render();
+      gl.render(scene, cam);
     };
 
-    tick();
+    const startLoop = () => {
+      if (af || !shouldRun()) return;
+      af = requestAnimationFrame(tick);
+    };
+
+    const sectionEl = box.closest(".stats-section");
+    const io =
+      sectionEl &&
+      new IntersectionObserver(
+        ([entry]) => {
+          sectionVisible = entry.isIntersecting;
+          if (sectionVisible && tabVisible) startLoop();
+          else stopLoop();
+        },
+        { root: null, rootMargin: "80px 0px", threshold: 0 },
+      );
+    if (sectionEl && io) io.observe(sectionEl);
+    else sectionVisible = true;
+
+    const onVis = () => {
+      tabVisible = document.visibilityState === "visible";
+      if (tabVisible && sectionVisible) startLoop();
+      else stopLoop();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    tabVisible = document.visibilityState === "visible";
+    startLoop();
 
     const onR = () => {
       if (!box) return;
-      const nw = box.clientWidth;
-      const nh = box.clientHeight;
+      const nw = Math.max(1, box.clientWidth);
+      const nh = Math.max(1, box.clientHeight);
       cam.right = nw;
       cam.bottom = nh;
       cam.updateProjectionMatrix();
       gl.setSize(nw, nh);
-      composer.setSize(nw, nh);
     };
 
     window.addEventListener("resize", onR);
@@ -321,11 +370,13 @@ export function StarburstCanvas() {
     box.addEventListener("mouseleave", onLeave);
 
     return () => {
-      cancelAnimationFrame(af);
+      stopLoop();
+      document.removeEventListener("visibilitychange", onVis);
+      io?.disconnect();
       window.removeEventListener("resize", onR);
       window.removeEventListener("mousemove", onMove);
       box.removeEventListener("mouseleave", onLeave);
-      composer.dispose();
+      disposeScene(scene, dotGeo);
       gl.dispose();
       if (box.contains(gl.domElement)) box.removeChild(gl.domElement);
     };

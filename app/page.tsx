@@ -7,7 +7,7 @@ import {
   Hero,
   HowItWorks,
   Navbar,
-  StatsSection,
+  StatsSectionDesktopOnly,
 } from "@/components/landing";
 
 export default function Home() {
@@ -17,7 +17,7 @@ export default function Home() {
       <Hero />
       <Features />
       <CatalogSection />
-      <StatsSection />
+      <StatsSectionDesktopOnly />
       <HowItWorks />
       <CtaSection />
       <Footer />

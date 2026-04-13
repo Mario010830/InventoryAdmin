@@ -64,6 +64,7 @@ const SPEED = 0.6;
 
 export function CatalogSection() {
   const { formatCup } = useDisplayCurrency();
+  const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const posRef = useRef(0);
@@ -122,7 +123,12 @@ export function CatalogSection() {
   useEffect(() => {
     const track = trackRef.current;
     const wrap = wrapRef.current;
+    const section = sectionRef.current;
     if (!track || !wrap || N === 0) return;
+
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
 
     const getCenter = () => wrap.offsetWidth / 2;
 
@@ -148,20 +154,66 @@ export function CatalogSection() {
       });
     };
 
+    place();
+
+    if (reduceMotion) {
+      return;
+    }
+
+    let inView = true;
+    let tabVisible = document.visibilityState === "visible";
+
+    const stop = () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = 0;
+      }
+    };
+
     const loop = () => {
+      if (!inView || !tabVisible) {
+        rafRef.current = 0;
+        return;
+      }
       posRef.current += SPEED;
       if (posRef.current >= TOTAL) posRef.current -= TOTAL;
       place();
       rafRef.current = requestAnimationFrame(loop);
     };
 
-    place();
-    rafRef.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(rafRef.current);
+    const start = () => {
+      if (rafRef.current || !inView || !tabVisible) return;
+      rafRef.current = requestAnimationFrame(loop);
+    };
+
+    const io = new IntersectionObserver(
+      ([e]) => {
+        inView = e.isIntersecting;
+        if (inView && tabVisible) start();
+        else stop();
+      },
+      { root: null, rootMargin: "100px 0px", threshold: 0 },
+    );
+    io.observe(section ?? wrap);
+
+    const onVis = () => {
+      tabVisible = document.visibilityState === "visible";
+      if (inView && tabVisible) start();
+      else stop();
+    };
+    document.addEventListener("visibilitychange", onVis);
+
+    start();
+
+    return () => {
+      stop();
+      io.disconnect();
+      document.removeEventListener("visibilitychange", onVis);
+    };
   }, [N, TOTAL]);
 
   return (
-    <section className="catalog-section">
+    <section ref={sectionRef} className="catalog-section">
       <div className="catalog-section__inner container">
         <header className="catalog-section__hdr">
           <span className="catalog-section__tag">Compra en Tu Cuadre</span>
