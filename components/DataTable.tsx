@@ -1301,8 +1301,15 @@ export function DataTable<T extends { id: string | number }>({
                                   type="button"
                                   className={`dt-icon-btn${action.variant === "danger" ? " dt-icon-btn--danger" : ""}${action.disabled?.(row) ? " dt-icon-btn--disabled" : ""}`}
                                   onClick={() => {
-                                    if (!action.disabled?.(row))
-                                      action.onClick(row);
+                                    if (action.disabled?.(row)) return;
+                                    if (
+                                      detailDrawer &&
+                                      detailIndex != null &&
+                                      detailDrawer.onEdit === action.onClick
+                                    ) {
+                                      closeDetailDrawer();
+                                    }
+                                    action.onClick(row);
                                   }}
                                   title={action.label}
                                   disabled={action.disabled?.(row)}
@@ -1414,7 +1421,10 @@ export function DataTable<T extends { id: string | number }>({
           }}
           onEdit={
             detailDrawer.onEdit
-              ? () => detailDrawer.onEdit?.(detailRow)
+              ? () => {
+                  closeDetailDrawer();
+                  detailDrawer.onEdit?.(detailRow);
+                }
               : undefined
           }
           showEditButton={

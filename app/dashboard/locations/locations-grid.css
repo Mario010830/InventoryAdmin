@@ -77,30 +77,85 @@
 .bh-editor__time-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex: 1;
   flex-wrap: wrap;
 }
 
-.bh-editor__time {
+.bh-editor__time-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.bh-editor__time-slot-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.bh-timeblock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+.bh-timeblock__colon {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #64748b;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.bh-timeblock__select {
+  min-height: 38px;
   padding: 6px 8px;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  font-size: 0.82rem;
+  border: 1px solid #cbd5e1;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
   font-family: inherit;
   color: #1e293b;
   background: #fff;
+  cursor: pointer;
   outline: none;
-  transition: border-color 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
-.bh-editor__time:focus {
+.bh-timeblock__select--hour {
+  min-width: 3.5rem;
+}
+
+.bh-timeblock__select--minute {
+  min-width: 3.35rem;
+}
+
+.bh-timeblock__select:hover {
+  border-color: #94a3b8;
+}
+
+.bh-timeblock__select:focus {
   border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
 .bh-editor__separator {
-  font-size: 0.8rem;
-  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: lowercase;
+  padding: 0 2px;
 }
 
 .bh-editor__closed {
@@ -126,6 +181,35 @@
 
 .bh-editor__copy-btn:hover {
   background: #dbeafe;
+}
+
+@media (max-width: 520px) {
+  .bh-editor__row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .bh-editor__time-wrap {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .bh-editor__time-slot {
+    justify-content: space-between;
+  }
+
+  .bh-editor__separator {
+    align-self: center;
+    padding: 2px 0;
+  }
+
+  .bh-editor__copy-btn {
+    margin-left: 0;
+    width: 100%;
+    margin-top: 4px;
+  }
 }
 
 /* ─── LocationPicker (tarjeta) ─── */

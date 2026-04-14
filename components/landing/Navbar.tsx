@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 
@@ -12,6 +13,11 @@ function scrollToSection(sectionId: string) {
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -19,13 +25,68 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
+
   const handleNavClick = (id: string) => {
     scrollToSection(id);
     setMobileOpen(false);
   };
 
+  const mobileMenu =
+    mounted &&
+    mobileOpen &&
+    createPortal(
+      <div
+        className="navbar__mobile"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menú principal"
+      >
+        <a onClick={() => handleNavClick("features")} role="button">
+          Características
+        </a>
+        <a onClick={() => handleNavClick("how-it-works")} role="button">
+          Cómo Funciona
+        </a>
+        <a onClick={() => handleNavClick("benefits")} role="button">
+          Beneficios
+        </a>
+        <a onClick={() => handleNavClick("cta")} role="button">
+          Precios
+        </a>
+        <div className="navbar__mobile-actions">
+          <Link
+            href="/login"
+            className="btn-outline"
+            onClick={() => setMobileOpen(false)}
+          >
+            Iniciar Sesión
+          </Link>
+          <Link
+            href="/login/register"
+            className="btn-primary"
+            onClick={() => setMobileOpen(false)}
+          >
+            Comenzar Gratis
+          </Link>
+        </div>
+      </div>,
+      document.body,
+    );
+
   return (
-    <nav className={`navbar ${scrolled ? "scrolled" : ""}`}>
+    <nav
+      className={`navbar ${scrolled ? "scrolled" : ""} ${mobileOpen ? "navbar--mobile-open" : ""}`}
+    >
+      {mobileMenu}
+
       <div className="navbar__container container">
         <Link href="/" className="navbar__logo">
           <img
@@ -79,38 +140,6 @@ export function Navbar() {
         </button>
       </div>
 
-      {mobileOpen && (
-        <div className="navbar__mobile">
-          <a onClick={() => handleNavClick("features")} role="button">
-            Características
-          </a>
-          <a onClick={() => handleNavClick("how-it-works")} role="button">
-            Cómo Funciona
-          </a>
-          <a onClick={() => handleNavClick("benefits")} role="button">
-            Beneficios
-          </a>
-          <a onClick={() => handleNavClick("cta")} role="button">
-            Precios
-          </a>
-          <div className="navbar__mobile-actions">
-            <Link
-              href="/login"
-              className="btn-outline"
-              onClick={() => setMobileOpen(false)}
-            >
-              Iniciar Sesión
-            </Link>
-            <Link
-              href="/login/register"
-              className="btn-primary"
-              onClick={() => setMobileOpen(false)}
-            >
-              Comenzar Gratis
-            </Link>
-          </div>
-        </div>
-      )}
     </nav>
   );
 }

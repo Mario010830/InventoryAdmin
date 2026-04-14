@@ -34,7 +34,15 @@ interface UpdateProductArgs {
 function normalizeProductImageRow(
   row: Record<string, unknown>,
 ): ProductImageResponse {
-  const id = Number(row.id ?? row.Id ?? 0);
+  const id = Number(
+    row.id ??
+      row.Id ??
+      row.productImageId ??
+      row.ProductImageId ??
+      row.imageId ??
+      row.ImageId ??
+      0,
+  );
   const url = String(
     row.url ??
       row.Url ??

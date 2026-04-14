@@ -141,6 +141,14 @@ export function ProductImageGallery({
     return null;
   };
 
+  const canPickMoreFiles =
+    Boolean(pid) && !disabled && !uploading && filledCount < MAX_IMAGES;
+
+  const triggerFilePick = () => {
+    if (!canPickMoreFiles) return;
+    fileRef.current?.click();
+  };
+
   const handlePickFiles = async (files: FileList | null) => {
     if (!files?.length || !pid || disabled) return;
     const arr = Array.from(files);
@@ -288,10 +296,16 @@ export function ProductImageGallery({
 
   if (!pid) return null;
 
-  const mainImage = ordered.find((img) => urlsMatch(imagenUrl, img.url));
-  const secondaryImages = ordered.filter(
-    (img) => !urlsMatch(imagenUrl, img.url),
-  );
+  /** Solo la primera fila que coincide con `imagenUrl` es la principal; el resto (aunque repita URL) va al carril secundario para no inflar `filledCount` sin huecos visibles. */
+  const mainIndex = ordered.findIndex((img) => urlsMatch(imagenUrl, img.url));
+  const mainImage = mainIndex >= 0 ? ordered[mainIndex] : undefined;
+  const secondaryImages =
+    mainIndex >= 0
+      ? ordered.filter((_, i) => i !== mainIndex)
+      : ordered.filter((img) => !urlsMatch(imagenUrl, img.url));
+
+  const orderedIndexFromSecondaryVis = (vis: number) =>
+    mainIndex < 0 ? vis : vis < mainIndex ? vis : vis + 1;
 
   const heroSrc = mainImage
     ? (getProxiedImageSrc(mainImage.url) ?? mainImage.url)
@@ -360,12 +374,30 @@ export function ProductImageGallery({
           </div>
         </div>
       ) : (
-        <div className="product-gallery__hero product-gallery__hero--empty">
+        <div
+          className={`product-gallery__hero product-gallery__hero--empty${canPickMoreFiles ? " product-gallery__hero--clickable" : ""}`}
+          role={canPickMoreFiles ? "button" : undefined}
+          tabIndex={canPickMoreFiles ? 0 : undefined}
+          aria-label={
+            canPickMoreFiles
+              ? "Subir imagen principal: elegir archivo"
+              : undefined
+          }
+          onClick={triggerFilePick}
+          onKeyDown={(e) => {
+            if (!canPickMoreFiles) return;
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              triggerFilePick();
+            }
+          }}
+        >
           <div className="product-gallery__hero-img product-gallery__hero-img--empty">
             <Icon name="image" />
           </div>
           <p className="product-gallery__hero-hint">
-            Sube una imagen para establecerla como principal.
+            Haz clic aquí o en «+» abajo para subir la imagen principal (o usa
+            «Subir imágenes»).
           </p>
         </div>
       )}
@@ -379,9 +411,10 @@ export function ProductImageGallery({
               const flashing = Boolean(
                 flashUrl && urlsMatch(flashUrl, img.url),
               );
+              const orderedIdx = orderedIndexFromSecondaryVis(index);
               return (
                 <div
-                  key={img.id}
+                  key={`${img.id}-${orderedIdx}`}
                   className={`product-gallery__thumb-wrap${flashing ? " product-gallery__thumb-wrap--flash" : ""}${deleteConfirm === img.id ? " product-gallery__thumb-wrap--open" : ""}`}
                   onDragOver={(e) => {
                     e.preventDefault();
@@ -389,8 +422,8 @@ export function ProductImageGallery({
                   }}
                   onDrop={(e) => {
                     e.preventDefault();
-                    if (dragIndex === null || dragIndex === index) return;
-                    void handleReorder(dragIndex, index);
+                    if (dragIndex === null || dragIndex === orderedIdx) return;
+                    void handleReorder(dragIndex, orderedIdx);
                     setDragIndex(null);
                   }}
                 >
@@ -400,9 +433,9 @@ export function ProductImageGallery({
                       className="product-gallery__drag"
                       draggable={!disabled}
                       onDragStart={(e) => {
-                        setDragIndex(index);
+                        setDragIndex(orderedIdx);
                         e.dataTransfer.effectAllowed = "move";
-                        e.dataTransfer.setData("text/plain", String(index));
+                        e.dataTransfer.setData("text/plain", String(orderedIdx));
                       }}
                       onDragEnd={() => setDragIndex(null)}
                       disabled={disabled}
@@ -483,7 +516,22 @@ export function ProductImageGallery({
             {Array.from({ length: emptySlots }).map((_, i) => (
               <div
                 key={`empty-${i}`}
-                className="product-gallery__thumb-wrap product-gallery__thumb-wrap--empty"
+                className={`product-gallery__thumb-wrap product-gallery__thumb-wrap--empty${canPickMoreFiles ? " product-gallery__thumb-wrap--clickable" : ""}`}
+                role={canPickMoreFiles ? "button" : undefined}
+                tabIndex={canPickMoreFiles ? 0 : undefined}
+                aria-label={
+                  canPickMoreFiles
+                    ? "Añadir imagen: elegir archivo"
+                    : undefined
+                }
+                onClick={triggerFilePick}
+                onKeyDown={(e) => {
+                  if (!canPickMoreFiles) return;
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    triggerFilePick();
+                  }
+                }}
               >
                 <div className="product-gallery__thumb product-gallery__thumb--empty">
                   <Icon name="add" />
@@ -509,8 +557,8 @@ export function ProductImageGallery({
       <button
         type="button"
         className="modal-btn modal-btn--secondary product-gallery__upload-btn"
-        disabled={disabled || uploading || filledCount >= MAX_IMAGES}
-        onClick={() => fileRef.current?.click()}
+        disabled={!canPickMoreFiles}
+        onClick={triggerFilePick}
       >
         {uploading ? "Subiendo…" : "Subir imágenes"}
       </button>

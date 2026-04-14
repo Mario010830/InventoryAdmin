@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { parsePaginated } from "@/lib/api-utils";
 import { getApiUrl, getToken } from "@/lib/auth-api";
+import { normalizeLocationFromApi } from "@/lib/normalizeLocationFromApi";
 import type { LocationResponse } from "@/lib/auth-types";
 import type {
   CreateLocationRequest,
@@ -57,8 +58,13 @@ export const locationsApi = createApi({
         if (organizationId != null) url += `&organizationId=${organizationId}`;
         return url;
       },
-      transformResponse: (raw: unknown, _meta, arg) =>
-        parsePaginated<LocationResponse>(raw, arg.perPage ?? 10),
+      transformResponse: (raw: unknown, _meta, arg) => {
+        const parsed = parsePaginated<LocationResponse>(raw, arg.perPage ?? 10);
+        return {
+          ...parsed,
+          data: parsed.data.map((row) => normalizeLocationFromApi(row)),
+        };
+      },
       providesTags: (result) =>
         result
           ? [
@@ -74,7 +80,10 @@ export const locationsApi = createApi({
       query: (body) => ({ url: "/location", method: "POST", body }),
       transformResponse: (
         raw: LocationResponse | { data: LocationResponse },
-      ) => ("data" in raw ? raw.data : raw),
+      ) => {
+        const row = "data" in raw ? raw.data : raw;
+        return normalizeLocationFromApi(row);
+      },
       invalidatesTags: [{ type: "Location", id: "LIST" }],
     }),
     updateLocation: builder.mutation<void, UpdateLocationArgs>({
