@@ -60,7 +60,9 @@ function mapApiItemToCard(
 const CARD_W = 200;
 const GAP = 28;
 const STEP = CARD_W + GAP;
-const SPEED = 0.6;
+/** Velocidad en px/s (antes ~0.6 px/frame ≈ 36 px/s a 60 Hz — se sentía lento y muy dependiente del frame rate). */
+const SPEED_PX_PER_SEC = 68;
+const MAX_DT_MS = 100;
 
 export function CatalogSection() {
   const { formatCup } = useDisplayCurrency();
@@ -130,14 +132,25 @@ export function CatalogSection() {
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
-    const getCenter = () => wrap.offsetWidth / 2;
+    let cx = wrap.offsetWidth / 2;
+    const ro = new ResizeObserver(() => {
+      cx = wrap.offsetWidth / 2;
+    });
+    ro.observe(wrap);
+
+    const expectedCards = 3 * N;
+    let cards = [
+      ...track.querySelectorAll<HTMLDivElement>(".catalog-track__card"),
+    ];
 
     const place = () => {
+      if (cards.length !== expectedCards) {
+        cards = [
+          ...track.querySelectorAll<HTMLDivElement>(".catalog-track__card"),
+        ];
+      }
+      if (!cards.length) return;
       const pos = posRef.current;
-      const cx = getCenter();
-      const cards = track.querySelectorAll<HTMLDivElement>(
-        ".catalog-track__card",
-      );
       cards.forEach((c, idx) => {
         const raw = -pos + idx * STEP;
         const cx0 = raw + CARD_W / 2 - cx;
@@ -147,8 +160,8 @@ export function CatalogSection() {
         const rotY = clampedDist * 28;
         const scale = 1 - Math.abs(clampedDist) * 0.22;
         const opacity = 1 - Math.abs(clampedDist) * 0.55;
-        c.style.left = `${cx - CARD_W / 2 + raw}px`;
-        c.style.transform = `translateY(-50%) perspective(1000px) rotateY(${rotY.toFixed(2)}deg) scale(${scale.toFixed(3)}) translateZ(${z.toFixed(1)}px)`;
+        const tx = cx - CARD_W / 2 + raw;
+        c.style.transform = `translate3d(${tx.toFixed(1)}px, -50%, 0) perspective(1000px) rotateY(${rotY.toFixed(2)}deg) scale(${scale.toFixed(3)}) translateZ(${z.toFixed(1)}px)`;
         c.style.opacity = String(Math.max(0, opacity));
         c.style.zIndex = String(Math.round(scale * 100));
       });
@@ -157,25 +170,30 @@ export function CatalogSection() {
     place();
 
     if (reduceMotion) {
-      return;
+      return () => ro.disconnect();
     }
 
     let inView = true;
     let tabVisible = document.visibilityState === "visible";
+    let lastTs = 0;
 
     const stop = () => {
+      lastTs = 0;
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = 0;
       }
     };
 
-    const loop = () => {
+    const loop = (ts: number) => {
       if (!inView || !tabVisible) {
         rafRef.current = 0;
+        lastTs = 0;
         return;
       }
-      posRef.current += SPEED;
+      const dt = lastTs ? Math.min(MAX_DT_MS, ts - lastTs) : 0;
+      lastTs = ts;
+      posRef.current += (SPEED_PX_PER_SEC * dt) / 1000;
       if (posRef.current >= TOTAL) posRef.current -= TOTAL;
       place();
       rafRef.current = requestAnimationFrame(loop);
@@ -183,6 +201,7 @@ export function CatalogSection() {
 
     const start = () => {
       if (rafRef.current || !inView || !tabVisible) return;
+      lastTs = 0;
       rafRef.current = requestAnimationFrame(loop);
     };
 
@@ -192,7 +211,7 @@ export function CatalogSection() {
         if (inView && tabVisible) start();
         else stop();
       },
-      { root: null, rootMargin: "100px 0px", threshold: 0 },
+      { root: null, rootMargin: "180px 0px", threshold: 0 },
     );
     io.observe(section ?? wrap);
 
@@ -207,6 +226,7 @@ export function CatalogSection() {
 
     return () => {
       stop();
+      ro.disconnect();
       io.disconnect();
       document.removeEventListener("visibilitychange", onVis);
     };

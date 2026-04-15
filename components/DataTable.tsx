@@ -156,6 +156,11 @@ export interface DataTableProps<T extends { id: string | number }> {
   detailDrawer?: DataTableDetailDrawerConfig<T>;
   /** Ordenación, selección, export, columnas visibles */
   gridConfig?: DataTableGridConfig;
+  /**
+   * Orden inicial (p. ej. fecha descendente). Debe coincidir con `key` string de una columna
+   * (no con claves `col-${i}` de columnas cuya `key` es función).
+   */
+  defaultSort?: { key: string; dir: "asc" | "desc" };
   renderBulkToolbar?: (ctx: {
     selectedIds: number[];
     selectedRows: T[];
@@ -333,6 +338,7 @@ export function DataTable<T extends { id: string | number }>({
   columnWidthsStorageKey,
   detailDrawer,
   gridConfig,
+  defaultSort,
   renderBulkToolbar,
   onBulkDeleteSelected,
   onBulkSelectAll,
@@ -343,10 +349,11 @@ export function DataTable<T extends { id: string | number }>({
 
   const [detailIndex, setDetailIndex] = useState<number | null>(null);
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
-  const [sortState, setSortState] = useState<SortState>({
-    key: null,
-    dir: null,
-  });
+  const [sortState, setSortState] = useState<SortState>(() =>
+    defaultSort?.key && defaultSort.dir
+      ? { key: defaultSort.key, dir: defaultSort.dir }
+      : { key: null, dir: null },
+  );
   const [hiddenColKeys, setHiddenColKeys] = useState<Set<string>>(
     () => new Set(),
   );

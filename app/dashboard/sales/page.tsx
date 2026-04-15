@@ -296,6 +296,7 @@ export default function SalesPage() {
         primaryColumnKey: "folio",
         bulkEntityLabel: "ventas",
       }}
+      defaultSort={{ key: "createdAt", dir: "desc" }}
       filters={
         <GridFilterBar
           onClear={() => {

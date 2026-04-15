@@ -1,7 +1,14 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { Boxes, GitBranch, Package, ShoppingCart, Users } from "lucide-react";
+import {
+  Activity,
+  Boxes,
+  GitBranch,
+  Package,
+  ShoppingCart,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { ReportPageLayout } from "@/components/reportes/ReportPageLayout";
 
@@ -40,6 +47,12 @@ const CARDS: {
     title: "Operaciones",
     description: "Movimientos por tipo.",
     icon: GitBranch,
+  },
+  {
+    href: "/admin/reports/metrics",
+    title: "Métricas",
+    description: "Indicadores de ventas, inventario y tendencias del negocio.",
+    icon: Activity,
   },
 ];
 

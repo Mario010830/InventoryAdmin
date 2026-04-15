@@ -112,6 +112,7 @@ export function formatPlanPriceDisplay(value: number): string {
 
 export function isPaidPlan(plan: PublicPlan | undefined): boolean {
   if (!plan) return false;
+  if (isEnterprisePlan(plan)) return true;
   return plan.monthlyPrice > 0 || plan.annualPrice > 0;
 }
 
@@ -132,20 +133,37 @@ export function planMarketingDescription(plan: PublicPlan): string {
 
 export type PlanBillingCycle = "monthly" | "annual";
 
+
+const ENTERPRISE_DEFAULT_MONTHLY_CUP = 4000;
+
+function enterpriseBillingAmount(
+  plan: PublicPlan,
+  cycle: PlanBillingCycle,
+): number {
+  const monthly =
+    plan.monthlyPrice > 0 ? plan.monthlyPrice : ENTERPRISE_DEFAULT_MONTHLY_CUP;
+  const annual =
+    plan.annualPrice > 0 ? plan.annualPrice : monthly * 12;
+  return cycle === "annual" ? annual : monthly;
+}
+
 /** Precio principal + periodo (estilo landing: .price + .period). */
 export function planPriceParts(
   plan: PublicPlan,
   cycle: PlanBillingCycle,
 ): { price: string; period: string } {
-  if (isEnterprisePlan(plan)) return { price: "Custom", period: "a medida" };
   const raw = cycle === "annual" ? plan.annualPrice : plan.monthlyPrice;
-  if (raw < 0) return { price: "Custom", period: "a medida" };
-  if (raw === 0)
+  const amount = isEnterprisePlan(plan)
+    ? enterpriseBillingAmount(plan, cycle)
+    : raw;
+  if (!isEnterprisePlan(plan) && raw < 0)
+    return { price: "Custom", period: "a medida" };
+  if (amount === 0)
     return {
       price: "Gratis",
       period: cycle === "annual" ? "al año" : "para siempre",
     };
-  const formatted = formatPlanPriceDisplay(raw);
+  const formatted = formatPlanPriceDisplay(amount);
   return { price: formatted, period: cycle === "annual" ? "/año" : "/mes" };
 }
 
@@ -154,11 +172,13 @@ export function planPriceLabel(
   plan: PublicPlan,
   cycle: PlanBillingCycle,
 ): string {
-  if (isEnterprisePlan(plan)) return "Custom";
   const raw = cycle === "annual" ? plan.annualPrice : plan.monthlyPrice;
-  if (raw < 0) return "Custom";
-  if (raw === 0) return "Gratis para siempre";
-  const formatted = formatPlanPriceDisplay(raw);
+  const amount = isEnterprisePlan(plan)
+    ? enterpriseBillingAmount(plan, cycle)
+    : raw;
+  if (!isEnterprisePlan(plan) && raw < 0) return "Custom";
+  if (amount === 0) return "Gratis para siempre";
+  const formatted = formatPlanPriceDisplay(amount);
   return cycle === "annual" ? `${formatted} / año` : `${formatted} / mes`;
 }
 

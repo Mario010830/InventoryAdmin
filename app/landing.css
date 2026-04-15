@@ -2173,13 +2173,14 @@
 
 .catalog-track__card {
   position: absolute;
+  left: 0;
   width: 200px;
   height: 240px;
   border-radius: 18px;
   transform-style: preserve-3d;
   cursor: pointer;
   top: 50%;
-  transition: opacity 0.2s ease;
+  /* Sin transition: el carrusel actualiza opacity/transform cada frame; la transición CSS provocaba scroll entrecortado en móvil. */
 }
 
 .catalog-track__card-inner {

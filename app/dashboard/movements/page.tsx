@@ -796,6 +796,7 @@ export default function MovementsPage() {
             primaryColumnKey: "productId",
             bulkEntityLabel: "movimientos",
           }}
+          defaultSort={{ key: "createdAt", dir: "desc" }}
           filters={
             <GridFilterBar onClear={clearGridFilters}>
               <div className="grid-filter-bar__field">
