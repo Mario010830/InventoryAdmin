@@ -116,9 +116,23 @@ export function isPaidPlan(plan: PublicPlan | undefined): boolean {
   return plan.monthlyPrice > 0 || plan.annualPrice > 0;
 }
 
+/** Los tres límites en -1 = típico plan Enterprise en esta API (producto/usuario/ubicación ilimitados). */
+function isUnlimitedPlanTier(plan: PublicPlan): boolean {
+  return (
+    plan.productsLimit === -1 &&
+    plan.usersLimit === -1 &&
+    plan.locationsLimit === -1
+  );
+}
+
 export function isEnterprisePlan(plan: PublicPlan): boolean {
-  const d = plan.displayName.toLowerCase();
-  return plan.name.includes("enterprise") || d.includes("enterprise");
+  const n = plan.name.toLowerCase().trim();
+  const d = plan.displayName.toLowerCase().trim();
+  if (n.includes("enterprise") || d.includes("enterprise")) return true;
+  if (n.includes("empresarial") || d.includes("empresarial")) return true;
+  // API a veces manda otro slug/nombre pero precio negativo (custom) y límites ilimitados
+  if (isUnlimitedPlanTier(plan)) return true;
+  return false;
 }
 
 /** Texto corto bajo el nombre del plan (landing / registro). */
