@@ -6,6 +6,13 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+
+# Next.js inyecta NEXT_PUBLIC_* en build; Dokploy pasa build args o variables de build.
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_CATALOG_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_CATALOG_URL=$NEXT_PUBLIC_CATALOG_URL
+
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
