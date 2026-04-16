@@ -1,0 +1,252 @@
+/* Formulario préstamos (modal)
+   FormModal envuelve children en .modal-form-grid; .field-full fuerza ancho completo (2 cols). */
+
+.loan-form.field-full {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.loan-form__period-label-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+  min-width: 0;
+}
+
+.loan-form__period-label-row .loan-form__inline-label {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.loan-form__field-help {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: -2px;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #fff 0%, #f1f5f9 100%);
+  color: #64748b;
+  font-size: 0.65rem;
+  font-weight: 800;
+  font-family: system-ui, sans-serif;
+  line-height: 1;
+  cursor: help;
+}
+
+.loan-form__field-help:hover,
+.loan-form__field-help:focus-visible {
+  border-color: #4f6ef7;
+  color: #4f6ef7;
+  background: rgba(79, 110, 247, 0.08);
+  outline: none;
+}
+
+.loan-form__inner-grid {
+  gap: 14px 16px;
+}
+
+/* Alinear <select> de periodicidad con el resto de controles */
+.loan-form select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #1e293b;
+  background-color: #fff;
+  font-family: inherit;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.loan-form select:focus {
+  outline: none;
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.25);
+}
+
+.loan-form__hint-cell {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 4px;
+}
+
+.loan-form__hint {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+/* Fechas previstas — tarjeta compacta; acción «Añadir» en la cabecera */
+
+.loan-due-dates {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 10px 12px 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #4f6ef7;
+  background: linear-gradient(90deg, rgba(79, 110, 247, 0.06) 0%, #f8fafc 28%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.loan-due-dates__toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.loan-due-dates__head {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.loan-due-dates__title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.loan-due-dates__hint {
+  font-size: 0.7rem;
+  line-height: 1.35;
+  font-weight: 500;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* Botón pequeño alineado a la derecha (no ancho completo) */
+.loan-due-dates__add-inline {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 1px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: none;
+  background: #4f6ef7;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(79, 110, 247, 0.35);
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.12s ease;
+}
+
+.loan-due-dates__add-inline svg {
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.loan-due-dates__add-inline:hover {
+  background: #3d5bd9;
+  box-shadow: 0 2px 8px rgba(79, 110, 247, 0.35);
+}
+
+.loan-due-dates__add-inline:active {
+  transform: scale(0.98);
+}
+
+.loan-due-dates__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eef2f6;
+}
+
+.loan-due-dates__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loan-due-dates__idx {
+  flex-shrink: 0;
+  width: 1.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.loan-due-dates__picker {
+  flex: 1;
+  min-width: 0;
+}
+
+.loan-due-dates__remove {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #94a3b8;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.loan-due-dates__remove:hover {
+  color: #ef4444;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+@media (max-width: 520px) {
+  .loan-due-dates__toolbar {
+    flex-wrap: wrap;
+  }
+
+  .loan-due-dates__add-inline {
+    align-self: flex-end;
+  }
+
+  .loan-due-dates__row {
+    flex-wrap: wrap;
+  }
+
+  .loan-due-dates__idx {
+    width: auto;
+  }
+
+  .loan-due-dates__remove {
+    width: 100%;
+    height: 38px;
+  }
+}

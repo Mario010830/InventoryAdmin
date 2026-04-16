@@ -92,4 +92,8 @@ export const PERMISSIONS = [
   { id: 1062, code: "daily_summary.view", name: "Ver Cuadre Diario" },
   { id: 1063, code: "daily_summary.create", name: "Generar Cuadre Diario" },
   { id: 1064, code: "daily_summary.export", name: "Exportar Cuadre Diario" },
+  { id: 1065, code: "loan.read", name: "Ver Préstamos" },
+  { id: 1066, code: "loan.create", name: "Crear Préstamo" },
+  { id: 1067, code: "loan.update", name: "Editar Préstamo" },
+  { id: 1068, code: "loan.delete", name: "Eliminar Préstamo" },
 ];

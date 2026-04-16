@@ -272,6 +272,72 @@ export interface UpdateLeadRequest {
   assignedUserId?: number | null;
 }
 
+// ─── Préstamos (Loan) ─────────────────────────────────────────────────────────
+
+export interface LoanPaymentResponse {
+  id: number;
+  amount: number;
+  paidAt: string;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface LoanResponse {
+  id: number;
+  debtorName: string;
+  principalAmount: number;
+  /** Moneda en la que está expresado el capital prestado (catálogo de configuración). */
+  principalCurrencyId?: number | null;
+  /** Código ISO / corto para listados cuando el API lo envía. */
+  principalCurrencyCode?: string | null;
+  notes?: string | null;
+  /** Porcentaje de interés; el significado depende de `interestRatePeriod`. */
+  interestPercent?: number | null;
+  /** daily | weekly | monthly | annual (minúsculas, inglés). Obligatorio en respuestas API. */
+  interestRatePeriod?: string;
+  interestStartDate?: string | null;
+  /** Puede omitirse en listados; el detalle suele traerlo completo. */
+  dueDates?: string[];
+  totalPaid: number;
+  outstandingPrincipal: number;
+  /** Interés estimado (simple, según el período indicado). */
+  estimatedInterest: number;
+  estimatedTotalDue: number;
+  payments?: LoanPaymentResponse[];
+  createdAt: string;
+  modifiedAt: string;
+}
+
+export interface CreateLoanRequest {
+  debtorName: string;
+  principalAmount: number;
+  /** Moneda del capital (id de `/currency`). */
+  principalCurrencyId?: number | null;
+  notes?: string | null;
+  interestPercent?: number | null;
+  /** Si se omite, el backend asume `annual`. */
+  interestRatePeriod?: string | null;
+  interestStartDate?: string | null;
+  dueDates?: string[];
+}
+
+export interface UpdateLoanRequest {
+  debtorName?: string | null;
+  principalAmount?: number | null;
+  principalCurrencyId?: number | null;
+  notes?: string | null;
+  interestPercent?: number | null;
+  interestRatePeriod?: string | null;
+  interestStartDate?: string | null;
+  dueDates?: string[] | null;
+}
+
+export interface RegisterLoanPaymentRequest {
+  amount: number;
+  paidAt: string;
+  notes?: string | null;
+}
+
 // ─── Ubicación (LocationResponse en auth-types) ───────────────────────────────
 
 /** Categorías de negocio para ubicaciones (GET /business-category). */

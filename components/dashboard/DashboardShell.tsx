@@ -1,6 +1,5 @@
 "use client";
 
-import type { LucideIcon } from "lucide-react";
 import { BarChart2, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -14,6 +13,14 @@ import {
 import { removeAuthCookie } from "@/app/login/_service/sessionCookie";
 import { Icon } from "@/components/ui/Icon";
 import { clearSession } from "@/lib/auth-api";
+import {
+  ADMIN_SIDEBAR_ITEMS,
+  MAIN_SIDEBAR_ITEMS,
+  REPORT_SIDEBAR_PARENT,
+  REPORT_SIDEBAR_SECTIONS,
+  type SidebarNavItem,
+} from "@/lib/sidebarNavConfig";
+import { useHiddenSidebarRoutes } from "@/lib/sidebarVisibility";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 import "@/app/dashboard/dashboard.css";
 import { SETTINGS_SECTIONS } from "@/app/dashboard/settings/settingsNav";
@@ -45,115 +52,7 @@ function useIsMobileNav(maxWidth = MOBILE_NAV_MAX_PX) {
   );
 }
 
-interface NavItem {
-  icon: string;
-  label: string;
-  route: string;
-  permission?: string;
-  lucideIcon?: LucideIcon;
-}
-
-const navItems: NavItem[] = [
-  { icon: "dashboard", label: "Dashboard", route: "/dashboard" },
-  {
-    icon: "inventory_2",
-    label: "Productos",
-    route: "/dashboard/products",
-    permission: "product.read",
-  },
-  {
-    icon: "category",
-    label: "Categorías",
-    route: "/dashboard/categories",
-    permission: "productcategory.read",
-  },
-  {
-    icon: "local_shipping",
-    label: "Proveedores",
-    route: "/dashboard/suppliers",
-    permission: "supplier.read",
-  },
-  {
-    icon: "warehouse",
-    label: "Ubicaciones",
-    route: "/dashboard/locations",
-    permission: "location.read",
-  },
-  {
-    icon: "inventory",
-    label: "Inventario",
-    route: "/dashboard/inventory",
-    permission: "inventory.read",
-  },
-  {
-    icon: "swap_horiz",
-    label: "Movimientos",
-    route: "/dashboard/movements",
-    permission: "inventorymovement.read",
-  },
-  {
-    icon: "point_of_sale",
-    label: "Ventas",
-    route: "/dashboard/sales",
-    permission: "sale.read",
-  },
-  {
-    icon: "calculate",
-    label: "Cuadre Diario",
-    route: "/dashboard/daily-summary",
-    permission: "daily_summary.view",
-  },
-  {
-    icon: "contacts",
-    label: "Contactos",
-    route: "/dashboard/contacts",
-    permission: "contact.read",
-  },
-  {
-    icon: "person_search",
-    label: "Leads",
-    route: "/dashboard/leads",
-    permission: "lead.read",
-  },
-  {
-    icon: "local_offer",
-    label: "Promociones",
-    route: "/dashboard/promotions",
-    permission: "product.read",
-  },
-];
-
-const adminItems: NavItem[] = [
-  {
-    icon: "group",
-    label: "Usuarios",
-    route: "/dashboard/users",
-    permission: "user.read",
-  },
-  {
-    icon: "admin_panel_settings",
-    label: "Roles",
-    route: "/dashboard/roles",
-    permission: "role.read",
-  },
-  {
-    icon: "settings",
-    label: "Configuración",
-    route: "/dashboard/settings",
-    permission: "setting.read",
-  },
-];
-
-const REPORT_SECTIONS: { route: string; label: string }[] = [
-  { route: "/reportes/ventas", label: "Ventas" },
-  { route: "/reportes/inventario", label: "Inventario" },
-  { route: "/reportes/productos", label: "Productos" },
-  { route: "/reportes/crm", label: "CRM" },
-  { route: "/reportes/operaciones", label: "Operaciones" },
-  { route: "/admin/reports/metrics", label: "Métricas" },
-];
-
-function SidebarNavIcon({ item }: { item: NavItem }) {
+function SidebarNavIcon({ item }: { item: SidebarNavItem }) {
   const L = item.lucideIcon;
   if (L) {
     return (
@@ -224,7 +123,13 @@ function DashboardSettingsNavItem({
   );
 }
 
-function ReportsNavItem({ collapsed }: { collapsed: boolean }) {
+function ReportsNavItem({
+  collapsed,
+  reportSubSections,
+}: {
+  collapsed: boolean;
+  reportSubSections: { route: string; label: string }[];
+}) {
   const pathname = usePathname();
   const inReports =
     pathname.startsWith("/reportes") || pathname.startsWith("/admin/reports");
@@ -233,7 +138,7 @@ function ReportsNavItem({ collapsed }: { collapsed: boolean }) {
   return (
     <div className="nav-expandable">
       <Link
-        href="/reportes"
+        href={REPORT_SIDEBAR_PARENT.route}
         className={`nav-item ${parentActive ? "active" : ""}`}
       >
         <BarChart2
@@ -242,11 +147,11 @@ function ReportsNavItem({ collapsed }: { collapsed: boolean }) {
           strokeWidth={1.75}
           aria-hidden
         />
-        {!collapsed && <span>Reportes</span>}
+        {!collapsed && <span>{REPORT_SIDEBAR_PARENT.label}</span>}
       </Link>
-      {!collapsed && expanded && (
+      {!collapsed && expanded && reportSubSections.length > 0 && (
         <nav className="nav-sub" aria-label="Submenú de reportes">
-          {REPORT_SECTIONS.map((s) => (
+          {reportSubSections.map((s) => (
             <Link
               key={s.route}
               href={s.route}
@@ -272,24 +177,37 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const [manualChatOpen, setManualChatOpen] = useState(false);
   const user = useAppSelector((state) => state.auth) || null;
   const { has: hasPermission } = useUserPermissionCodes();
+  const hiddenSidebarRoutes = useHiddenSidebarRoutes();
 
   const dispatch = useAppDispatch();
   const [logout] = useLogoutMutation();
 
-  const visibleNavItems = useMemo(
+  const visibleReportSubSections = useMemo(
     () =>
-      navItems.filter(
-        (item) => !item.permission || hasPermission(item.permission),
+      REPORT_SIDEBAR_SECTIONS.filter(
+        (s) => !hiddenSidebarRoutes.includes(s.route),
       ),
-    [hasPermission],
+    [hiddenSidebarRoutes],
   );
-  const visibleAdminItems = useMemo(
-    () =>
-      adminItems.filter(
-        (item) => !item.permission || hasPermission(item.permission),
-      ),
-    [hasPermission],
+
+  const showReportsBlock = useMemo(
+    () => !hiddenSidebarRoutes.includes(REPORT_SIDEBAR_PARENT.route),
+    [hiddenSidebarRoutes],
   );
+
+  const visibleNavItems = useMemo(() => {
+    const allowed = MAIN_SIDEBAR_ITEMS.filter(
+      (item) => !item.permission || hasPermission(item.permission),
+    );
+    return allowed.filter((item) => !hiddenSidebarRoutes.includes(item.route));
+  }, [hasPermission, hiddenSidebarRoutes]);
+
+  const visibleAdminItems = useMemo(() => {
+    const allowed = ADMIN_SIDEBAR_ITEMS.filter(
+      (item) => !item.permission || hasPermission(item.permission),
+    );
+    return allowed.filter((item) => !hiddenSidebarRoutes.includes(item.route));
+  }, [hasPermission, hiddenSidebarRoutes]);
 
   const isActive = (route: string) => {
     if (route === "/dashboard") return pathname === "/dashboard";
@@ -375,23 +293,30 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="sidebar-nav">
-          <div className="nav-group">
-            {showNavText && <div className="nav-group-label">MENÚ</div>}
-            {visibleNavItems.map((item) => (
-              <Link
-                key={item.route}
-                href={item.route}
-                className={`nav-item ${isActive(item.route) ? "active" : ""}`}
-              >
-                <SidebarNavIcon item={item} />
-                {showNavText && <span>{item.label}</span>}
-              </Link>
-            ))}
-          </div>
-          <div className="nav-group">
-            {showNavText && <div className="nav-group-label">REPORTES</div>}
-            <ReportsNavItem collapsed={!showNavText} />
-          </div>
+          {visibleNavItems.length > 0 ? (
+            <div className="nav-group">
+              {showNavText && <div className="nav-group-label">MENÚ</div>}
+              {visibleNavItems.map((item) => (
+                <Link
+                  key={item.route}
+                  href={item.route}
+                  className={`nav-item ${isActive(item.route) ? "active" : ""}`}
+                >
+                  <SidebarNavIcon item={item} />
+                  {showNavText && <span>{item.label}</span>}
+                </Link>
+              ))}
+            </div>
+          ) : null}
+          {showReportsBlock ? (
+            <div className="nav-group">
+              {showNavText && <div className="nav-group-label">REPORTES</div>}
+              <ReportsNavItem
+                collapsed={!showNavText}
+                reportSubSections={visibleReportSubSections}
+              />
+            </div>
+          ) : null}
           <div className="nav-group">
             {showNavText && visibleAdminItems.length > 0 && (
               <div className="nav-group-label">ADMIN</div>

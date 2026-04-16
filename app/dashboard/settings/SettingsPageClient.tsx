@@ -10,6 +10,7 @@ import {
 } from "react";
 import Switch from "@/components/Switch";
 import "./settings.css";
+import { toast } from "sonner";
 import {
   useChangePasswordMutation,
   useGetPlansQuery,
@@ -23,13 +24,9 @@ import type {
   NotificationFrequency,
   SubscriptionStatus,
 } from "@/lib/dashboard-types";
-import {
-  type PublicPlan,
-  sortPlansDisplayOrder,
-} from "@/lib/plan-utils";
+import { type PublicPlan, sortPlansDisplayOrder } from "@/lib/plan-utils";
 import { buildPlanChangeWhatsAppUrl } from "@/lib/sales-whatsapp";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
-import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
 import { useGetMyRoleQuery } from "../roles/_service/rolesApi";
 import {
@@ -45,6 +42,7 @@ import {
   useUpdateAccountProfileMutation,
   useUpdateGroupedSettingsMutation,
 } from "./_service/settingsApi";
+import { SidebarVisibilitySection } from "./SidebarVisibilitySection";
 import { SETTINGS_SECTIONS } from "./settingsNav";
 
 function snapCurrencies(rows: CurrencyResponse[], defaultId: number | null) {
@@ -1353,6 +1351,10 @@ export default function SettingsPageClient() {
               </button>
             </SettingsSection>
 
+            <SettingsSection id="sidebar" title="Barra lateral">
+              <SidebarVisibilitySection />
+            </SettingsSection>
+
             <SettingsSection id="suscripcion" title="Suscripción">
               {subLoading ? (
                 <div className="settings-loading">
@@ -1428,7 +1430,10 @@ export default function SettingsPageClient() {
             aria-labelledby="settings-plan-change-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 id="settings-plan-change-title" className="settings-plan-change-title">
+            <h2
+              id="settings-plan-change-title"
+              className="settings-plan-change-title"
+            >
               Cambiar de plan
             </h2>
             <p className="settings-plan-change-intro">
@@ -1456,7 +1461,8 @@ export default function SettingsPageClient() {
                     .filter((p) => p.id >= 0)
                     .map((p) => {
                       const isCurrent =
-                        subscription.planId != null && p.id === subscription.planId;
+                        subscription.planId != null &&
+                        p.id === subscription.planId;
                       return (
                         <label
                           key={p.id}

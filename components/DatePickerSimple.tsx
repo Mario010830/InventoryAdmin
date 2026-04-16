@@ -26,6 +26,8 @@ export function DatePickerSimple({
   className,
   emptyLabel = "Seleccionar fecha",
   buttonClassName,
+  triggerId,
+  triggerAriaLabel,
 }: {
   date: string;
   setDate: (date: string) => void;
@@ -34,9 +36,22 @@ export function DatePickerSimple({
   emptyLabel?: string;
   /** Clases del trigger (p. ej. filtros de grilla) */
   buttonClassName?: string;
+  /** Evitar ids duplicados si hay varios pickers en el mismo formulario */
+  triggerId?: string;
+  /** Accesibilidad cuando el label visible no basta (p. ej. varias fechas en fila) */
+  triggerAriaLabel?: string;
 }) {
   const [open, setOpen] = React.useState(false);
   const selected = parseLocalDate(date);
+  const displayLabel = selected
+    ? selected.toLocaleDateString("es-ES", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : date?.trim()
+      ? date
+      : emptyLabel;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -45,7 +60,8 @@ export function DatePickerSimple({
           type="button"
           variant="outline"
           size="sm"
-          id="date"
+          id={triggerId ?? "date-picker-trigger"}
+          aria-label={triggerAriaLabel ?? undefined}
           className={cn(
             "input-wrapper h-9 w-full justify-start gap-2 px-3 font-normal shadow-none",
             buttonClassName,
@@ -53,7 +69,7 @@ export function DatePickerSimple({
           )}
         >
           <Icon name="calendar_today" />
-          <span className="truncate">{date ? date : emptyLabel}</span>
+          <span className="truncate">{displayLabel}</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto overflow-hidden p-0" align="start">

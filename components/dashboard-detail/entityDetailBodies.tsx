@@ -1,5 +1,11 @@
 "use client";
 
+import { useCallback, useMemo, useState } from "react";
+import {
+  useGetLoanByIdQuery,
+  useRegisterLoanPaymentMutation,
+} from "@/app/dashboard/loans/_service/loansApi";
+import { FormModal } from "@/components/FormModal";
 import { Icon } from "@/components/ui/Icon";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 import type { LocationResponse, UserResponse } from "@/lib/auth-types";
@@ -8,6 +14,7 @@ import type {
   InventoryMovementResponse,
   InventoryResponse,
   LeadResponse,
+  LoanResponse,
   LogResponse,
   ProductCategoryResponse,
   ProductResponse,
@@ -23,6 +30,8 @@ import {
   formatMovementReason,
   movementTypeLabel,
 } from "@/lib/inventoryMovementUi";
+import { formatLoanMoneyDisplay } from "@/lib/loanMoneyDisplay";
+import { formatLoanInterestLine } from "@/lib/loan-interest";
 import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import { BoolBadge, DetailField, DetailSection } from "./DetailPrimitives";
 import { LocationPublicCatalogSection } from "./LocationPublicCatalogSection";
@@ -306,6 +315,311 @@ export function LeadDetailBody({
           />
         </div>
       </DetailSection>
+    </>
+  );
+}
+
+function isoToDatetimeLocalValue(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function localDatetimeToIso(val: string): string {
+  const d = new Date(val);
+  return Number.isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+}
+
+export function LoanDetailBody({
+  row,
+  canRegisterPayment,
+}: {
+  row: LoanResponse;
+  canRegisterPayment: boolean;
+}) {
+  const { formatCup, priceDecimals } = useDisplayCurrency();
+  const { data, isLoading, isError } = useGetLoanByIdQuery(row.id);
+  const loan = data ?? row;
+  const payments = loan.payments ?? [];
+
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [payAmount, setPayAmount] = useState("");
+  const [payAt, setPayAt] = useState(() =>
+    isoToDatetimeLocalValue(new Date().toISOString()),
+  );
+  const [payNotes, setPayNotes] = useState("");
+  const [payError, setPayError] = useState("");
+  const [registerPayment, { isLoading: paySubmitting }] =
+    useRegisterLoanPaymentMutation();
+
+  const openPayment = useCallback(() => {
+    setPayAmount("");
+    setPayAt(isoToDatetimeLocalValue(new Date().toISOString()));
+    setPayNotes("");
+    setPayError("");
+    setPaymentOpen(true);
+  }, []);
+
+  const closePayment = useCallback(() => setPaymentOpen(false), []);
+
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = Number(String(payAmount).replace(",", "."));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setPayError("Indica un importe mayor que cero.");
+      return;
+    }
+    setPayError("");
+    try {
+      await registerPayment({
+        loanId: row.id,
+        body: {
+          amount,
+          paidAt: localDatetimeToIso(payAt),
+          notes: payNotes.trim() || null,
+        },
+      }).unwrap();
+      closePayment();
+    } catch (err) {
+      setPayError(
+        err instanceof Error ? err.message : "No se pudo registrar el cobro.",
+      );
+    }
+  };
+
+  const sortedPayments = useMemo(
+    () =>
+      [...payments].sort(
+        (a, b) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime(),
+      ),
+    [payments],
+  );
+
+  return (
+    <>
+      {isLoading && !data ? (
+        <p style={{ margin: "8px 0", color: "#64748b" }}>
+          Cargando detalle del préstamo…
+        </p>
+      ) : null}
+      {isError ? (
+        <p style={{ margin: "8px 0", color: "#b45309" }}>
+          No se pudo sincronizar el detalle con el servidor. Se muestran los
+          datos del listado.
+        </p>
+      ) : null}
+
+      <DetailSection title="Importes">
+        <div className="gd-detail-section__grid gd-detail-section__grid--two">
+          <DetailField
+            label="Capital"
+            value={formatLoanMoneyDisplay(loan, Number(loan.principalAmount), {
+              fallback: formatCup,
+              decimals: priceDecimals,
+            })}
+          />
+          <DetailField
+            label="Cobrado"
+            value={formatLoanMoneyDisplay(loan, Number(loan.totalPaid), {
+              fallback: formatCup,
+              decimals: priceDecimals,
+            })}
+          />
+          <DetailField
+            label="Pendiente (capital)"
+            value={formatLoanMoneyDisplay(
+              loan,
+              Number(loan.outstandingPrincipal),
+              { fallback: formatCup, decimals: priceDecimals },
+            )}
+          />
+          <DetailField
+            label="Interés estimado"
+            value={formatLoanMoneyDisplay(
+              loan,
+              Number(loan.estimatedInterest),
+              { fallback: formatCup, decimals: priceDecimals },
+            )}
+          />
+          <DetailField
+            label="Saldo estimado total"
+            value={formatLoanMoneyDisplay(
+              loan,
+              Number(loan.estimatedTotalDue),
+              { fallback: formatCup, decimals: priceDecimals },
+            )}
+          />
+        </div>
+        <p
+          style={{
+            margin: "8px 0 0",
+            fontSize: "0.75rem",
+            lineHeight: 1.45,
+            color: "#64748b",
+          }}
+        >
+          El interés estimado y el saldo total usan interés simple según la
+          periodicidad de la tasa indicada en condiciones.
+        </p>
+      </DetailSection>
+
+      <DetailSection title="Condiciones">
+        <div className="gd-detail-section__grid gd-detail-section__grid--two">
+          <DetailField label="Deudor" value={displayDash(loan.debtorName)} />
+          <DetailField
+            label="Tasa de interés"
+            value={formatLoanInterestLine(
+              loan.interestPercent,
+              loan.interestRatePeriod,
+              (
+                loan as LoanResponse & {
+                  interestPercentPerYear?: number | null;
+                }
+              ).interestPercentPerYear,
+            )}
+          />
+          <DetailField
+            label="Inicio interés"
+            value={
+              loan.interestStartDate
+                ? formatDetailDate(loan.interestStartDate)
+                : "—"
+            }
+          />
+        </div>
+        {(loan.dueDates?.length ?? 0) > 0 ? (
+          <DetailField
+            label="Fechas previstas de cobro"
+            value={
+              <ul style={{ margin: 0, paddingLeft: "1.1rem" }}>
+                {(loan.dueDates ?? []).map((d) => (
+                  <li key={d}>{formatDetailDate(d)}</li>
+                ))}
+              </ul>
+            }
+          />
+        ) : null}
+      </DetailSection>
+
+      {loan.notes?.trim() ? (
+        <DetailSection title="Notas">
+          <DetailField label="" value={loan.notes} />
+        </DetailSection>
+      ) : null}
+
+      <DetailSection title="Cobros registrados">
+        {canRegisterPayment && loan.outstandingPrincipal > 0 ? (
+          <div style={{ marginBottom: 12 }}>
+            <button
+              type="button"
+              className="modal-btn modal-btn--primary"
+              onClick={openPayment}
+            >
+              Registrar cobro
+            </button>
+          </div>
+        ) : null}
+        {sortedPayments.length === 0 ? (
+          <p style={{ margin: 0, color: "#64748b" }}>Sin cobros registrados.</p>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                fontSize: "0.875rem",
+              }}
+            >
+              <thead>
+                <tr style={{ borderBottom: "1px solid #e2e8f0" }}>
+                  <th style={{ textAlign: "left", padding: "6px 8px" }}>
+                    Importe
+                  </th>
+                  <th style={{ textAlign: "left", padding: "6px 8px" }}>
+                    Fecha
+                  </th>
+                  <th style={{ textAlign: "left", padding: "6px 8px" }}>
+                    Notas
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedPayments.map((p) => (
+                  <tr key={p.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                    <td style={{ padding: "8px" }}>
+                      {formatLoanMoneyDisplay(loan, Number(p.amount), {
+                        fallback: formatCup,
+                        decimals: priceDecimals,
+                      })}
+                    </td>
+                    <td style={{ padding: "8px" }}>
+                      {formatDetailDateTime(p.paidAt)}
+                    </td>
+                    <td style={{ padding: "8px" }}>{displayDash(p.notes)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </DetailSection>
+
+      <DetailSection title="Fechas">
+        <div className="gd-detail-section__grid gd-detail-section__grid--two">
+          <DetailField
+            label="Creado"
+            value={formatDetailDate(loan.createdAt)}
+          />
+          <DetailField
+            label="Última actualización"
+            value={formatDetailDate(loan.modifiedAt)}
+          />
+        </div>
+      </DetailSection>
+
+      {paymentOpen ? (
+        <FormModal
+          open={paymentOpen}
+          onClose={closePayment}
+          title="Registrar cobro"
+          icon="payments"
+          onSubmit={handlePaymentSubmit}
+          submitting={paySubmitting}
+          submitLabel="Registrar"
+          error={payError}
+        >
+          <div className="modal-field">
+            <label htmlFor="loan-pay-amount">Importe *</label>
+            <input
+              id="loan-pay-amount"
+              type="number"
+              min={0}
+              step="0.01"
+              value={payAmount}
+              onChange={(e) => setPayAmount(e.target.value)}
+            />
+          </div>
+          <div className="modal-field">
+            <label htmlFor="loan-pay-at">Fecha y hora</label>
+            <input
+              id="loan-pay-at"
+              type="datetime-local"
+              value={payAt}
+              onChange={(e) => setPayAt(e.target.value)}
+            />
+          </div>
+          <div className="modal-field field-full">
+            <label htmlFor="loan-pay-notes">Notas</label>
+            <textarea
+              id="loan-pay-notes"
+              value={payNotes}
+              onChange={(e) => setPayNotes(e.target.value)}
+              rows={2}
+            />
+          </div>
+        </FormModal>
+      ) : null}
     </>
   );
 }

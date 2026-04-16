@@ -92,6 +92,7 @@ function friendlyName(code: string, op: string): string {
     tag: "Etiqueta",
     currency: "Moneda",
     daily_summary: "Cuadre Diario",
+    loan: "Préstamo",
   };
   const lastSeg = entity.includes(".")
     ? (entity.split(".").pop() ?? entity)
@@ -143,6 +144,7 @@ export function buildEntityGroups(
     tag: 16,
     currency: 17,
     daily_summary: 18,
+    loan: 19,
   };
 
   const LABELS: Record<string, string> = {
@@ -165,6 +167,7 @@ export function buildEntityGroups(
     tag: "Etiquetas",
     currency: "Monedas",
     daily_summary: "Cuadre Diario",
+    loan: "Préstamos",
   };
 
   const DESCRIPTIONS: Record<string, string> = {
@@ -187,6 +190,7 @@ export function buildEntityGroups(
     tag: "Etiquetas para clasificar.",
     currency: "Monedas y tipos de cambio.",
     daily_summary: "Cierre de caja y cuadre de inventario diario.",
+    loan: "Dinero prestado y cobros pendientes.",
   };
 
   const OP_SORT_ORDER = [
