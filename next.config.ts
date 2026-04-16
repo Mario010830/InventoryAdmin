@@ -22,6 +22,8 @@ function apiRewriteOrigin(): string {
 }
 
 const nextConfig: NextConfig = {
+  /** Imagen Docker: solo copia lo necesario para `next start` vía `server.js`. */
+  output: "standalone",
   /**
    * Dominios permitidos para `next/image` (optimizador `/_next/image`).
    * No usa JWT: solo hosts declarados aquí. Añade API, CDN y scrapers.
