@@ -30,6 +30,12 @@ export const MAIN_SIDEBAR_ITEMS: SidebarNavItem[] = [
     permission: "supplier.read",
   },
   {
+    icon: "credit_card",
+    label: "Métodos de pago",
+    route: "/dashboard/payment-methods",
+    permission: "paymentmethod.read",
+  },
+  {
     icon: "warehouse",
     label: "Ubicaciones",
     route: "/dashboard/locations",
@@ -46,12 +52,6 @@ export const MAIN_SIDEBAR_ITEMS: SidebarNavItem[] = [
     label: "Movimientos",
     route: "/dashboard/movements",
     permission: "inventorymovement.read",
-  },
-  {
-    icon: "point_of_sale",
-    label: "Ventas",
-    route: "/dashboard/sales",
-    permission: "sale.read",
   },
   {
     icon: "calculate",
@@ -107,6 +107,64 @@ export const ADMIN_SIDEBAR_ITEMS: SidebarNavItem[] = [
 ];
 
 /** Entrada principal «Reportes» y subenlaces (mismas rutas que el sidebar). */
+/** Ventas: padre + submenú (órdenes, devoluciones, retiro de caja). */
+export const SALES_SIDEBAR_PARENT = {
+  route: "/dashboard/sales",
+  label: "Ventas",
+  icon: "point_of_sale" as const,
+};
+
+export interface SalesSidebarSection {
+  route: string;
+  label: string;
+  /** Si falta, solo se exige el permiso del padre implícito vía `canSeeSalesSection`. */
+  permission?: string;
+}
+
+export const SALES_SIDEBAR_SECTIONS: SalesSidebarSection[] = [
+  { route: "/dashboard/sales", label: "Órdenes", permission: "sale.read" },
+  { route: "/dashboard/sales/returns", label: "Devoluciones", permission: "sale.read" },
+  {
+    route: "/dashboard/sales/cash-outflow",
+    label: "Retiro de caja",
+    permission: "daily_summary.view",
+  },
+];
+
+/** Visibilidad de cada entrada del submenú Ventas (retiro admite ver o crear cuadre). */
+export function canSeeSalesSection(
+  section: SalesSidebarSection,
+  has: (code: string) => boolean,
+): boolean {
+  if (section.route === "/dashboard/sales/cash-outflow") {
+    return has("daily_summary.view") || has("daily_summary.create");
+  }
+  if (!section.permission) return has("sale.read");
+  return has(section.permission);
+}
+
+/** Resalta la entrada correcta del submenú Ventas según la ruta actual. */
+export function isSalesSidebarSectionActive(
+  sectionRoute: string,
+  pathname: string,
+): boolean {
+  if (sectionRoute === "/dashboard/sales/returns") {
+    return pathname.startsWith("/dashboard/sales/returns");
+  }
+  if (sectionRoute === "/dashboard/sales/cash-outflow") {
+    return pathname.startsWith("/dashboard/sales/cash-outflow");
+  }
+  if (sectionRoute === "/dashboard/sales") {
+    return (
+      pathname === "/dashboard/sales" ||
+      (pathname.startsWith("/dashboard/sales") &&
+        !pathname.startsWith("/dashboard/sales/returns") &&
+        !pathname.startsWith("/dashboard/sales/cash-outflow"))
+    );
+  }
+  return pathname === sectionRoute || pathname.startsWith(`${sectionRoute}/`);
+}
+
 export const REPORT_SIDEBAR_PARENT: { route: string; label: string } = {
   route: "/reportes",
   label: "Reportes",

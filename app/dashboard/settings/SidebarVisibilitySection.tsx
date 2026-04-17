@@ -7,6 +7,9 @@ import {
   MAIN_SIDEBAR_ITEMS,
   REPORT_SIDEBAR_PARENT,
   REPORT_SIDEBAR_SECTIONS,
+  SALES_SIDEBAR_PARENT,
+  SALES_SIDEBAR_SECTIONS,
+  canSeeSalesSection,
   type SidebarNavItem,
 } from "@/lib/sidebarNavConfig";
 import {
@@ -40,6 +43,16 @@ export function SidebarVisibilitySection() {
     [],
   );
 
+  const salesVisibilityItems = useMemo(
+    () => [
+      { route: SALES_SIDEBAR_PARENT.route, label: "Ventas (bloque)" },
+      ...SALES_SIDEBAR_SECTIONS.filter((s) =>
+        canSeeSalesSection(s, hasPermission),
+      ).map((s) => ({ route: s.route, label: `Ventas · ${s.label}` })),
+    ],
+    [hasPermission],
+  );
+
   const isHidden = (route: string) => hidden.includes(route);
 
   return (
@@ -57,6 +70,25 @@ export function SidebarVisibilitySection() {
           <h3 className="settings-sidebar-toggles__title">Menú</h3>
           <ul className="settings-sidebar-toggles__list">
             {mainItems.map((item) => (
+              <li key={item.route} className="settings-sidebar-toggles__row">
+                <Switch
+                  checked={!isHidden(item.route)}
+                  onChange={(checked) =>
+                    setSidebarRouteHidden(item.route, !checked)
+                  }
+                />
+                <span className="settings-sidebar-toggles__label">
+                  {item.label}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="settings-sidebar-toggles__group">
+          <h3 className="settings-sidebar-toggles__title">Ventas</h3>
+          <ul className="settings-sidebar-toggles__list">
+            {salesVisibilityItems.map((item) => (
               <li key={item.route} className="settings-sidebar-toggles__row">
                 <Switch
                   checked={!isHidden(item.route)}

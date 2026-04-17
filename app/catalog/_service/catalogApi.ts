@@ -2,6 +2,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { getApiUrl } from "@/lib/auth-api";
 import type {
   PaginationMeta,
+  PaymentMethodResponse,
   PublicCatalogItem,
   PublicLocation,
   Tag,
@@ -132,6 +133,17 @@ export const catalogApi = createApi({
       query: () => "/public/tags",
       transformResponse: (raw: unknown) => parseList<Tag>(raw),
     }),
+
+    /** GET /payment-method/by-location — sin JWT; métodos activos para checkout. */
+    getPaymentMethodsByLocation: builder.query<
+      PaymentMethodResponse[],
+      number
+    >({
+      query: (locationId) =>
+        `/payment-method/by-location?locationId=${locationId}`,
+      transformResponse: (raw: unknown) =>
+        parseList<PaymentMethodResponse>(raw),
+    }),
   }),
 });
 
@@ -141,4 +153,6 @@ export const {
   useLazyGetPublicCatalogQuery,
   useGetAllPublicProductsQuery,
   useGetPublicTagsQuery,
+  useGetPaymentMethodsByLocationQuery,
+  useLazyGetPaymentMethodsByLocationQuery,
 } = catalogApi;

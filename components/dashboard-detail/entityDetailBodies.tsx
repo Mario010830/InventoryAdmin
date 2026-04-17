@@ -17,6 +17,7 @@ import type {
   LoanResponse,
   LogResponse,
   ProductCategoryResponse,
+  PaymentMethodResponse,
   ProductResponse,
   RoleResponse,
   SupplierResponse,
@@ -620,6 +621,50 @@ export function LoanDetailBody({
           </div>
         </FormModal>
       ) : null}
+    </>
+  );
+}
+
+export function PaymentMethodDetailBody({ row }: { row: PaymentMethodResponse }) {
+  return (
+    <>
+      <DetailSection title="General">
+        <div className="gd-detail-section__grid gd-detail-section__grid--two">
+          <DetailField label="Nombre" value={displayDash(row.name)} />
+          <DetailField
+            label="Referencia del instrumento"
+            value={displayDash(row.instrumentReference)}
+          />
+          <DetailField label="Orden" value={String(row.sortOrder ?? "—")} />
+          <DetailField
+            label="Organización (id)"
+            value={String(row.organizationId ?? "—")}
+          />
+        </div>
+      </DetailSection>
+      <DetailSection title="Estado">
+        <div className="gd-detail-section__grid gd-detail-section__grid--two">
+          <DetailField
+            label="Estado"
+            value={
+              <BoolBadge
+                value={row.isActive}
+                trueLabel="Activo"
+                falseLabel="Inactivo"
+              />
+            }
+          />
+        </div>
+      </DetailSection>
+      <DetailSection title="Fechas">
+        <div className="gd-detail-section__grid gd-detail-section__grid--two">
+          <DetailField label="Creado" value={formatDetailDate(row.createdAt)} />
+          <DetailField
+            label="Última actualización"
+            value={formatDetailDate(row.modifiedAt)}
+          />
+        </div>
+      </DetailSection>
     </>
   );
 }

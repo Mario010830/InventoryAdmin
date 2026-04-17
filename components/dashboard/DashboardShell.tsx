@@ -4,6 +4,7 @@ import { BarChart2, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Fragment,
   type ReactNode,
   useEffect,
   useMemo,
@@ -18,6 +19,10 @@ import {
   MAIN_SIDEBAR_ITEMS,
   REPORT_SIDEBAR_PARENT,
   REPORT_SIDEBAR_SECTIONS,
+  SALES_SIDEBAR_PARENT,
+  SALES_SIDEBAR_SECTIONS,
+  canSeeSalesSection,
+  isSalesSidebarSectionActive,
   type SidebarNavItem,
 } from "@/lib/sidebarNavConfig";
 import { useHiddenSidebarRoutes } from "@/lib/sidebarVisibility";
@@ -123,6 +128,44 @@ function DashboardSettingsNavItem({
   );
 }
 
+function SalesNavItem({
+  collapsed,
+  salesSubSections,
+}: {
+  collapsed: boolean;
+  salesSubSections: { route: string; label: string }[];
+}) {
+  const pathname = usePathname();
+  const inSales = pathname.startsWith("/dashboard/sales");
+  const expanded = inSales;
+  const parentActive = inSales;
+  return (
+    <div className="nav-expandable">
+      <Link
+        href={SALES_SIDEBAR_PARENT.route}
+        className={`nav-item ${parentActive ? "active" : ""}`}
+      >
+        <Icon name={SALES_SIDEBAR_PARENT.icon} />
+        {!collapsed && <span>{SALES_SIDEBAR_PARENT.label}</span>}
+      </Link>
+      {!collapsed && expanded && salesSubSections.length > 0 && (
+        <nav className="nav-sub" aria-label="Submenú de ventas">
+          {salesSubSections.map((s) => (
+            <Link
+              key={s.route}
+              href={s.route}
+              className={`nav-sub-item ${isSalesSidebarSectionActive(s.route, pathname) ? "nav-sub-item--active" : ""}`}
+            >
+              <span className="nav-sub-dot" aria-hidden />
+              <span>{s.label}</span>
+            </Link>
+          ))}
+        </nav>
+      )}
+    </div>
+  );
+}
+
 function ReportsNavItem({
   collapsed,
   reportSubSections,
@@ -195,12 +238,31 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     [hiddenSidebarRoutes],
   );
 
+  const visibleSalesSubSections = useMemo(
+    () =>
+      SALES_SIDEBAR_SECTIONS.filter((s) => canSeeSalesSection(s, hasPermission))
+        .filter((s) => !hiddenSidebarRoutes.includes(s.route))
+        .map((s) => ({ route: s.route, label: s.label })),
+    [hasPermission, hiddenSidebarRoutes],
+  );
+
+  const showSalesBlock = useMemo(() => {
+    if (hiddenSidebarRoutes.includes(SALES_SIDEBAR_PARENT.route)) return false;
+    return visibleSalesSubSections.length > 0;
+  }, [hiddenSidebarRoutes, visibleSalesSubSections]);
+
   const visibleNavItems = useMemo(() => {
     const allowed = MAIN_SIDEBAR_ITEMS.filter(
       (item) => !item.permission || hasPermission(item.permission),
     );
     return allowed.filter((item) => !hiddenSidebarRoutes.includes(item.route));
   }, [hasPermission, hiddenSidebarRoutes]);
+
+  const salesInsertBeforeDaily = useMemo(
+    () =>
+      visibleNavItems.findIndex((i) => i.route === "/dashboard/daily-summary"),
+    [visibleNavItems],
+  );
 
   const visibleAdminItems = useMemo(() => {
     const allowed = ADMIN_SIDEBAR_ITEMS.filter(
@@ -296,16 +358,29 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           {visibleNavItems.length > 0 ? (
             <div className="nav-group">
               {showNavText && <div className="nav-group-label">MENÚ</div>}
-              {visibleNavItems.map((item) => (
-                <Link
-                  key={item.route}
-                  href={item.route}
-                  className={`nav-item ${isActive(item.route) ? "active" : ""}`}
-                >
-                  <SidebarNavIcon item={item} />
-                  {showNavText && <span>{item.label}</span>}
-                </Link>
+              {visibleNavItems.map((item, idx) => (
+                <Fragment key={item.route}>
+                  {showSalesBlock && salesInsertBeforeDaily === idx ? (
+                    <SalesNavItem
+                      collapsed={!showNavText}
+                      salesSubSections={visibleSalesSubSections}
+                    />
+                  ) : null}
+                  <Link
+                    href={item.route}
+                    className={`nav-item ${isActive(item.route) ? "active" : ""}`}
+                  >
+                    <SidebarNavIcon item={item} />
+                    {showNavText && <span>{item.label}</span>}
+                  </Link>
+                </Fragment>
               ))}
+              {showSalesBlock && salesInsertBeforeDaily === -1 ? (
+                <SalesNavItem
+                  collapsed={!showNavText}
+                  salesSubSections={visibleSalesSubSections}
+                />
+              ) : null}
             </div>
           ) : null}
           {showReportsBlock ? (

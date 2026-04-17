@@ -6,6 +6,7 @@ import { theme } from "@/components/dashboard";
 import { Icon } from "@/components/ui/Icon";
 import type {
   CreateSaleOrderItem,
+  CreateSaleOrderPaymentRequest,
   CreateSaleOrderRequest,
   ProductResponse,
 } from "@/lib/dashboard-types";
@@ -14,6 +15,7 @@ import {
   userFacingBusinessErrorMessage,
 } from "@/lib/apiBusinessErrors";
 import { useAppSelector } from "@/store/store";
+import { useGetPaymentMethodsByLocationQuery } from "@/app/catalog/_service/catalogApi";
 import { useGetContactsQuery } from "@/app/dashboard/contacts/_service/contactsApi";
 import { useGetLocationsQuery } from "@/app/dashboard/locations/_service/locationsApi";
 import { useGetProductsQuery } from "@/app/dashboard/products/_service/productsApi";
@@ -22,6 +24,14 @@ import {
   useConfirmOrderMutation,
   useCreateOrderMutation,
 } from "./_service/salesApi";
+import { SalePaymentLinesForm } from "./SalePaymentLinesForm";
+import {
+  amountsMatchTotal,
+  buildPaymentsFromDraft,
+  estimateOrderTotalFromLines,
+  paymentsAmountSum,
+} from "./salePaymentUtils";
+import type { PaymentLineDraft } from "./salePaymentUtils";
 import { toast } from "sonner";
 import "../products/products-modal.css";
 
@@ -100,6 +110,23 @@ export function SaleCreateModal({
   const [notes, setNotes] = useState("");
   const [discountAmount, setDiscountAmount] = useState("");
   const [lines, setLines] = useState<SaleLine[]>([]);
+  const [paymentLines, setPaymentLines] = useState<PaymentLineDraft[]>([]);
+
+  const locationIdNum = Number(locationId);
+  const { data: paymentMethods = [] } = useGetPaymentMethodsByLocationQuery(
+    Number.isFinite(locationIdNum) && locationIdNum > 0 ? locationIdNum : 0,
+    {
+      skip:
+        !open ||
+        !Number.isFinite(locationIdNum) ||
+        locationIdNum <= 0,
+    },
+  );
+
+  const estimatedOrderTotal = useMemo(
+    () => estimateOrderTotalFromLines(lines, discountAmount),
+    [lines, discountAmount],
+  );
 
   const [pickSearch, setPickSearch] = useState("");
   const [pickOpen, setPickOpen] = useState(false);
@@ -118,6 +145,7 @@ export function SaleCreateModal({
     setNotes("");
     setDiscountAmount("");
     setLines([]);
+    setPaymentLines([]);
     setPickSearch("");
     setPickOpen(false);
     setPickQty("1");
@@ -126,6 +154,11 @@ export function SaleCreateModal({
     setLocationId(loc != null ? String(loc) : "");
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir; defaultLoc puede llegar después
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    setPaymentLines([]);
+  }, [open, locationId]);
 
   useEffect(() => {
     if (!open) return;
@@ -212,22 +245,50 @@ export function SaleCreateModal({
     return null;
   }, [contactId, locationId, lines]);
 
-  const buildRequest = useCallback((): CreateSaleOrderRequest => {
-    const disc = parseFloat(discountAmount.trim().replace(",", "."));
-    return {
-      locationId: Number(locationId),
-      contactId: contactId.trim() === "" ? null : Number(contactId),
-      notes: notes.trim() || null,
-      discountAmount:
-        Number.isFinite(disc) && disc > 0 ? disc : 0,
-      items: buildItemsFromLines(lines),
-    };
-  }, [contactId, discountAmount, lines, locationId, notes]);
+  const buildRequest = useCallback(
+    (payments?: CreateSaleOrderPaymentRequest[]) => {
+      const disc = parseFloat(discountAmount.trim().replace(",", "."));
+      const req: CreateSaleOrderRequest = {
+        locationId: Number(locationId),
+        contactId: contactId.trim() === "" ? null : Number(contactId),
+        notes: notes.trim() || null,
+        discountAmount: Number.isFinite(disc) && disc > 0 ? disc : 0,
+        items: buildItemsFromLines(lines),
+      };
+      if (payments && payments.length > 0) req.payments = payments;
+      return req;
+    },
+    [contactId, discountAmount, lines, locationId, notes],
+  );
 
   const mapSubmitError = useCallback((err: unknown) => {
     const { customStatusCode, message } = extractRtkQueryErrorFields(err);
     return userFacingBusinessErrorMessage(customStatusCode, message, "es");
   }, []);
+
+  const validatePaymentsOptional = (): string | null => {
+    const built = buildPaymentsFromDraft(paymentLines);
+    if (!built.ok) return built.error;
+    if (built.payments.length === 0) return null;
+    const sum = paymentsAmountSum(built.payments);
+    if (!amountsMatchTotal(sum, estimatedOrderTotal)) {
+      return `Si indicas pagos, la suma (${sum.toFixed(2)}) debe coincidir con el total (${estimatedOrderTotal.toFixed(2)}).`;
+    }
+    return null;
+  };
+
+  const validatePaymentsRequiredForConfirm = (): string | null => {
+    const built = buildPaymentsFromDraft(paymentLines);
+    if (!built.ok) return built.error;
+    if (built.payments.length === 0) {
+      return "Para confirmar, añade al menos una línea de pago cuya suma iguale el total de la orden.";
+    }
+    const sum = paymentsAmountSum(built.payments);
+    if (!amountsMatchTotal(sum, estimatedOrderTotal)) {
+      return `La suma de pagos (${sum.toFixed(2)}) debe coincidir con el total (${estimatedOrderTotal.toFixed(2)}; tolerancia 0,01).`;
+    }
+    return null;
+  };
 
   const handleDraftOnly = async () => {
     const v = validateForApi();
@@ -235,10 +296,18 @@ export function SaleCreateModal({
       setFormError(v);
       return;
     }
+    const pv = validatePaymentsOptional();
+    if (pv) {
+      setFormError(pv);
+      return;
+    }
     setIsSubmitting(true);
     setFormError("");
     try {
-      const body = buildRequest();
+      const built = buildPaymentsFromDraft(paymentLines);
+      const body = buildRequest(
+        built.ok && built.payments.length > 0 ? built.payments : undefined,
+      );
       await createOrder(body).unwrap();
       toast.success("Venta guardada como borrador.");
       onSuccess?.();
@@ -257,10 +326,20 @@ export function SaleCreateModal({
       setFormError(v);
       return;
     }
+    const pv = validatePaymentsRequiredForConfirm();
+    if (pv) {
+      setFormError(pv);
+      return;
+    }
+    const built = buildPaymentsFromDraft(paymentLines);
+    if (!built.ok) {
+      setFormError(built.error);
+      return;
+    }
     setIsSubmitting(true);
     setFormError("");
     try {
-      const body = buildRequest();
+      const body = buildRequest(built.payments);
       const created = await createOrder(body).unwrap();
       const id = Number(created.id);
       if (!Number.isFinite(id) || id <= 0) {
@@ -365,6 +444,26 @@ export function SaleCreateModal({
           onChange={(e) => setDiscountAmount(e.target.value)}
         />
       </div>
+
+      <p
+        style={{
+          margin: "0 0 8px",
+          fontSize: 12,
+          color: theme.secondaryText,
+        }}
+      >
+        Total estimado: <strong>{estimatedOrderTotal.toFixed(2)}</strong>. Para
+        confirmar la venta, el desglose de pagos debe sumar exactamente ese total
+        (tolerancia 0,01). En borrador los pagos son opcionales.
+      </p>
+
+      <SalePaymentLinesForm
+        methods={paymentMethods}
+        lines={paymentLines}
+        onChange={setPaymentLines}
+        expectedTotal={estimatedOrderTotal}
+        disabled={isSubmitting}
+      />
 
       <div className="modal-field field-full sale-create-picker">
         <label>Añadir producto</label>

@@ -4,7 +4,9 @@ import { parsePaginated, parseSummaryResult } from "@/lib/api-utils";
 import baseQueryWithReauth from "@/lib/baseQuery";
 import type {
   CreateSaleOrderRequest,
+  CreateSaleReturnRequest,
   SaleOrderResponse,
+  SaleReturnResponse,
   UpdateSaleOrderRequest,
 } from "@/lib/dashboard-types";
 
@@ -28,13 +30,38 @@ function extractOrder(raw: unknown): SaleOrderResponse {
   return raw as SaleOrderResponse;
 }
 
+function extractSaleReturn(raw: unknown): SaleReturnResponse {
+  if (raw == null || typeof raw !== "object") {
+    return raw as SaleReturnResponse;
+  }
+  const obj = raw as Record<string, unknown>;
+  const inner =
+    (obj.result ?? obj.Result ?? obj.data ?? obj.Data ?? raw) as unknown;
+  if (inner && typeof inner === "object" && !Array.isArray(inner)) {
+    return inner as SaleReturnResponse;
+  }
+  return raw as SaleReturnResponse;
+}
+
+interface GetSaleReturnsArgs {
+  page?: number;
+  perPage?: number;
+  sortOrder?: string;
+}
+
+interface GetSaleReturnsBySaleOrderArgs {
+  saleOrderId: number;
+  page?: number;
+  perPage?: number;
+}
+
 export const salesApi = createApi({
   reducerPath: "salesApi",
   baseQuery: baseQueryWithReauth,
   refetchOnMountOrArgChange: true,
   refetchOnFocus: true,
   refetchOnReconnect: true,
-  tagTypes: ["SaleOrder"],
+  tagTypes: ["SaleOrder", "SaleReturn"],
 
   endpoints: (builder) => ({
     getOrders: builder.query<PaginatedResult<SaleOrderResponse>, GetOrdersArgs>(
@@ -119,6 +146,78 @@ export const salesApi = createApi({
       query: (days = 30) => `/sale-order/stats?days=${days}`,
       transformResponse: parseSummaryResult<Record<string, unknown>>,
     }),
+
+    getSaleReturns: builder.query<
+      PaginatedResult<SaleReturnResponse>,
+      GetSaleReturnsArgs
+    >({
+      query: ({
+        page = 1,
+        perPage = 10,
+        sortOrder = "desc",
+      }: GetSaleReturnsArgs = {}) => {
+        const p = new URLSearchParams();
+        p.set("page", String(page));
+        p.set("perPage", String(perPage));
+        p.set("sortOrder", sortOrder);
+        return `/sale-return?${p.toString()}`;
+      },
+      transformResponse: (raw: unknown, _meta, arg) =>
+        parsePaginated<SaleReturnResponse>(raw, arg?.perPage ?? 10),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.data.map(({ id }) => ({
+                type: "SaleReturn" as const,
+                id,
+              })),
+              { type: "SaleReturn", id: "LIST" },
+            ]
+          : [{ type: "SaleReturn", id: "LIST" }],
+    }),
+
+    getSaleReturnById: builder.query<SaleReturnResponse, number>({
+      query: (id) => `/sale-return/id?id=${id}`,
+      transformResponse: extractSaleReturn,
+      providesTags: (_r, _e, id) => [{ type: "SaleReturn", id }],
+    }),
+
+    getSaleReturnsBySaleOrder: builder.query<
+      PaginatedResult<SaleReturnResponse>,
+      GetSaleReturnsBySaleOrderArgs
+    >({
+      query: (arg) => {
+        const page = arg.page ?? 1;
+        const perPage = arg.perPage ?? 50;
+        return `/sale-return/by-sale-order?saleOrderId=${arg.saleOrderId}&page=${page}&perPage=${perPage}`;
+      },
+      transformResponse: (raw: unknown, _meta, arg) =>
+        parsePaginated<SaleReturnResponse>(raw, arg?.perPage ?? 50),
+      providesTags: (result, _e, arg) =>
+        result
+          ? [
+              ...result.data.map(({ id }) => ({
+                type: "SaleReturn" as const,
+                id,
+              })),
+              { type: "SaleReturn", id: `BY_SALE_${arg.saleOrderId}` },
+            ]
+          : [{ type: "SaleReturn", id: `BY_SALE_${arg.saleOrderId}` }],
+    }),
+
+    createSaleReturn: builder.mutation<
+      SaleReturnResponse,
+      CreateSaleReturnRequest
+    >({
+      query: (body) => ({ url: "/sale-return", method: "POST", body }),
+      transformResponse: extractSaleReturn,
+      invalidatesTags: (_r, _e, arg) => [
+        { type: "SaleReturn", id: "LIST" },
+        { type: "SaleReturn", id: `BY_SALE_${arg.saleOrderId}` },
+        { type: "SaleOrder", id: arg.saleOrderId },
+        { type: "SaleOrder", id: "LIST" },
+      ],
+    }),
   }),
 });
 
@@ -130,4 +229,8 @@ export const {
   useConfirmOrderMutation,
   useCancelOrderMutation,
   useGetOrderStatsQuery,
+  useGetSaleReturnsQuery,
+  useGetSaleReturnByIdQuery,
+  useGetSaleReturnsBySaleOrderQuery,
+  useCreateSaleReturnMutation,
 } = salesApi;

@@ -13,6 +13,10 @@ import {
   TABLE_SEARCH_DEBOUNCE_MS,
   useLoadAllRemainingPages,
 } from "@/lib/useLoadAllRemainingPages";
+import {
+  extractRtkQueryErrorFields,
+  userFacingBusinessErrorMessage,
+} from "@/lib/apiBusinessErrors";
 import { useGetUsersQuery } from "../users/_service/usersApi";
 import {
   useCancelOrderMutation,
@@ -22,7 +26,10 @@ import {
 import "./sales.css";
 import { SaleOrderDetailBody } from "@/components/dashboard-detail/SaleOrderDetailBody";
 import { SaleCreateModal } from "./SaleCreateModal";
+import { SaleDraftEditModal } from "./SaleDraftEditModal";
+import { SaleReturnModal } from "./SaleReturnModal";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
+import { toast } from "sonner";
 
 /** Normaliza el estado que puede venir "Draft"/"draft" etc. de la API */
 function normalizeStatus(status: string): string {
@@ -89,11 +96,12 @@ const COLUMNS: DataTableColumn<SaleOrderResponse>[] = [
   { key: "createdAt", label: "Fecha", type: "date" },
 ];
 
+/** Valores en minúsculas para el query `status` del API. */
 const STATUS_FILTERS = [
   { label: "Todas", value: "" },
-  { label: "Pendiente", value: "Draft" },
-  { label: "Aceptada", value: "Confirmed" },
-  { label: "Cancelada", value: "Cancelled" },
+  { label: "Pendiente", value: "draft" },
+  { label: "Aceptada", value: "confirmed" },
+  { label: "Cancelada", value: "cancelled" },
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -130,11 +138,19 @@ export default function SalesPage() {
   const [cancelOrder, { isLoading: isCancelling }] = useCancelOrderMutation();
   const [processingId, setProcessingId] = useState<number | null>(null);
   const [createSaleOpen, setCreateSaleOpen] = useState(false);
+  const [draftEditId, setDraftEditId] = useState<number | null>(null);
+  const [returnOrderId, setReturnOrderId] = useState<number | null>(null);
   const filtersChanged = useRef(false);
 
   const { has: hasPermission } = useUserPermissionCodes();
   const canCreateSale = hasPermission("sale.create");
   const canCancelSale = hasPermission("sale.cancel");
+  const canUpdateSale = hasPermission("sale.update");
+  const canCreateReturn = hasPermission("sale.return.create");
+
+  const openDraftEdit = useCallback((row: SaleOrderResponse) => {
+    setDraftEditId(row.id);
+  }, []);
 
   useEffect(() => {
     if (!result?.data) return;
@@ -159,7 +175,15 @@ export default function SalesPage() {
     }
     setPage(1);
     setAllRows([]);
-  }, []);
+  }, [
+    debouncedFilterText,
+    saleDateFrom,
+    saleDateTo,
+    amountMin,
+    amountMax,
+    filterSellerId,
+    statusFilter,
+  ]);
 
   const loadedRows =
     page === 1 && allRows.length === 0 ? (result?.data ?? []) : allRows;
@@ -247,6 +271,20 @@ export default function SalesPage() {
 
   const actions: DataTableAction<SaleOrderResponse>[] = [
     {
+      icon: "rotate_ccw",
+      label: "Devolución",
+      onClick: (row) => setReturnOrderId(row.id),
+      hidden: (row) =>
+        normalizeStatus(row.status) !== "Confirmed" || !canCreateReturn,
+    },
+    {
+      icon: "edit",
+      label: "Editar borrador",
+      onClick: openDraftEdit,
+      hidden: (row) =>
+        normalizeStatus(row.status) !== "Draft" || !canUpdateSale,
+    },
+    {
       icon:
         processingId !== null && isConfirming
           ? "hourglass_empty"
@@ -256,8 +294,14 @@ export default function SalesPage() {
         setProcessingId(row.id);
         try {
           await confirmOrder(row.id).unwrap();
+          toast.success("Venta confirmada.");
           setPage(1);
           setAllRows([]);
+        } catch (e) {
+          const { customStatusCode, message } = extractRtkQueryErrorFields(e);
+          toast.error(
+            userFacingBusinessErrorMessage(customStatusCode, message, "es"),
+          );
         } finally {
           setProcessingId(null);
         }
@@ -274,8 +318,14 @@ export default function SalesPage() {
         setProcessingId(row.id);
         try {
           await cancelOrder(row.id).unwrap();
+          toast.success("Orden cancelada.");
           setPage(1);
           setAllRows([]);
+        } catch (e) {
+          const { customStatusCode, message } = extractRtkQueryErrorFields(e);
+          toast.error(
+            userFacingBusinessErrorMessage(customStatusCode, message, "es"),
+          );
         } finally {
           setProcessingId(null);
         }
@@ -427,12 +477,32 @@ export default function SalesPage() {
         getTitle: (row) => row.folio || `Orden #${row.id}`,
         getStatusBadge: (row) => <StatusBadge status={row.status} />,
         render: (row) => <SaleOrderDetailBody row={row} />,
-        showEditButton: false,
+        onEdit: openDraftEdit,
+        showEditButton: (row) =>
+          canUpdateSale && normalizeStatus(row.status) === "Draft",
       }}
     />
     <SaleCreateModal
       open={createSaleOpen}
       onClose={() => setCreateSaleOpen(false)}
+      onSuccess={() => {
+        setPage(1);
+        setAllRows([]);
+      }}
+    />
+    <SaleDraftEditModal
+      open={draftEditId != null}
+      orderId={draftEditId}
+      onClose={() => setDraftEditId(null)}
+      onSuccess={() => {
+        setPage(1);
+        setAllRows([]);
+      }}
+    />
+    <SaleReturnModal
+      open={returnOrderId != null}
+      saleOrderId={returnOrderId}
+      onClose={() => setReturnOrderId(null)}
       onSuccess={() => {
         setPage(1);
         setAllRows([]);

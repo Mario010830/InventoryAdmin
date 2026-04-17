@@ -185,6 +185,33 @@ export interface UpdateSupplierRequest {
   isActive?: boolean;
 }
 
+// ─── Método de pago (backoffice) ───────────────────────────────────────────────
+
+export interface PaymentMethodResponse {
+  id: number;
+  organizationId: number;
+  name: string;
+  instrumentReference?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  modifiedAt: string;
+}
+
+export interface CreatePaymentMethodRequest {
+  name: string;
+  sortOrder?: number;
+  instrumentReference?: string | null;
+}
+
+export interface UpdatePaymentMethodRequest {
+  name?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+  /** Cadena vacía limpia la referencia en el servidor. */
+  instrumentReference?: string | null;
+}
+
 // ─── CRM: Contacto (cliente) ───────────────────────────────────────────────────
 
 export interface ContactResponse {
@@ -725,7 +752,14 @@ export interface CartItem {
 
 // ─── Órdenes de venta ─────────────────────────────────────────────────────────
 
-export type SaleOrderStatus = "Draft" | "Confirmed" | "Cancelled";
+/** La API usa minúsculas; el front normaliza a Draft/Confirmed/Cancelled en UI. */
+export type SaleOrderStatus =
+  | "Draft"
+  | "Confirmed"
+  | "Cancelled"
+  | "draft"
+  | "confirmed"
+  | "cancelled";
 
 export interface SaleOrderItemResponse {
   id: number;
@@ -738,6 +772,22 @@ export interface SaleOrderItemResponse {
   discount: number;
   lineTotal: number;
   grossMargin: number;
+}
+
+/** Línea de pago en creación/actualización de borrador. */
+export interface CreateSaleOrderPaymentRequest {
+  paymentMethodId: number;
+  amount: number;
+  reference?: string | null;
+}
+
+/** Línea de pago devuelta por la API (incluye datos del método configurado). */
+export interface SaleOrderPaymentResponse {
+  paymentMethodId: number;
+  amount: number;
+  reference?: string | null;
+  paymentMethodName?: string | null;
+  paymentMethodInstrumentReference?: string | null;
 }
 
 export interface SaleOrderResponse {
@@ -757,6 +807,8 @@ export interface SaleOrderResponse {
   createdAt: string;
   modifiedAt: string;
   items: SaleOrderItemResponse[];
+  /** Desglose de cobro (borrador o confirmada, según API). */
+  payments?: SaleOrderPaymentResponse[];
 }
 
 export interface CreateSaleOrderItem {
@@ -774,12 +826,77 @@ export interface CreateSaleOrderRequest {
   notes: string | null;
   discountAmount: number;
   items: CreateSaleOrderItem[];
+  /** Opcional; si hay líneas, la suma debe coincidir con el total (±0,01). */
+  payments?: CreateSaleOrderPaymentRequest[];
 }
 
+/** Solo aplica con status draft. `payments` en el JSON reemplaza todas las líneas ( [] vacía las quita). */
 export interface UpdateSaleOrderRequest {
   contactId?: number | null;
-  notes?: string;
-  discountAmount?: number;
+  notes?: string | null;
+  discountAmount?: number | null;
+  payments?: CreateSaleOrderPaymentRequest[] | null;
+}
+
+// ─── Devoluciones de venta (api/sale-return) ──────────────────────────────────
+
+export interface CreateSaleReturnItemRequest {
+  /** Id de la línea en `SaleOrderResponse.items[].id`. */
+  saleOrderItemId: number;
+  quantity: number;
+}
+
+export interface CreateSaleReturnRequest {
+  saleOrderId: number;
+  reason?: string | null;
+  notes?: string | null;
+  items: CreateSaleReturnItemRequest[];
+}
+
+export interface SaleReturnItemResponse {
+  saleOrderItemId: number;
+  productId: number;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface SaleReturnResponse {
+  id: number;
+  organizationId: number;
+  saleOrderId: number;
+  saleOrderFolio: string;
+  locationId: number;
+  locationName: string;
+  status: string;
+  reason: string | null;
+  notes: string | null;
+  total: number;
+  userId: number;
+  createdAt: string;
+  modifiedAt: string;
+  items: SaleReturnItemResponse[];
+}
+
+// ─── Retiros de caja (api/cash-outflow) ───────────────────────────────────────
+
+export interface CreateCashOutflowRequest {
+  /** Fecha contable; el API usa la parte fecha (p. ej. `2026-04-17T00:00:00`). */
+  date: string;
+  locationId?: number | null;
+  amount: number;
+  notes?: string | null;
+}
+
+export interface CashOutflowResponseDto {
+  id: number;
+  date: string;
+  locationId: number;
+  amount: number;
+  notes: string | null;
+  userId: number;
+  createdAt: string;
 }
 
 // ─── Tabla genérica ───────────────────────────────────────────────────────────

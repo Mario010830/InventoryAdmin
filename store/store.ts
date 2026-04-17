@@ -30,8 +30,10 @@ import { logsApi } from "@/app/dashboard/logs/_service/logsApi";
 import { movementsApi } from "@/app/dashboard/movements/_service/movementsApi";
 import { elyerroImportApi } from "@/app/dashboard/products/_service/elyerroImportApi";
 import { productsApi } from "@/app/dashboard/products/_service/productsApi";
+import { paymentMethodsApi } from "@/app/dashboard/payment-methods/_service/paymentMethodsApi";
 import { promotionApi } from "@/app/dashboard/promotions/_service/promotionApi";
 import { rolesApi } from "@/app/dashboard/roles/_service/rolesApi";
+import { cashOutflowApi } from "@/app/dashboard/sales/_service/cashOutflowApi";
 import { salesApi } from "@/app/dashboard/sales/_service/salesApi";
 import { currencyApi } from "@/app/dashboard/settings/_service/currencyApi";
 import { settingsApi } from "@/app/dashboard/settings/_service/settingsApi";
@@ -58,6 +60,7 @@ const combinedReducer = combineReducers({
   [inventoryApi.reducerPath]: inventoryApi.reducer,
   [categoriesApi.reducerPath]: categoriesApi.reducer,
   [suppliersApi.reducerPath]: suppliersApi.reducer,
+  [paymentMethodsApi.reducerPath]: paymentMethodsApi.reducer,
   [locationsApi.reducerPath]: locationsApi.reducer,
   [businessCategoryApi.reducerPath]: businessCategoryApi.reducer,
   [movementsApi.reducerPath]: movementsApi.reducer,
@@ -69,6 +72,7 @@ const combinedReducer = combineReducers({
   [dashboardApi.reducerPath]: dashboardApi.reducer,
   [catalogApi.reducerPath]: catalogApi.reducer,
   [salesApi.reducerPath]: salesApi.reducer,
+  [cashOutflowApi.reducerPath]: cashOutflowApi.reducer,
   [promotionApi.reducerPath]: promotionApi.reducer,
   [contactsApi.reducerPath]: contactsApi.reducer,
   [leadsApi.reducerPath]: leadsApi.reducer,
@@ -102,6 +106,7 @@ const apiMiddleware = [
   inventoryApi.middleware,
   categoriesApi.middleware,
   suppliersApi.middleware,
+  paymentMethodsApi.middleware,
   locationsApi.middleware,
   businessCategoryApi.middleware,
   movementsApi.middleware,
@@ -113,6 +118,7 @@ const apiMiddleware = [
   dashboardApi.middleware,
   catalogApi.middleware,
   salesApi.middleware,
+  cashOutflowApi.middleware,
   promotionApi.middleware,
   contactsApi.middleware,
   leadsApi.middleware,

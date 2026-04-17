@@ -93,14 +93,20 @@ function friendlyName(code: string, op: string): string {
     currency: "Moneda",
     daily_summary: "Cuadre Diario",
     loan: "Préstamo",
+    paymentmethod: "Métodos de pago",
   };
   const lastSeg = entity.includes(".")
     ? (entity.split(".").pop() ?? entity)
     : entity;
   const entityLabel = entityLabels[entity] ?? entityLabels[lastSeg] ?? lastSeg;
   if (entity === "admin" || lastSeg === "admin") return "Administrador";
-  if (op === "read")
-    return `Ver ${entityLabel}${entity === "productcategory" || entity === "inventorymovement" ? "" : "s"}`;
+  if (op === "read") {
+    const noPluralS =
+      entity === "productcategory" ||
+      entity === "inventorymovement" ||
+      entity === "paymentmethod";
+    return `Ver ${entityLabel}${noPluralS ? "" : "s"}`;
+  }
   return `${opLabel} ${entityLabel}`;
 }
 

@@ -96,4 +96,8 @@ export const PERMISSIONS = [
   { id: 1066, code: "loan.create", name: "Crear Préstamo" },
   { id: 1067, code: "loan.update", name: "Editar Préstamo" },
   { id: 1068, code: "loan.delete", name: "Eliminar Préstamo" },
+  { id: 1069, code: "paymentmethod.delete", name: "Eliminar Método de Pago" },
+  { id: 1070, code: "paymentmethod.update", name: "Editar Método de Pago" },
+  { id: 1071, code: "paymentmethod.read", name: "Ver Métodos de Pago" },
+  { id: 1072, code: "paymentmethod.create", name: "Crear Método de Pago" },
 ];
