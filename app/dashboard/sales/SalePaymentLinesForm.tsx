@@ -163,7 +163,7 @@ export function SalePaymentLinesForm({
             onClick={addLine}
           >
             <Icon name="add" style={{ width: 16, height: 16 }} />
-            Línea
+            Añadir método de pago
           </button>
         </div>
       </div>
