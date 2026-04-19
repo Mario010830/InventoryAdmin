@@ -120,11 +120,11 @@ export function ChatPanel({
                 value={draft}
                 onChange={(e) => setDraft(e.target.value.slice(0, MAX_LEN))}
                 onKeyDown={onKeyDown}
-                placeholder="Escribí tu pregunta…"
+                placeholder="Escribe tu pregunta…"
                 disabled={isLoading}
                 rows={2}
                 maxLength={MAX_LEN}
-                aria-label="Escribí tu pregunta para el manual"
+                aria-label="Escribe tu pregunta para el manual"
                 className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:border-blue-400 dark:focus:ring-blue-400/20"
               />
               {draft.length >= COUNTER_FROM && (

@@ -2,9 +2,12 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { parseChartResult, parseSummaryResult } from "@/lib/api-utils";
 import { getApiUrl, getToken } from "@/lib/auth-api";
 import type {
+  CreateCurrencyDenominationRequest,
   CreateCurrencyRequest,
+  CurrencyDenominationResponse,
   CurrencyResponse,
   SetDefaultCurrencyRequest,
+  UpdateCurrencyDenominationRequest,
   UpdateCurrencyRequest,
 } from "@/lib/dashboard-types";
 
@@ -12,6 +15,12 @@ function unwrapCurrency(raw: unknown): CurrencyResponse {
   const v = parseSummaryResult<CurrencyResponse>(raw);
   if (v && typeof (v as CurrencyResponse).id === "number") return v;
   throw new Error("Respuesta de moneda inválida");
+}
+
+function unwrapDenomination(raw: unknown): CurrencyDenominationResponse {
+  const v = parseSummaryResult<CurrencyDenominationResponse>(raw);
+  if (v && typeof (v as CurrencyDenominationResponse).id === "number") return v;
+  throw new Error("Respuesta de denominación inválida");
 }
 
 /** Lista GET /currency: tolera envoltorios ApiResponse y variantes. */
@@ -55,7 +64,7 @@ export const currencyApi = createApi({
   refetchOnMountOrArgChange: true,
   refetchOnFocus: false,
   refetchOnReconnect: true,
-  tagTypes: ["Currency"],
+  tagTypes: ["Currency", "CurrencyDenomination"],
   endpoints: (builder) => ({
     getCurrencies: builder.query<CurrencyResponse[], void>({
       query: () => "/currency",
@@ -108,6 +117,70 @@ export const currencyApi = createApi({
       transformResponse: unwrapCurrency,
       invalidatesTags: [{ type: "Currency", id: "LIST" }],
     }),
+
+    getDenominations: builder.query<
+      CurrencyDenominationResponse[],
+      { currencyId: number; activeOnly?: boolean }
+    >({
+      query: ({ currencyId, activeOnly }) => {
+        const p = new URLSearchParams();
+        if (activeOnly === true) p.set("activeOnly", "true");
+        const q = p.toString();
+        return `/currency/${currencyId}/denominations${q ? `?${q}` : ""}`;
+      },
+      transformResponse: (raw: unknown) =>
+        parseChartResult<CurrencyDenominationResponse>(raw),
+      providesTags: (_r, _e, arg) => [
+        { type: "CurrencyDenomination" as const, id: arg.currencyId },
+      ],
+    }),
+
+    createDenomination: builder.mutation<
+      CurrencyDenominationResponse,
+      { currencyId: number; body: CreateCurrencyDenominationRequest }
+    >({
+      query: ({ currencyId, body }) => ({
+        url: `/currency/${currencyId}/denominations`,
+        method: "POST",
+        body,
+      }),
+      transformResponse: unwrapDenomination,
+      invalidatesTags: (_r, _e, arg) => [
+        { type: "CurrencyDenomination", id: arg.currencyId },
+      ],
+    }),
+
+    updateDenomination: builder.mutation<
+      CurrencyDenominationResponse,
+      {
+        currencyId: number;
+        id: number;
+        body: UpdateCurrencyDenominationRequest;
+      }
+    >({
+      query: ({ currencyId, id, body }) => ({
+        url: `/currency/${currencyId}/denominations/${id}`,
+        method: "PUT",
+        body,
+      }),
+      transformResponse: unwrapDenomination,
+      invalidatesTags: (_r, _e, arg) => [
+        { type: "CurrencyDenomination", id: arg.currencyId },
+      ],
+    }),
+
+    deleteDenomination: builder.mutation<
+      void,
+      { currencyId: number; id: number }
+    >({
+      query: ({ currencyId, id }) => ({
+        url: `/currency/${currencyId}/denominations/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_r, _e, arg) => [
+        { type: "CurrencyDenomination", id: arg.currencyId },
+      ],
+    }),
   }),
 });
 
@@ -118,4 +191,8 @@ export const {
   useUpdateCurrencyMutation,
   useDeleteCurrencyMutation,
   useSetDefaultDisplayCurrencyMutation,
+  useGetDenominationsQuery,
+  useCreateDenominationMutation,
+  useUpdateDenominationMutation,
+  useDeleteDenominationMutation,
 } = currencyApi;

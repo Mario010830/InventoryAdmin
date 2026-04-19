@@ -42,6 +42,7 @@ import {
   useUpdateAccountProfileMutation,
   useUpdateGroupedSettingsMutation,
 } from "./_service/settingsApi";
+import { CurrencyDenominationsModal } from "./CurrencyDenominationsModal";
 import { SidebarVisibilitySection } from "./SidebarVisibilitySection";
 import { SETTINGS_SECTIONS } from "./settingsNav";
 
@@ -377,6 +378,10 @@ export default function SettingsPageClient() {
 
   const [showAddCurrency, setShowAddCurrency] = useState(false);
   const [newCur, setNewCur] = useState({ code: "", name: "", rate: "" });
+  const [denomModalOpen, setDenomModalOpen] = useState(false);
+  const [denomCurrency, setDenomCurrency] = useState<CurrencyResponse | null>(
+    null,
+  );
   const [activeSection, setActiveSection] = useState<string>("inventario");
 
   const [profileFullName, setProfileFullName] = useState("");
@@ -959,28 +964,49 @@ export default function SettingsPageClient() {
                               {new Date(c.updatedAt).toLocaleString("es")}
                             </td>
                             <td>
-                              <button
-                                type="button"
-                                className="settings-btn settings-btn--danger-ghost"
-                                disabled={
-                                  c.isBase ||
-                                  !canDeleteCurrency ||
-                                  deletingCurrency
-                                }
-                                onClick={() => {
-                                  if (c.isBase) return;
-                                  if (
-                                    !window.confirm(
-                                      `¿Eliminar la moneda ${c.code}?`,
-                                    )
-                                  )
-                                    return;
-                                  removeCurrency(c.id);
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 6,
+                                  alignItems: "flex-start",
                                 }}
-                                aria-label={`Eliminar ${c.code}`}
                               >
-                                Eliminar
-                              </button>
+                                {canReadCurrencies ? (
+                                  <button
+                                    type="button"
+                                    className="settings-btn settings-btn--primary-outline"
+                                    onClick={() => {
+                                      setDenomCurrency(c);
+                                      setDenomModalOpen(true);
+                                    }}
+                                  >
+                                    Denominaciones
+                                  </button>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  className="settings-btn settings-btn--danger-ghost"
+                                  disabled={
+                                    c.isBase ||
+                                    !canDeleteCurrency ||
+                                    deletingCurrency
+                                  }
+                                  onClick={() => {
+                                    if (c.isBase) return;
+                                    if (
+                                      !window.confirm(
+                                        `¿Eliminar la moneda ${c.code}?`,
+                                      )
+                                    )
+                                      return;
+                                    removeCurrency(c.id);
+                                  }}
+                                  aria-label={`Eliminar ${c.code}`}
+                                >
+                                  Eliminar
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -1544,6 +1570,15 @@ export default function SettingsPageClient() {
           </div>
         </div>
       ) : null}
+
+      <CurrencyDenominationsModal
+        open={denomModalOpen}
+        currency={denomCurrency}
+        onClose={() => {
+          setDenomModalOpen(false);
+          setDenomCurrency(null);
+        }}
+      />
     </div>
   );
 }

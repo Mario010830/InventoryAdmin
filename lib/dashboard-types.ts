@@ -637,6 +637,28 @@ export interface SetDefaultCurrencyRequest {
   currencyId: number;
 }
 
+/** Billetes/monedas por moneda (GET …/currency/{id}/denominations). */
+export interface CurrencyDenominationResponse {
+  id: number;
+  currencyId: number;
+  value: number;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  modifiedAt: string;
+}
+
+export interface CreateCurrencyDenominationRequest {
+  value: number;
+  sortOrder?: number;
+}
+
+export interface UpdateCurrencyDenominationRequest {
+  value?: number;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
 // ─── Log ─────────────────────────────────────────────────────────────────────
 
 export interface LogResponse {
@@ -774,20 +796,45 @@ export interface SaleOrderItemResponse {
   grossMargin: number;
 }
 
+/** Línea de denominación en cobro (entregado / vuelto). */
+export interface SaleOrderPaymentDenominationLineRequest {
+  value: number;
+  quantity: number;
+}
+
 /** Línea de pago en creación/actualización de borrador. */
 export interface CreateSaleOrderPaymentRequest {
   paymentMethodId: number;
   amount: number;
   reference?: string | null;
+  /** Si null: solo CUP; no enviar amountForeign ni tasas ni denominaciones. */
+  currencyId?: number | null;
+  amountForeign?: number | null;
+  exchangeRateSnapshot?: number | null;
+  tenderDenominations?: SaleOrderPaymentDenominationLineRequest[] | null;
+  changeDenominations?: SaleOrderPaymentDenominationLineRequest[] | null;
+}
+
+export interface SaleOrderPaymentDenominationResponse {
+  kind: "tender" | "change";
+  value: number;
+  quantity: number;
 }
 
 /** Línea de pago devuelta por la API (incluye datos del método configurado). */
 export interface SaleOrderPaymentResponse {
+  id?: number;
+  saleOrderId?: number;
   paymentMethodId: number;
   amount: number;
   reference?: string | null;
   paymentMethodName?: string | null;
   paymentMethodInstrumentReference?: string | null;
+  currencyId?: number | null;
+  currencyCode?: string | null;
+  amountForeign?: number | null;
+  exchangeRateSnapshot?: number | null;
+  denominations?: SaleOrderPaymentDenominationResponse[] | null;
 }
 
 export interface SaleOrderResponse {

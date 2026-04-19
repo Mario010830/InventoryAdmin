@@ -998,7 +998,7 @@ export default function LocationsPage() {
                 Ubicación en el mapa
               </h3>
               <p className="loc-modal-section__desc">
-                Buscá la dirección de tu tienda para que los clientes puedan
+                Busca la dirección de tu tienda para que los clientes puedan
                 encontrarla fácilmente. Este campo es opcional.
               </p>
             </div>

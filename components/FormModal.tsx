@@ -17,6 +17,8 @@ interface FormModalProps {
   extraFooterActions?: React.ReactNode;
   error?: string;
   maxWidth?: string;
+  /** Si es false, no se muestra el botón principal de envío del pie (acciones custom vía extraFooterActions). */
+  showSubmitButton?: boolean;
   children: React.ReactNode;
 }
 
@@ -33,6 +35,7 @@ export function FormModal({
   extraFooterActions,
   error,
   maxWidth = "560px",
+  showSubmitButton = true,
   children,
 }: FormModalProps) {
   if (!open) return null;
@@ -83,20 +86,22 @@ export function FormModal({
               {cancelLabel}
             </button>
             {extraFooterActions}
-            <button
-              type="submit"
-              className="modal-btn modal-btn--primary"
-              disabled={submitting || loading}
-            >
-              {submitting ? (
-                <div
-                  className="dt-state__spinner"
-                  style={{ width: 16, height: 16, borderWidth: 2 }}
-                />
-              ) : (
-                submitLabel
-              )}
-            </button>
+            {showSubmitButton ? (
+              <button
+                type="submit"
+                className="modal-btn modal-btn--primary"
+                disabled={submitting || loading}
+              >
+                {submitting ? (
+                  <div
+                    className="dt-state__spinner"
+                    style={{ width: 16, height: 16, borderWidth: 2 }}
+                  />
+                ) : (
+                  submitLabel
+                )}
+              </button>
+            ) : null}
           </div>
         </form>
       </div>

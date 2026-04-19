@@ -11,12 +11,13 @@ import {
   userFacingBusinessErrorMessage,
 } from "@/lib/apiBusinessErrors";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
+import { useGetCurrenciesQuery } from "@/app/dashboard/settings/_service/currencyApi";
 import { SalePaymentLinesForm } from "./SalePaymentLinesForm";
 import {
   amountsMatchTotal,
   buildPaymentsFromDraft,
-  newPaymentLineKey,
   parseMoney,
+  paymentLineDraftFromApiPayment,
   paymentsAmountSum,
   round2,
   type PaymentLineDraft,
@@ -36,12 +37,7 @@ export interface SaleDraftEditModalProps {
 
 function paymentLinesFromOrder(order: SaleOrderResponse): PaymentLineDraft[] {
   if (!order.payments?.length) return [];
-  return order.payments.map((p) => ({
-    key: newPaymentLineKey(),
-    paymentMethodId: p.paymentMethodId,
-    amountStr: String(round2(p.amount)),
-    reference: (p.reference ?? "").slice(0, 120),
-  }));
+  return order.payments.map((p) => paymentLineDraftFromApiPayment(p));
 }
 
 export function SaleDraftEditModal({
@@ -50,7 +46,10 @@ export function SaleDraftEditModal({
   onClose,
   onSuccess,
 }: SaleDraftEditModalProps) {
-  const { formatCup } = useDisplayCurrency();
+  const { formatCup, priceDecimals } = useDisplayCurrency();
+  const { data: currencyList = [] } = useGetCurrenciesQuery(undefined, {
+    skip: !open,
+  });
   const oid = orderId ?? 0;
   const { data: order, isLoading } = useGetOrderByIdQuery(oid, {
     skip: !open || !oid,
@@ -113,7 +112,10 @@ export function SaleDraftEditModal({
       setFormError("Descuento inválido.");
       return;
     }
-    const built = buildPaymentsFromDraft(paymentLines);
+    const built = buildPaymentsFromDraft(paymentLines, {
+      priceDecimals,
+      currencies: currencyList,
+    });
     if (!built.ok) {
       setFormError(built.error);
       return;
@@ -233,6 +235,7 @@ export function SaleDraftEditModal({
             onChange={setPaymentLines}
             expectedTotal={expectedTotal}
             disabled={isSaving}
+            currencies={currencyList}
           />
 
           <div className="modal-field field-full">

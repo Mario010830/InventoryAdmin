@@ -15,7 +15,9 @@ import {
   userFacingBusinessErrorMessage,
 } from "@/lib/apiBusinessErrors";
 import { useAppSelector } from "@/store/store";
+import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 import { useGetPaymentMethodsByLocationQuery } from "@/app/catalog/_service/catalogApi";
+import { useGetCurrenciesQuery } from "@/app/dashboard/settings/_service/currencyApi";
 import { useGetContactsQuery } from "@/app/dashboard/contacts/_service/contactsApi";
 import { useGetLocationsQuery } from "@/app/dashboard/locations/_service/locationsApi";
 import { useGetProductsQuery } from "@/app/dashboard/products/_service/productsApi";
@@ -34,6 +36,7 @@ import {
 import type { PaymentLineDraft } from "./salePaymentUtils";
 import { toast } from "sonner";
 import "../products/products-modal.css";
+import "./sales.css";
 
 export interface SaleCreateModalProps {
   open: boolean;
@@ -79,6 +82,10 @@ export function SaleCreateModal({
   onSuccess,
 }: SaleCreateModalProps) {
   const authOrgId = useAppSelector((s) => s.auth?.organizationId) ?? 0;
+  const { priceDecimals, formatCup } = useDisplayCurrency();
+  const { data: currencyList = [] } = useGetCurrenciesQuery(undefined, {
+    skip: !open,
+  });
 
   const { data: locationsResult } = useGetLocationsQuery(
     {
@@ -228,7 +235,8 @@ export function SaleCreateModal({
   );
 
   const validateForApi = useCallback((): string | null => {
-    if (!locationId.trim()) return "Selecciona la ubicación de la venta.";
+    if (!locationId.trim())
+      return "Elige la tienda en la que se registra la venta.";
     const lid = Number(locationId);
     if (!Number.isFinite(lid) || lid <= 0)
       return "La ubicación seleccionada no es válida.";
@@ -236,11 +244,11 @@ export function SaleCreateModal({
       const cid = Number(contactId);
       if (!Number.isFinite(cid) || cid <= 0) return "Cliente no válido.";
     }
-    if (lines.length === 0) return "Añade al menos un producto y cantidad.";
+    if (lines.length === 0) return "Añade al menos un producto.";
     for (const line of lines) {
       const q = parseQty(line.quantityStr);
       if (!Number.isFinite(q) || q <= 0)
-        return `Cantidad inválida en «${line.label}».`;
+        return `Revisa la cantidad de «${line.label}».`;
     }
     return null;
   }, [contactId, locationId, lines]);
@@ -266,26 +274,31 @@ export function SaleCreateModal({
     return userFacingBusinessErrorMessage(customStatusCode, message, "es");
   }, []);
 
+  const payCtx = useMemo(
+    () => ({ priceDecimals, currencies: currencyList }),
+    [priceDecimals, currencyList],
+  );
+
   const validatePaymentsOptional = (): string | null => {
-    const built = buildPaymentsFromDraft(paymentLines);
+    const built = buildPaymentsFromDraft(paymentLines, payCtx);
     if (!built.ok) return built.error;
     if (built.payments.length === 0) return null;
     const sum = paymentsAmountSum(built.payments);
     if (!amountsMatchTotal(sum, estimatedOrderTotal)) {
-      return `Si indicas pagos, la suma (${sum.toFixed(2)}) debe coincidir con el total (${estimatedOrderTotal.toFixed(2)}).`;
+      return `Si añades cobros, la suma en CUP (${sum.toFixed(2)}) debe igualar el total (${estimatedOrderTotal.toFixed(2)}).`;
     }
     return null;
   };
 
   const validatePaymentsRequiredForConfirm = (): string | null => {
-    const built = buildPaymentsFromDraft(paymentLines);
+    const built = buildPaymentsFromDraft(paymentLines, payCtx);
     if (!built.ok) return built.error;
     if (built.payments.length === 0) {
-      return "Para confirmar, añade al menos una línea de pago cuya suma iguale el total de la orden.";
+      return "Para confirmar, indica al menos un cobro que sume el total de la venta.";
     }
     const sum = paymentsAmountSum(built.payments);
     if (!amountsMatchTotal(sum, estimatedOrderTotal)) {
-      return `La suma de pagos (${sum.toFixed(2)}) debe coincidir con el total (${estimatedOrderTotal.toFixed(2)}; tolerancia 0,01).`;
+      return `Los cobros deben sumar el total (${estimatedOrderTotal.toFixed(2)} CUP, tolerancia 0,01).`;
     }
     return null;
   };
@@ -304,7 +317,7 @@ export function SaleCreateModal({
     setIsSubmitting(true);
     setFormError("");
     try {
-      const built = buildPaymentsFromDraft(paymentLines);
+      const built = buildPaymentsFromDraft(paymentLines, payCtx);
       const body = buildRequest(
         built.ok && built.payments.length > 0 ? built.payments : undefined,
       );
@@ -331,7 +344,7 @@ export function SaleCreateModal({
       setFormError(pv);
       return;
     }
-    const built = buildPaymentsFromDraft(paymentLines);
+    const built = buildPaymentsFromDraft(paymentLines, payCtx);
     if (!built.ok) {
       setFormError(built.error);
       return;
@@ -344,7 +357,7 @@ export function SaleCreateModal({
       const id = Number(created.id);
       if (!Number.isFinite(id) || id <= 0) {
         setFormError(
-          "La orden se creó pero no se pudo confirmar (ID no válido). Revísala en la lista como borrador.",
+          "La orden se creó pero no se pudo confirmar (ID no válido). Revisa la orden en la lista como borrador.",
         );
         onSuccess?.();
         onClose();
@@ -371,7 +384,7 @@ export function SaleCreateModal({
       onClose={onClose}
       title="Nueva venta"
       icon="add_shopping_cart"
-      maxWidth="640px"
+      maxWidth="min(92vw, 720px)"
       onSubmit={handleConfirmSubmit}
       submitting={isSubmitting}
       submitLabel="Confirmar venta"
@@ -384,206 +397,170 @@ export function SaleCreateModal({
           disabled={isSubmitting}
           onClick={() => void handleDraftOnly()}
         >
-          Solo borrador
+          Guardar borrador
         </button>
       }
     >
-      <div className="modal-field field-full">
-        <label htmlFor="sale-create-location">Ubicación *</label>
-        <select
-          id="sale-create-location"
-          value={locationId}
-          onChange={(e) => setLocationId(e.target.value)}
-        >
-          <option value="">— Seleccionar —</option>
-          {locations.map((loc) => (
-            <option key={loc.id} value={String(loc.id)}>
-              {loc.name}
-              {loc.code ? ` (${loc.code})` : ""}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="modal-field field-full">
-        <label htmlFor="sale-create-contact">Cliente (opcional)</label>
-        <select
-          id="sale-create-contact"
-          value={contactId}
-          onChange={(e) => setContactId(e.target.value)}
-        >
-          <option value="">— Sin cliente —</option>
-          {contacts.map((c) => (
-            <option key={c.id} value={String(c.id)}>
-              {c.name}
-              {c.phone ? ` · ${c.phone}` : ""}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="modal-field field-full">
-        <label htmlFor="sale-create-notes">Notas</label>
-        <textarea
-          id="sale-create-notes"
-          rows={2}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Observaciones de la venta…"
-        />
-      </div>
-
-      <div className="modal-field">
-        <label htmlFor="sale-create-discount">Descuento global</label>
-        <input
-          id="sale-create-discount"
-          type="text"
-          inputMode="decimal"
-          placeholder="0"
-          value={discountAmount}
-          onChange={(e) => setDiscountAmount(e.target.value)}
-        />
-      </div>
-
-      <p
-        style={{
-          margin: "0 0 8px",
-          fontSize: 12,
-          color: theme.secondaryText,
-        }}
-      >
-        Total estimado: <strong>{estimatedOrderTotal.toFixed(2)}</strong>. Para
-        confirmar la venta, el desglose de pagos debe sumar exactamente ese total
-        (tolerancia 0,01). En borrador los pagos son opcionales.
-      </p>
-
-      <SalePaymentLinesForm
-        methods={paymentMethods}
-        lines={paymentLines}
-        onChange={setPaymentLines}
-        expectedTotal={estimatedOrderTotal}
-        disabled={isSubmitting}
-      />
-
-      <div className="modal-field field-full sale-create-picker">
-        <label>Añadir producto</label>
-        <div ref={pickRef} style={{ position: "relative" }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <input
-              type="text"
-              autoComplete="off"
-              placeholder="Buscar por código o nombre…"
-              value={pickSearch}
-              onChange={(e) => {
-                setPickSearch(e.target.value);
-                setPickOpen(true);
-              }}
-              onFocus={() => setPickOpen(true)}
-              style={{
-                flex: "1 1 200px",
-                minWidth: 0,
-                padding: "8px 12px",
-                borderRadius: 8,
-                border: `1px solid ${theme.divider}`,
-                fontSize: 14,
-              }}
-            />
-            <input
-              type="text"
-              inputMode="decimal"
-              aria-label="Cantidad a añadir"
-              placeholder="Cant."
-              value={pickQty}
-              onChange={(e) => setPickQty(e.target.value)}
-              style={{
-                width: 88,
-                padding: "8px 12px",
-                borderRadius: 8,
-                border: `1px solid ${theme.divider}`,
-                fontSize: 14,
-              }}
-            />
+      <div className="modal-field field-full sale-create-shell">
+        <section className="sale-create-section" aria-labelledby="sale-create-store">
+          <h3 id="sale-create-store" className="sale-create-section__title">
+            Tienda
+          </h3>
+          <div className="modal-field field-full" style={{ margin: 0 }}>
+            <label htmlFor="sale-create-location">Ubicación de la venta</label>
+            <select
+              id="sale-create-location"
+              value={locationId}
+              onChange={(e) => setLocationId(e.target.value)}
+            >
+              <option value="">Seleccionar tienda…</option>
+              {locations.map((loc) => (
+                <option key={loc.id} value={String(loc.id)}>
+                  {loc.name}
+                  {loc.code ? ` (${loc.code})` : ""}
+                </option>
+              ))}
+            </select>
           </div>
-          {pickOpen && filteredPickProducts.length > 0 && (
-            <ul
-              className="modal-product-dropdown"
+        </section>
+
+        <section className="sale-create-section" aria-labelledby="sale-create-products">
+          <h3 id="sale-create-products" className="sale-create-section__title">
+            Productos
+          </h3>
+          <div className="sale-create-picker-box" ref={pickRef}>
+            <div
               style={{
-                listStyle: "none",
-                margin: "4px 0 0",
-                padding: 0,
-                maxHeight: 200,
-                overflowY: "auto",
-                border: `1px solid ${theme.divider}`,
-                borderRadius: 8,
-                background: theme.surface,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                position: "absolute",
-                left: 0,
-                right: 0,
-                zIndex: 5,
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 10,
+                alignItems: "stretch",
               }}
             >
-              {filteredPickProducts.slice(0, 60).map((p) => (
-                <li
-                  key={p.id}
+              <input
+                type="text"
+                autoComplete="off"
+                aria-label="Buscar producto"
+                placeholder="Escribe código o nombre…"
+                value={pickSearch}
+                onChange={(e) => {
+                  setPickSearch(e.target.value);
+                  setPickOpen(true);
+                }}
+                onFocus={() => setPickOpen(true)}
+                style={{
+                  flex: "1 1 200px",
+                  minWidth: 0,
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  border: `1px solid ${theme.divider}`,
+                  fontSize: 15,
+                  background: "#fff",
+                }}
+              />
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <label
+                  htmlFor="sale-create-pick-qty"
                   style={{
-                    padding: "10px 14px",
-                    cursor: "pointer",
-                    fontSize: 14,
-                    borderBottom: `1px solid ${theme.divider}`,
-                  }}
-                  onMouseDown={(ev) => {
-                    ev.preventDefault();
-                    addProductLine(p);
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: theme.secondaryText,
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  <span style={{ fontWeight: 600 }}>{p.code}</span>
-                  <span style={{ color: theme.secondaryText }}>
-                    {" "}
-                    — {p.name}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <p
-          style={{
-            margin: "6px 0 0",
-            fontSize: 12,
-            color: theme.secondaryText,
-          }}
-        >
-          Haz clic en un producto de la lista para añadirlo con la cantidad
-          indicada.
-        </p>
-      </div>
+                  Cant.
+                </label>
+                <input
+                  id="sale-create-pick-qty"
+                  type="text"
+                  inputMode="decimal"
+                  aria-label="Cantidad al añadir"
+                  placeholder="1"
+                  value={pickQty}
+                  onChange={(e) => setPickQty(e.target.value)}
+                  style={{
+                    width: 72,
+                    padding: "10px 10px",
+                    borderRadius: 10,
+                    border: `1px solid ${theme.divider}`,
+                    fontSize: 15,
+                    background: "#fff",
+                  }}
+                />
+              </div>
+            </div>
+            {pickOpen && filteredPickProducts.length > 0 ? (
+              <ul
+                className="modal-product-dropdown"
+                style={{
+                  listStyle: "none",
+                  margin: "10px 0 0",
+                  padding: 0,
+                  maxHeight: 220,
+                  overflowY: "auto",
+                  border: `1px solid ${theme.divider}`,
+                  borderRadius: 10,
+                  background: theme.surface,
+                  boxShadow: "0 8px 24px rgba(15,23,42,0.08)",
+                }}
+              >
+                {filteredPickProducts.slice(0, 50).map((p) => (
+                  <li
+                    key={p.id}
+                    style={{
+                      padding: "12px 14px",
+                      cursor: "pointer",
+                      fontSize: 14,
+                      borderBottom: `1px solid ${theme.divider}`,
+                    }}
+                    onMouseDown={(ev) => {
+                      ev.preventDefault();
+                      addProductLine(p);
+                    }}
+                  >
+                    <span style={{ fontWeight: 700, color: theme.primaryText }}>
+                      {p.code}
+                    </span>
+                    <span style={{ color: theme.secondaryText }}>
+                      {" "}
+                      — {p.name}
+                    </span>
+                    <span
+                      style={{
+                        display: "block",
+                        marginTop: 4,
+                        fontSize: 12,
+                        color: theme.hint,
+                      }}
+                    >
+                      Pulsa para añadir · Precio de lista {formatCup(p.precio)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
 
-      {lines.length > 0 ? (
-        <div className="modal-field field-full">
-          <label>Líneas de la venta</label>
-          <div className="sale-create-lines-wrap">
-            <table className="sale-create-lines">
-              <thead>
-                <tr>
-                  <th>Producto</th>
-                  <th style={{ width: 100 }}>Cantidad</th>
-                  <th style={{ width: 120 }}>Precio u.</th>
-                  <th style={{ width: 44 }} aria-label="Quitar" />
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line) => (
-                  <tr key={line.key}>
-                    <td>
-                      <span className="sale-create-lines__name">
-                        {line.label}
-                      </span>
-                      <span className="sale-create-lines__hint">
-                        Catálogo: {line.catalogPrice}
-                      </span>
-                    </td>
-                    <td>
+          {lines.length === 0 ? (
+            <p className="sale-create-empty">
+              Aún no hay productos. Busca arriba y pulsa un resultado para
+              añadirlo a la venta.
+            </p>
+          ) : (
+            <div className="sale-create-line-list" style={{ marginTop: 14 }}>
+              {lines.map((line) => (
+                <div key={line.key} className="sale-create-line-card">
+                  <div className="sale-create-line-card__text">
+                    <span className="sale-create-line-card__name">
+                      {line.label}
+                    </span>
+                    <span className="sale-create-line-card__meta">
+                      Precio de lista {formatCup(line.catalogPrice)}
+                    </span>
+                  </div>
+                  <div className="sale-create-line-card__inputs">
+                    <div className="sale-create-line-card__field">
+                      <span>Cantidad</span>
                       <input
                         type="text"
                         inputMode="decimal"
@@ -599,15 +576,10 @@ export function SaleCreateModal({
                             ),
                           );
                         }}
-                        style={{
-                          width: "100%",
-                          padding: "6px 8px",
-                          borderRadius: 6,
-                          border: `1px solid ${theme.divider}`,
-                        }}
                       />
-                    </td>
-                    <td>
+                    </div>
+                    <div className="sale-create-line-card__field">
+                      <span>P. unit.</span>
                       <input
                         type="text"
                         inputMode="decimal"
@@ -624,35 +596,110 @@ export function SaleCreateModal({
                             ),
                           );
                         }}
-                        style={{
-                          width: "100%",
-                          padding: "6px 8px",
-                          borderRadius: 6,
-                          border: `1px solid ${theme.divider}`,
-                        }}
                       />
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="sale-create-lines__remove"
-                        aria-label="Quitar línea"
-                        onClick={() =>
-                          setLines((prev) =>
-                            prev.filter((l) => l.key !== line.key),
-                          )
-                        }
-                      >
-                        <Icon name="close" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="sale-create-line-card__remove"
+                      aria-label="Quitar producto"
+                      onClick={() =>
+                        setLines((prev) =>
+                          prev.filter((l) => l.key !== line.key),
+                        )
+                      }
+                    >
+                      <Icon name="close" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <div className="sale-create-total" role="status">
+          <span className="sale-create-total__label">Total de esta venta</span>
+          <span className="sale-create-total__value">
+            {formatCup(estimatedOrderTotal)}
+          </span>
+          <p className="sale-create-total__hint">
+            <strong>Confirmar</strong> exige cobros que sumen este total.{" "}
+            <strong>Borrador</strong> permite guardar sin cobro y completar el
+            cobro más adelante.
+          </p>
         </div>
-      ) : null}
+
+        <details className="sale-create-details">
+          <summary>Cliente, notas o descuento (opcional)</summary>
+          <div className="sale-create-details__body">
+            <div className="sale-create-grid2">
+              <div className="modal-field field-full" style={{ margin: 0 }}>
+                <label htmlFor="sale-create-contact">Cliente</label>
+                <select
+                  id="sale-create-contact"
+                  value={contactId}
+                  onChange={(e) => setContactId(e.target.value)}
+                >
+                  <option value="">Sin cliente</option>
+                  {contacts.map((c) => (
+                    <option key={c.id} value={String(c.id)}>
+                      {c.name}
+                      {c.phone ? ` · ${c.phone}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="modal-field field-full" style={{ margin: 0 }}>
+                <label htmlFor="sale-create-discount">Descuento global (CUP)</label>
+                <input
+                  id="sale-create-discount"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0"
+                  value={discountAmount}
+                  onChange={(e) => setDiscountAmount(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="modal-field field-full" style={{ margin: 0 }}>
+              <label htmlFor="sale-create-notes">Notas internas</label>
+              <textarea
+                id="sale-create-notes"
+                rows={2}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Observaciones opcionales…"
+              />
+            </div>
+          </div>
+        </details>
+
+        <section className="sale-create-section" aria-labelledby="sale-create-pay">
+          <h3 id="sale-create-pay" className="sale-create-section__title">
+            Forma de cobro
+          </h3>
+          <p
+            style={{
+              margin: "0 0 12px",
+              fontSize: 13,
+              color: theme.secondaryText,
+              lineHeight: 1.5,
+            }}
+          >
+            Una fila por medio de pago. Si la moneda no es la base, solo
+            indica cuánto cobraste en esa moneda; el equivalente en CUP lo
+            calcula la aplicación.
+          </p>
+          <SalePaymentLinesForm
+            methods={paymentMethods}
+            lines={paymentLines}
+            onChange={setPaymentLines}
+            expectedTotal={estimatedOrderTotal}
+            disabled={isSubmitting}
+            currencies={currencyList}
+          />
+        </section>
+      </div>
     </FormModal>
   );
 }
