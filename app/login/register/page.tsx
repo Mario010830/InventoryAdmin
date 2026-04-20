@@ -14,7 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { RegistrationBillingCycle } from "@/lib/auth-types";
+import { saveUser } from "@/lib/auth-api";
+import type { RegistrationBillingCycle, UserResponse } from "@/lib/auth-types";
+import {
+  beginSuppressMutationToasts,
+  endSuppressMutationToasts,
+} from "@/lib/mutationToastControl";
 import { isPaidPlan } from "@/lib/plan-utils";
 import {
   buildSignupSalesWhatsAppUrl,
@@ -171,6 +176,7 @@ export default function RegisterPage() {
 
     setIsLoading(true);
     setErrorMessage("");
+    let skipLoadingReset = false;
 
     const cycle: RegistrationBillingCycle = selectedIsPaid
       ? billingCycle
@@ -201,15 +207,22 @@ export default function RegisterPage() {
         return;
       }
 
-      const res = await login({ email, password }).unwrap();
-      if (res.statusCode === 200 && res.result) {
-        dispatch(loginSuccessfull(res.result as AuthState));
-        router.push("/dashboard");
-        router.refresh();
-      } else {
-        setErrorMessage(
-          "Tu cuenta fue creada, pero no se pudo iniciar sesión automáticamente. Entra con tu email y contraseña desde Iniciar sesión.",
-        );
+      beginSuppressMutationToasts();
+      try {
+        const res = await login({ email, password }).unwrap();
+        if (res.statusCode === 200 && res.result) {
+          saveUser(res.result as UserResponse);
+          dispatch(loginSuccessfull(res.result as AuthState));
+          skipLoadingReset = true;
+          await Promise.resolve(router.push("/dashboard"));
+          router.refresh();
+        } else {
+          setErrorMessage(
+            "Tu cuenta fue creada, pero no se pudo iniciar sesión automáticamente. Entra con tu email y contraseña desde Iniciar sesión.",
+          );
+        }
+      } finally {
+        endSuppressMutationToasts();
       }
     } catch (err: unknown) {
       const msg =
@@ -222,7 +235,9 @@ export default function RegisterPage() {
           "Ocurrió un error. Intenta de nuevo.",
       );
     } finally {
-      setIsLoading(false);
+      if (!skipLoadingReset) {
+        setIsLoading(false);
+      }
     }
   };
 

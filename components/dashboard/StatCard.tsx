@@ -17,6 +17,8 @@ export function StatCard({
   label,
   value,
   icon,
+  trend,
+  trendUp = true,
   iconBg = "#EEF2FF",
   iconColor = theme.accent,
 }: StatCardProps) {
@@ -46,6 +48,20 @@ export function StatCard({
       <div className="dashboard-kpi__body">
         <span className="dashboard-kpi__label">{label}</span>
         <span className="dashboard-kpi__value">{value}</span>
+        {trend ? (
+          <span
+            className="dashboard-kpi__trend"
+            style={{
+              display: "block",
+              marginTop: 6,
+              fontSize: "0.78rem",
+              fontWeight: 500,
+              color: trendUp ? theme.secondaryText : theme.hint,
+            }}
+          >
+            {trend}
+          </span>
+        ) : null}
       </div>
     </div>
   );

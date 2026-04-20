@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Switch from "@/components/Switch";
 import { Icon } from "@/components/ui/Icon";
+import { saveUser } from "@/lib/auth-api";
+import type { UserResponse } from "@/lib/auth-types";
+import { beginSuppressMutationToasts, endSuppressMutationToasts } from "@/lib/mutationToastControl";
 import { useAppDispatch } from "@/store/store";
 import { useLoginMutation } from "./_service/authApi";
 import { type AuthState, loginSuccessfull } from "./_slices/authSlice";
@@ -43,13 +46,17 @@ export default function LoginPage() {
 
     setIsLoading(true);
     setErrorMessage("");
+    let navigationStarted = false;
+    beginSuppressMutationToasts();
     try {
       const res = await login({ email: emailNormalized, password }).unwrap();
       if (res.statusCode !== 200 || !res.result) {
         throw new Error("No se pudo iniciar sesión. Intenta de nuevo.");
       }
+      saveUser(res.result as UserResponse);
       dispatch(loginSuccessfull(res.result as AuthState));
-      router.push("/dashboard");
+      navigationStarted = true;
+      await Promise.resolve(router.push("/dashboard"));
       router.refresh();
     } catch (err) {
       const fallback = "Ocurrió un error. Intenta de nuevo.";
@@ -61,7 +68,10 @@ export default function LoginPage() {
         apiMsg ?? (err instanceof Error ? err.message : fallback),
       );
     } finally {
-      setIsLoading(false);
+      endSuppressMutationToasts();
+      if (!navigationStarted) {
+        setIsLoading(false);
+      }
     }
   };
 

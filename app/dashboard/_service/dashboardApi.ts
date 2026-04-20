@@ -44,6 +44,33 @@ export interface DashboardSummary {
   weeklyOrdersTrend?: number;
 }
 
+/** Query `period` para KPIs GET /dashboard/kpi/* (UTC en servidor). */
+export type DashboardKpiPeriod = "day" | "week" | "month" | "year";
+
+/** GET /api/dashboard/kpi/gross-sales-profit */
+export interface GrossSalesProfitKpiResult {
+  period: string;
+  fromUtc: string;
+  toUtcExclusive: string;
+  grossProfit: number;
+  orderCount: number;
+}
+
+/** GET /api/dashboard/kpi/net-sales-profit */
+export interface NetSalesProfitKpiResult {
+  period: string;
+  fromUtc: string;
+  toUtcExclusive: string;
+  netProfit: number;
+  orderCount: number;
+}
+
+function unwrapKpi<T>(raw: unknown, label: string): T {
+  const v = parseSummaryResult<T>(raw);
+  if (v && typeof v === "object") return v;
+  throw new Error(`Respuesta KPI inválida: ${label}`);
+}
+
 interface DashboardQuery {
   from?: string;
   to?: string;
@@ -200,6 +227,28 @@ export const dashboardApi = createApi({
       transformResponse: (raw: unknown) =>
         parseChartResult<ActivityHeatmapCell>(raw),
     }),
+
+    getGrossSalesProfitKpi: builder.query<
+      GrossSalesProfitKpiResult,
+      DashboardKpiPeriod
+    >({
+      query: (period) =>
+        `/dashboard/kpi/gross-sales-profit?period=${encodeURIComponent(period)}`,
+      transformResponse: (raw: unknown) =>
+        unwrapKpi<GrossSalesProfitKpiResult>(raw, "gross-sales-profit"),
+      providesTags: [{ type: "DashboardStats", id: "KPI_GROSS" }],
+    }),
+
+    getNetSalesProfitKpi: builder.query<
+      NetSalesProfitKpiResult,
+      DashboardKpiPeriod
+    >({
+      query: (period) =>
+        `/dashboard/kpi/net-sales-profit?period=${encodeURIComponent(period)}`,
+      transformResponse: (raw: unknown) =>
+        unwrapKpi<NetSalesProfitKpiResult>(raw, "net-sales-profit"),
+      providesTags: [{ type: "DashboardStats", id: "KPI_NET" }],
+    }),
   }),
 });
 
@@ -217,4 +266,6 @@ export const {
   useGetListValueByLocationQuery,
   useGetListRecentProductsQuery,
   useGetActivityHeatmapQuery,
+  useGetGrossSalesProfitKpiQuery,
+  useGetNetSalesProfitKpiQuery,
 } = dashboardApi;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   ComposedChartCard,
   LineChartCard,
@@ -10,10 +10,15 @@ import {
   theme,
 } from "@/components/dashboard";
 import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
-import type { DashboardSummary } from "./_service/dashboardApi";
+import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
+import type {
+  DashboardKpiPeriod,
+  DashboardSummary,
+} from "./_service/dashboardApi";
 import {
   useGetCategoryDistributionQuery,
   useGetEntriesVsExitsQuery,
+  useGetGrossSalesProfitKpiQuery,
   useGetInventoryFlowQuery,
   useGetListLatestMovementsQuery,
   useGetListLowStockQuery,
@@ -21,6 +26,7 @@ import {
   useGetListTopMovementsQuery,
   useGetListValueByLocationQuery,
   useGetLowStockAlertsByDayQuery,
+  useGetNetSalesProfitKpiQuery,
   useGetStockStatusQuery,
   useGetSummaryQuery,
 } from "./_service/dashboardApi";
@@ -200,8 +206,40 @@ function buildKpisFromSummary(
   ];
 }
 
+function formatUtcRangeHint(fromUtc: string, toUtcExclusive: string): string {
+  try {
+    const a = new Date(fromUtc);
+    const b = new Date(toUtcExclusive);
+    const fmt = new Intl.DateTimeFormat("es-ES", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "UTC",
+    });
+    return `${fmt.format(a)} → ${fmt.format(b)} (UTC, fin exclusivo)`;
+  } catch {
+    return `${fromUtc} → ${toUtcExclusive} (UTC)`;
+  }
+}
+
+const KPI_PERIOD_OPTIONS: { value: DashboardKpiPeriod; label: string }[] = [
+  { value: "day", label: "Diario (UTC)" },
+  { value: "week", label: "Semanal (UTC)" },
+  { value: "month", label: "Mensual (UTC)" },
+  { value: "year", label: "Anual (UTC)" },
+];
+
 export default function DashboardPage() {
   const { formatCup } = useDisplayCurrency();
+  const { has: hasPermission } = useUserPermissionCodes();
+  const canSaleRead = hasPermission("sale.read");
+  const [kpiPeriod, setKpiPeriod] = useState<DashboardKpiPeriod>("month");
+
+  const grossKpi = useGetGrossSalesProfitKpiQuery(kpiPeriod, {
+    skip: !canSaleRead,
+  });
+  const netKpi = useGetNetSalesProfitKpiQuery(kpiPeriod, {
+    skip: !canSaleRead,
+  });
   const { data: summary } = useGetSummaryQuery(undefined);
   const { data: flowData } = useGetInventoryFlowQuery(undefined);
   const { data: categoryData } = useGetCategoryDistributionQuery();
@@ -325,16 +363,156 @@ export default function DashboardPage() {
         </p>
       </div>
 
+      {/* ── Ganancia ventas (prioridad: permiso sale.read) ─────────────────── */}
+      {canSaleRead ? (
+        <section style={{ marginBottom: 8 }}>
+          <h2 className="dashboard-section-title">Ganancia de ventas</h2>
+          <div style={{ marginBottom: 4 }}>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                marginBottom: 8,
+              }}
+            >
+              <h3
+                className="dashboard-section-title"
+                style={{
+                  margin: 0,
+                  fontSize: "1rem",
+                  fontWeight: 700,
+                }}
+              >
+                Bruto y neto
+              </h3>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 14,
+                  color: theme.secondaryText,
+                }}
+              >
+                <span>Período</span>
+                <select
+                  value={kpiPeriod}
+                  onChange={(e) =>
+                    setKpiPeriod(e.target.value as DashboardKpiPeriod)
+                  }
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    border: `1px solid ${theme.divider}`,
+                    fontSize: 14,
+                    minWidth: 160,
+                  }}
+                >
+                  {KPI_PERIOD_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <p
+              style={{
+                margin: "0 0 14px",
+                fontSize: 12,
+                color: theme.secondaryText,
+                lineHeight: 1.45,
+              }}
+            >
+              Suma de ventas confirmadas sin devolución. Los rangos son en UTC
+              (día / semana lunes–domingo / mes / año calendario en UTC).
+            </p>
+            <div className="dashboard-flex-row">
+              <StatCard
+                label="Ingreso bruto"
+                value={
+                  grossKpi.isLoading || grossKpi.isFetching
+                    ? "…"
+                    : grossKpi.isError
+                      ? "—"
+                      : formatCup(grossKpi.data?.grossProfit ?? 0)
+                }
+                icon="trending_up"
+                trend={
+                  grossKpi.data
+                    ? `${grossKpi.data.orderCount} ventas en el período`
+                    : grossKpi.isError
+                      ? "No se pudo cargar"
+                      : ""
+                }
+                trendUp
+                iconBg="#ECFDF5"
+                iconColor={theme.success}
+              />
+              <StatCard
+                label="Ganancia neta"
+                value={
+                  netKpi.isLoading || netKpi.isFetching
+                    ? "…"
+                    : netKpi.isError
+                      ? "—"
+                      : formatCup(netKpi.data?.netProfit ?? 0)
+                }
+                icon="account_balance"
+                trend={
+                  netKpi.data
+                    ? `${netKpi.data.orderCount} ventas (mismo criterio)`
+                    : netKpi.isError
+                      ? "No se pudo cargar"
+                      : ""
+                }
+                trendUp
+                iconBg="#EEF2FF"
+                iconColor={theme.accent}
+              />
+            </div>
+            {grossKpi.data && !grossKpi.isError ? (
+              <p
+                style={{
+                  margin: "10px 0 0",
+                  fontSize: 12,
+                  color: theme.hint,
+                }}
+              >
+                Rango aplicado:{" "}
+                {formatUtcRangeHint(
+                  grossKpi.data.fromUtc,
+                  grossKpi.data.toUtcExclusive,
+                )}
+                {" · "}
+                período <code>{grossKpi.data.period}</code>
+              </p>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
       {/* ── KPIs de inventario ─────────────────────────────────────────────── */}
+      <h2 className="dashboard-section-title">Inventario en resumen</h2>
       <div className="dashboard-flex-row">
         {kpis.map((kpi) => (
           <StatCard key={kpi.label} {...kpi} />
         ))}
       </div>
 
-      {/* ── Ventas ─────────────────────────────────────────────────────────── */}
+      {/* ── Ventas: resumen 30 días y listas ────────────────────────────────── */}
       <div>
-        <h2 className="dashboard-section-title">Ventas · últimos 30 días</h2>
+        <h2 className="dashboard-section-title">Ventas</h2>
+
+        <h3
+          className="dashboard-section-title"
+          style={{ margin: "8px 0 12px", fontSize: "1rem", fontWeight: 700 }}
+        >
+          Resumen · últimos 30 días
+        </h3>
         <div className="dashboard-flex-row">
           {salesKpis.map((kpi) => (
             <StatCard key={kpi.label} {...kpi} />
