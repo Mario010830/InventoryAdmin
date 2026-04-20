@@ -252,6 +252,25 @@ export default function SuppliersPage() {
     }
   };
 
+  const renderMobileSupplierRow = useCallback((row: SupplierResponse) => {
+    const name = row.name?.trim() || "—";
+    const phone = row.phone?.trim();
+    const contact = row.contactPerson?.trim();
+    const meta = phone || contact || "—";
+    return (
+      <div className="dt-mobile-row">
+        <div className="dt-mobile-row__body">
+          <div className="dt-mobile-row__title" title={name}>
+            {name}
+          </div>
+          <div className="dt-mobile-row__meta" title={meta}>
+            {meta}
+          </div>
+        </div>
+      </div>
+    );
+  }, []);
+
   return (
     <>
       <DataTable
@@ -301,6 +320,7 @@ export default function SuppliersPage() {
         addLabel="Nuevo proveedor"
         onAdd={openCreate}
         addDisabled={!canCreateSupplier}
+        renderMobileRowSummary={renderMobileSupplierRow}
         actions={[
           {
             icon: "edit",

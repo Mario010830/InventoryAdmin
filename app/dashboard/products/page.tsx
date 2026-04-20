@@ -485,6 +485,39 @@ export default function ProductsPage() {
   const canEditProduct = hasPermission("product.update");
   const canDeleteProduct = hasPermission("product.delete");
 
+  const { formatCup } = useDisplayCurrency();
+  const renderMobileProductRow = useCallback(
+    (row: ProductResponse) => (
+      <div className="dt-mobile-product-summary">
+        <div className="dt-mobile-product-summary__thumb">
+          {row.imagenUrl ? (
+            <img
+              src={getProxiedImageSrc(row.imagenUrl) ?? row.imagenUrl}
+              alt=""
+              className="dt-mobile-product-summary__img"
+            />
+          ) : (
+            <span className="dt-mobile-product-summary__ph" aria-hidden>
+              <Icon name="inventory_2" />
+            </span>
+          )}
+        </div>
+        <div className="dt-mobile-product-summary__main">
+          <div className="dt-mobile-product-summary__name">
+            {row.name?.trim() || row.code || `Producto #${row.id}`}
+          </div>
+          {row.code && row.name?.trim() ? (
+            <div className="dt-mobile-product-summary__code">{row.code}</div>
+          ) : null}
+        </div>
+        <div className="dt-mobile-product-summary__price">
+          {formatCup(Number(row.precio ?? 0))}
+        </div>
+      </div>
+    ),
+    [formatCup],
+  );
+
   const { data: subscription } = useGetMySubscriptionQuery();
   const productTotalCount = result?.pagination?.totalCount;
   const atProductLimit =
@@ -877,6 +910,7 @@ export default function ProductsPage() {
     <>
       <div className="products-page-wrap">
         <DataTable
+          renderMobileRowSummary={renderMobileProductRow}
           gridConfig={{
             storageKey: "dashboard-products",
             exportFilenamePrefix: "productos",
@@ -1020,9 +1054,10 @@ export default function ProductsPage() {
             canCreateProduct ? (
               <button
                 type="button"
-                className="dt-btn-ghost"
+                className="dt-btn-ghost dt-toolbar-extra-import"
                 disabled={atProductLimit}
                 title={atProductLimit ? PRODUCT_QUOTA_TOOLTIP : undefined}
+                aria-label="Importar desde Excel"
                 onClick={() => !atProductLimit && setImportWizardOpen(true)}
               >
                 <Icon name="upload_file" />

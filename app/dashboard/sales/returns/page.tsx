@@ -6,6 +6,7 @@ import type { DataTableColumn } from "@/components/DataTable";
 import { DataTable } from "@/components/DataTable";
 import { Icon } from "@/components/ui/Icon";
 import type { SaleReturnResponse } from "@/lib/dashboard-types";
+import { formatDisplayCurrency } from "@/lib/formatCurrency";
 import {
   SEARCH_TABLE_CHUNK_PAGE_SIZE,
   useLoadAllRemainingPages,
@@ -56,6 +57,25 @@ export default function SaleReturnsPage() {
 
   const allPagesLoaded =
     result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
+
+  const renderMobileReturnRow = useCallback((row: SaleReturnResponse) => {
+    const folio =
+      row.saleOrderFolio?.trim() || `Venta #${row.saleOrderId}`;
+    const status = (row.status ?? "").trim() || "—";
+    return (
+      <div className="dt-mobile-row">
+        <div className="dt-mobile-row__body">
+          <div className="dt-mobile-row__title" title={folio}>
+            {folio}
+          </div>
+          <div className="dt-mobile-row__meta">{status}</div>
+        </div>
+        <span className="dt-mobile-row__end">
+          {formatDisplayCurrency(row.total)}
+        </span>
+      </div>
+    );
+  }, []);
 
   const toolbar = useMemo(
     () => (
@@ -108,6 +128,7 @@ export default function SaleReturnsPage() {
       emptyIcon="rotate_ccw"
       emptyTitle="Sin devoluciones"
       emptyDesc="Registra una devolución desde una venta confirmada (órdenes de venta)."
+      renderMobileRowSummary={renderMobileReturnRow}
     />
   );
 }

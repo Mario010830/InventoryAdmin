@@ -607,6 +607,61 @@ export default function MovementsPage() {
     [products, userIdToName],
   );
 
+  const renderMobileMovementRow = useCallback(
+    (row: InventoryMovementResponse) => {
+      const productText =
+        row.productName?.trim() ||
+        (() => {
+          const p = products.find((x) => x.id === row.productId);
+          return p
+            ? p.code
+              ? `${p.code} - ${p.name}`
+              : p.name
+            : String(row.productId);
+        })();
+      const label = movementTypeLabel(row.type);
+      const tone = movementTypeTone(row.type);
+      const badge =
+        tone === "in" ? (
+          <span className="dt-tag dt-tag--green">{label}</span>
+        ) : tone === "out" ? (
+          <span className="dt-tag dt-tag--red">{label}</span>
+        ) : (
+          <span className="dt-tag">{label}</span>
+        );
+      const loc = row.locationName?.trim();
+      const d = new Date(row.createdAt);
+      const dateStr = Number.isNaN(d.getTime())
+        ? ""
+        : d.toLocaleDateString("es-MX", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          });
+      const meta = [loc && loc.length > 0 ? loc : null, dateStr]
+        .filter(Boolean)
+        .join(" · ");
+
+      return (
+        <div className="dt-mobile-row">
+          <div className="dt-mobile-row__body">
+            <div className="dt-mobile-row__title" title={productText}>
+              {productText}
+            </div>
+            <div className="dt-mobile-row__row2">{badge}</div>
+            {meta ? (
+              <div className="dt-mobile-row__meta" title={meta}>
+                {meta}
+              </div>
+            ) : null}
+          </div>
+          <span className="dt-mobile-row__end">{row.quantity}</span>
+        </div>
+      );
+    },
+    [products],
+  );
+
   const openCreate = (type: 0 | 1 = 0) => {
     setForm({ ...initialForm, type });
     setFormErrors({});
@@ -899,6 +954,7 @@ export default function MovementsPage() {
               ? "Ningún movimiento coincide con los filtros."
               : "Aún no hay movimientos"
           }
+          renderMobileRowSummary={renderMobileMovementRow}
           detailDrawer={{
             entityLabelPlural: "movimientos",
             getTitle: (row) =>

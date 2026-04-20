@@ -165,6 +165,20 @@ export default function PaymentMethodsPage() {
   const allPagesLoaded =
     result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
 
+  const renderMobilePaymentMethodRow = useCallback(
+    (row: PaymentMethodResponse) => (
+      <div className="dt-mobile-row">
+        <div className="dt-mobile-row__body">
+          <div className="dt-mobile-row__title">
+            {row.name?.trim() || "—"}
+          </div>
+        </div>
+        <span className="dt-mobile-row__end">{row.sortOrder}</span>
+      </div>
+    ),
+    [],
+  );
+
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
@@ -350,6 +364,7 @@ export default function PaymentMethodsPage() {
         addLabel="Nuevo método"
         onAdd={openCreate}
         addDisabled={!canCreate}
+        renderMobileRowSummary={renderMobilePaymentMethodRow}
         actions={[
           {
             icon: "edit",

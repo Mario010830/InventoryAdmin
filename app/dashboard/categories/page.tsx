@@ -259,6 +259,17 @@ export default function CategoriesPage() {
     }
   };
 
+  const renderMobileCategoryRow = useCallback(
+    (row: ProductCategoryResponse) => (
+      <div className="dt-mobile-row">
+        <div className="dt-mobile-row__body">
+          <div className="dt-mobile-row__title">{row.name}</div>
+        </div>
+      </div>
+    ),
+    [],
+  );
+
   return (
     <>
       <DataTable
@@ -293,6 +304,7 @@ export default function CategoriesPage() {
         addLabel="Nueva categoría"
         onAdd={openCreate}
         addDisabled={!canCreateCategory}
+        renderMobileRowSummary={renderMobileCategoryRow}
         actions={[
           {
             icon: "edit",

@@ -329,6 +329,30 @@ export default function PromotionsPage() {
     [formatCup],
   );
 
+  const renderMobilePromotionRow = useCallback(
+    (r: Row) => {
+      const typeLabel =
+        r.promotionType === "fixed" ? "Precio fijo" : "Porcentaje";
+      const valueText =
+        r.promotionType === "fixed" ? formatCup(r.value) : `${r.value}%`;
+      return (
+        <div className="dt-mobile-row">
+          <div className="dt-mobile-row__body">
+            <div className="dt-mobile-row__title" title={r._displayProduct}>
+              {r._displayProduct}
+            </div>
+            <div className="dt-mobile-row__row2">
+              <span className="dt-mobile-row__meta">{typeLabel}</span>
+              {promotionStatusBadge(r)}
+            </div>
+          </div>
+          <span className="dt-mobile-row__end">{valueText}</span>
+        </div>
+      );
+    },
+    [formatCup],
+  );
+
   const allPagesLoaded =
     promoResult?.pagination != null &&
     page >= (promoResult.pagination.totalPages ?? 1);
@@ -580,6 +604,7 @@ export default function PromotionsPage() {
         addLabel="Crear promoción"
         onAdd={openCreate}
         addDisabled={!canManage}
+        renderMobileRowSummary={renderMobilePromotionRow}
         actions={[
           {
             icon: "edit",

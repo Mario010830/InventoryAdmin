@@ -7,6 +7,7 @@ import { DatePickerSimple } from "@/components/DatePickerSimple";
 import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
 import { Icon } from "@/components/ui/Icon";
 import type { SaleOrderResponse } from "@/lib/dashboard-types";
+import { formatDisplayCurrency } from "@/lib/formatCurrency";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
   SEARCH_TABLE_CHUNK_PAGE_SIZE,
@@ -30,6 +31,7 @@ import { SaleDraftEditModal } from "./SaleDraftEditModal";
 import { SaleReturnModal } from "./SaleReturnModal";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 import { toast } from "sonner";
+import { DeleteModal } from "@/components/DeleteModal";
 
 /** Normaliza el estado que puede venir "Draft"/"draft" etc. de la API */
 function normalizeStatus(status: string): string {
@@ -140,6 +142,8 @@ export default function SalesPage() {
   const [createSaleOpen, setCreateSaleOpen] = useState(false);
   const [draftEditId, setDraftEditId] = useState<number | null>(null);
   const [returnOrderId, setReturnOrderId] = useState<number | null>(null);
+  const [salePendingCancel, setSalePendingCancel] =
+    useState<SaleOrderResponse | null>(null);
   const filtersChanged = useRef(false);
 
   const { has: hasPermission } = useUserPermissionCodes();
@@ -269,6 +273,63 @@ export default function SalesPage() {
 
   const isBusy = isConfirming || isCancelling;
 
+  const executeCancelOrder = useCallback(
+    async (row: SaleOrderResponse) => {
+      setProcessingId(row.id);
+      try {
+        await cancelOrder(row.id).unwrap();
+        toast.success("Orden cancelada.");
+        setPage(1);
+        setAllRows([]);
+      } catch (e) {
+        const { customStatusCode, message } = extractRtkQueryErrorFields(e);
+        toast.error(
+          userFacingBusinessErrorMessage(customStatusCode, message, "es"),
+        );
+      } finally {
+        setProcessingId(null);
+      }
+    },
+    [cancelOrder],
+  );
+
+  const renderMobileSaleRow = useCallback((row: SaleOrderResponse) => {
+    const folio = row.folio?.trim() || `Orden #${row.id}`;
+    const loc = row.locationName?.trim();
+    const d = new Date(row.createdAt);
+    const dateStr = Number.isNaN(d.getTime())
+      ? ""
+      : d.toLocaleDateString("es-MX", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        });
+    const meta = [loc && loc.length > 0 ? loc : null, dateStr]
+      .filter(Boolean)
+      .join(" · ");
+
+    return (
+      <div className="dt-mobile-row">
+        <div className="dt-mobile-row__body">
+          <div className="dt-mobile-row__title" title={folio}>
+            {folio}
+          </div>
+          <div className="dt-mobile-row__row2">
+            <StatusBadge status={row.status} />
+          </div>
+          {meta ? (
+            <div className="dt-mobile-row__meta" title={meta}>
+              {meta}
+            </div>
+          ) : null}
+        </div>
+        <span className="dt-mobile-row__end">
+          {formatDisplayCurrency(row.total)}
+        </span>
+      </div>
+    );
+  }, []);
+
   const actions: DataTableAction<SaleOrderResponse>[] = [
     {
       icon: "rotate_ccw",
@@ -314,22 +375,7 @@ export default function SalesPage() {
       icon:
         processingId !== null && isCancelling ? "hourglass_empty" : "cancel",
       label: isCancelling ? "Cancelando…" : "Cancelar",
-      onClick: async (row) => {
-        setProcessingId(row.id);
-        try {
-          await cancelOrder(row.id).unwrap();
-          toast.success("Orden cancelada.");
-          setPage(1);
-          setAllRows([]);
-        } catch (e) {
-          const { customStatusCode, message } = extractRtkQueryErrorFields(e);
-          toast.error(
-            userFacingBusinessErrorMessage(customStatusCode, message, "es"),
-          );
-        } finally {
-          setProcessingId(null);
-        }
-      },
+      onClick: (row) => setSalePendingCancel(row),
       variant: "danger",
       hidden: (row) =>
         normalizeStatus(row.status) === "Cancelled" || !canCancelSale,
@@ -472,6 +518,7 @@ export default function SalesPage() {
           ? "Ninguna orden coincide con los filtros."
           : "Aún no hay órdenes de venta"
       }
+      renderMobileRowSummary={renderMobileSaleRow}
       detailDrawer={{
         entityLabelPlural: "ventas",
         getTitle: (row) => row.folio || `Orden #${row.id}`,
@@ -507,6 +554,25 @@ export default function SalesPage() {
         setPage(1);
         setAllRows([]);
       }}
+    />
+    <DeleteModal
+      open={salePendingCancel != null}
+      onClose={() => setSalePendingCancel(null)}
+      onConfirm={() => {
+        const row = salePendingCancel;
+        setSalePendingCancel(null);
+        if (row) void executeCancelOrder(row);
+      }}
+      title="¿Seguro desea cancelar la venta?"
+      description={
+        salePendingCancel
+          ? `Se cancelará la orden ${salePendingCancel.folio || `#${salePendingCancel.id}`}.`
+          : undefined
+      }
+      confirmLabel="Sí, cancelar"
+      cancelLabel="No"
+      iconName="cancel"
+      confirmVariant="danger"
     />
     </>
   );

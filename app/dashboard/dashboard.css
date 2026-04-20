@@ -447,12 +447,109 @@
   box-sizing: border-box;
 }
 
-/* Home dashboard: una columna clara en móvil */
+/* Home dashboard */
 .dashboard-flex-row {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
   width: 100%;
+}
+
+/**
+ * Bloque superior: móvil = ventas (2 KPI) → 1 gráfico → inventario (2×2 KPI) → 1 gráfico;
+ * desktop = ventas ancho completo, flujo|categorías en fila, inventario ancho completo.
+ */
+.dashboard-top-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  min-width: 0;
+}
+
+@media (min-width: 769px) {
+  .dashboard-top-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "sales sales"
+      "flujo cat"
+      "inv inv";
+    gap: 24px;
+    align-items: stretch;
+  }
+
+  .dashboard-top-grid__sales {
+    grid-area: sales;
+    min-width: 0;
+  }
+
+  .dashboard-top-grid__flujo {
+    grid-area: flujo;
+    min-width: 0;
+  }
+
+  .dashboard-top-grid__cat {
+    grid-area: cat;
+    min-width: 0;
+  }
+
+  .dashboard-top-grid__inv {
+    grid-area: inv;
+    min-width: 0;
+  }
+}
+
+/*
+ * KPIs en parejas (tipo app). Grid evita que `flex: 1 1 100%` del móvil los apile.
+ * Inventario: 2×2 en pantallas <1024px; 4 en fila en desktop ancho.
+ */
+.dashboard-flex-row.dashboard-flex-row--stats-mobile-2col {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-flex-row.dashboard-flex-row--stats-mobile-2col.dashboard-flex-row--stats-desktop-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.dashboard-flex-row.dashboard-flex-row--stats-mobile-2col > * {
+  min-width: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.dashboard-flex-row.dashboard-flex-row--stats-mobile-2col .dashboard-card--stat {
+  padding: 12px 14px;
+}
+
+.dashboard-flex-row.dashboard-flex-row--stats-mobile-2col .dashboard-kpi__value {
+  font-size: clamp(1.05rem, 3.6vw, 1.45rem);
+}
+
+.dashboard-flex-row.dashboard-flex-row--stats-mobile-2col .dashboard-kpi__label {
+  font-size: 0.78rem;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-flex-row.dashboard-flex-row--stats-mobile-2col.dashboard-flex-row--stats-desktop-4
+    .dashboard-card--stat {
+    padding: 16px;
+  }
+
+  .dashboard-flex-row.dashboard-flex-row--stats-mobile-2col.dashboard-flex-row--stats-desktop-4
+    .dashboard-kpi__value {
+    font-size: 1.65rem;
+  }
+
+  .dashboard-flex-row.dashboard-flex-row--stats-mobile-2col.dashboard-flex-row--stats-desktop-4
+    .dashboard-kpi__label {
+    font-size: 0.85rem;
+  }
 }
 
 .dashboard-page {
@@ -735,7 +832,8 @@
 }
 
 @media (max-width: 768px) {
-  .dashboard-flex-row > * {
+  /* Filas flex normales: una columna. Excluye filas KPI en grid (stats-mobile-2col). */
+  .dashboard-flex-row:not(.dashboard-flex-row--stats-mobile-2col) > * {
     flex: 1 1 100%;
     max-width: 100%;
     min-width: 0;

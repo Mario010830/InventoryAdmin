@@ -349,6 +349,32 @@ export default function LeadsPage() {
     return base.filter((s) => s !== "Convertido");
   }, [editing?.status]);
 
+  const renderMobileLeadRow = useCallback((row: LeadResponse) => {
+    const name = row.name?.trim() || "—";
+    const company = row.company?.trim();
+    const badge =
+      row.convertedToContactId != null ? (
+        <span className="dt-tag dt-tag--green">Convertido</span>
+      ) : (
+        <span className="dt-tag dt-tag--neutral">{row.status}</span>
+      );
+    return (
+      <div className="dt-mobile-row">
+        <div className="dt-mobile-row__body">
+          <div className="dt-mobile-row__title" title={name}>
+            {name}
+          </div>
+          {company ? (
+            <div className="dt-mobile-row__meta" title={company}>
+              {company}
+            </div>
+          ) : null}
+          <div className="dt-mobile-row__row2">{badge}</div>
+        </div>
+      </div>
+    );
+  }, []);
+
   return (
     <>
       <DataTable
@@ -412,6 +438,7 @@ export default function LeadsPage() {
         addLabel="Nuevo lead"
         onAdd={openCreate}
         addDisabled={!canCreateLead}
+        renderMobileRowSummary={renderMobileLeadRow}
         actions={[
           {
             icon: "edit",

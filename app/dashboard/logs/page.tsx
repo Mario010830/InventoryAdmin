@@ -170,6 +170,52 @@ export default function LogsPage() {
   const allPagesLoaded =
     result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
 
+  const renderMobileLogRow = useCallback(
+    (row: LogResponse) => {
+      const lt = (row.logType ?? "").trim() || "—";
+      const ev = (row.eventType ?? "").trim() || "—";
+      const head = `${lt} · ${ev}`;
+      const d = new Date(row.createdAt);
+      const dateStr = Number.isNaN(d.getTime())
+        ? ""
+        : d.toLocaleString("es-MX", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+      const uid = row.userId;
+      const userMeta =
+        uid != null && uid > 0
+          ? (userIdToName.get(uid) ?? `Usuario #${uid}`)
+          : null;
+      return (
+        <div className="dt-mobile-row">
+          <div className="dt-mobile-row__body">
+            <div className="dt-mobile-row__title" title={head}>
+              {head}
+            </div>
+            {userMeta ? (
+              <div className="dt-mobile-row__meta" title={userMeta}>
+                {userMeta}
+              </div>
+            ) : null}
+          </div>
+          {dateStr ? (
+            <span
+              className="dt-mobile-row__end"
+              style={{ fontSize: "0.72rem", fontWeight: 600 }}
+            >
+              {dateStr}
+            </span>
+          ) : null}
+        </div>
+      );
+    },
+    [userIdToName],
+  );
+
   return (
     <DataTable
       gridConfig={{
@@ -261,6 +307,7 @@ export default function LogsPage() {
           ? "Ningún log coincide con los filtros."
           : "No hay logs"
       }
+      renderMobileRowSummary={renderMobileLogRow}
       detailDrawer={{
         entityLabelPlural: "registros",
         getTitle: (row) => `Log #${row.id}`,

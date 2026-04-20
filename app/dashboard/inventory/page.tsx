@@ -191,6 +191,30 @@ export default function InventoryPage() {
   const allPagesLoaded =
     result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
 
+  const renderMobileInventoryRow = useCallback((row: InventoryResponse) => {
+    const r = row as InventoryResponse & { productName?: string };
+    const name =
+      r.productName?.trim() || `Producto #${row.productId}`;
+    const loc = row.locationName?.trim() || "—";
+    const unit = row.unitOfMeasure?.trim();
+    const stockText = unit
+      ? `${row.currentStock} ${unit}`
+      : String(row.currentStock);
+    return (
+      <div className="dt-mobile-row">
+        <div className="dt-mobile-row__body">
+          <div className="dt-mobile-row__title" title={name}>
+            {name}
+          </div>
+          <div className="dt-mobile-row__meta" title={loc}>
+            {loc}
+          </div>
+        </div>
+        <span className="dt-mobile-row__end">{stockText}</span>
+      </div>
+    );
+  }, []);
+
   return (
     <DataTable
       gridConfig={{
@@ -305,6 +329,7 @@ export default function InventoryPage() {
       infiniteScroll
       hasMore={!allPagesLoaded}
       loadingMore={isFetching && !allPagesLoaded}
+      renderMobileRowSummary={renderMobileInventoryRow}
       detailDrawer={{
         entityLabelPlural: "registros",
         getTitle: (row) => {

@@ -402,6 +402,33 @@ export default function LocationsPage() {
   const allPagesLoaded =
     result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
 
+  const renderMobileLocationRow = useCallback((row: LocationResponse) => {
+    const name = row.name?.trim() || "—";
+    const code = row.code?.trim();
+    const wa = row.whatsAppContact?.trim();
+    const org = row.organizationName?.trim();
+    const metaParts: string[] = [];
+    if (code) metaParts.push(`Cód. ${code}`);
+    if (wa) metaParts.push(wa);
+    else if (org) metaParts.push(org);
+    const meta = metaParts.join(" · ");
+
+    return (
+      <div className="dt-mobile-row">
+        <div className="dt-mobile-row__body">
+          <div className="dt-mobile-row__title" title={name}>
+            {name}
+          </div>
+          {meta ? (
+            <div className="dt-mobile-row__meta" title={meta}>
+              {meta}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }, []);
+
   const openCreate = () => {
     editSnapshotRef.current = null;
     setEditing(null);
@@ -733,6 +760,7 @@ export default function LocationsPage() {
         addDisabledTitle={
           addLocationBlockedByQuota ? LOCATION_QUOTA_TOOLTIP : undefined
         }
+        renderMobileRowSummary={renderMobileLocationRow}
         actions={[
           {
             icon: "open_in_new",

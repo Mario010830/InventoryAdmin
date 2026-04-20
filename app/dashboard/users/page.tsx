@@ -202,6 +202,32 @@ export default function UsersPage() {
   const allPagesLoaded =
     result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
 
+  const renderMobileUserRow = useCallback((row: UserResponse) => {
+    const name = row.fullName?.trim() || "—";
+    const email = row.email?.trim() ?? "";
+    const active = String(row.status ?? "").toUpperCase() === "ACTIVE";
+    const badge = (
+      <span className={`dt-tag ${active ? "dt-tag--green" : "dt-tag--red"}`}>
+        {active ? "Activo" : "Inactivo"}
+      </span>
+    );
+    return (
+      <div className="dt-mobile-row">
+        <div className="dt-mobile-row__body">
+          <div className="dt-mobile-row__title" title={name}>
+            {name}
+          </div>
+          <div className="dt-mobile-row__row2">{badge}</div>
+          {email ? (
+            <div className="dt-mobile-row__meta" title={email}>
+              {email}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }, []);
+
   const openCreate = () => {
     setEditing(null);
     setForm({ ...initialForm, locationId: 0, roleId: 0 });
@@ -452,6 +478,7 @@ export default function UsersPage() {
         addLabel="Nuevo usuario"
         onAdd={openCreate}
         addDisabled={!canCreateUser}
+        renderMobileRowSummary={renderMobileUserRow}
         actions={[
           {
             icon: "edit",

@@ -295,6 +295,27 @@ export default function ContactsPage() {
     }
   };
 
+  const renderMobileContactRow = useCallback((row: ContactResponse) => {
+    const name = row.name?.trim() || "—";
+    const company = row.company?.trim();
+    const phone = row.phone?.trim();
+    const line1 = company || phone || "—";
+    const email = row.email?.trim();
+    const meta = email ? `${line1} · ${email}` : line1;
+    return (
+      <div className="dt-mobile-row">
+        <div className="dt-mobile-row__body">
+          <div className="dt-mobile-row__title" title={name}>
+            {name}
+          </div>
+          <div className="dt-mobile-row__meta" title={meta}>
+            {meta}
+          </div>
+        </div>
+      </div>
+    );
+  }, []);
+
   return (
     <>
       <DataTable
@@ -356,6 +377,7 @@ export default function ContactsPage() {
         addLabel="Nuevo contacto"
         onAdd={openCreate}
         addDisabled={!canCreateContact}
+        renderMobileRowSummary={renderMobileContactRow}
         actions={[
           {
             icon: "edit",

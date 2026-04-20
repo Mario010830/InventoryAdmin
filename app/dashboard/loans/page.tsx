@@ -271,6 +271,36 @@ export default function LoansPage() {
     [],
   );
 
+  const renderMobileLoanRow = useCallback((row: LoanResponse) => {
+    const debtor = row.debtorName?.trim() || "—";
+    const principal = formatPrincipalTableCell(row);
+    const pending = formatLoanTableAmount(
+      row,
+      Number(row.outstandingPrincipal),
+    );
+    const statusBadge =
+      row.outstandingPrincipal > 0 ? (
+        <span className="dt-tag dt-tag--neutral">Pendiente</span>
+      ) : (
+        <span className="dt-tag dt-tag--green">Al día</span>
+      );
+
+    return (
+      <div className="dt-mobile-row">
+        <div className="dt-mobile-row__body">
+          <div className="dt-mobile-row__title" title={debtor}>
+            {debtor}
+          </div>
+          <div className="dt-mobile-row__row2">{statusBadge}</div>
+          <div className="dt-mobile-row__meta" title={`Capital ${principal}`}>
+            Capital {principal}
+          </div>
+        </div>
+        <span className="dt-mobile-row__end">{pending}</span>
+      </div>
+    );
+  }, []);
+
   const openCreate = () => {
     setEditing(null);
     setForm(initialForm);
@@ -516,6 +546,7 @@ export default function LoansPage() {
         addLabel="Nuevo préstamo"
         onAdd={openCreate}
         addDisabled={!canCreateLoan}
+        renderMobileRowSummary={renderMobileLoanRow}
         actions={[
           {
             icon: "edit",

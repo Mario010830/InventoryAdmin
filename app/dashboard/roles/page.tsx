@@ -202,6 +202,23 @@ export default function RolesPage() {
   const allPagesLoaded =
     result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
 
+  const renderMobileRoleRow = useCallback((row: RoleResponse) => {
+    const desc = (row.description ?? "").trim();
+    const truncated = desc.length > 96 ? `${desc.slice(0, 93)}…` : desc;
+    return (
+      <div className="dt-mobile-row">
+        <div className="dt-mobile-row__body">
+          <div className="dt-mobile-row__title">{row.name}</div>
+          {truncated ? (
+            <div className="dt-mobile-row__meta" title={desc || undefined}>
+              {truncated}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }, []);
+
   const openCreate = () => {
     setEditing(null);
     setForm(initialForm);
@@ -379,6 +396,7 @@ export default function RolesPage() {
         addLabel="Nuevo rol"
         onAdd={openCreate}
         addDisabled={!canCreateRole}
+        renderMobileRowSummary={renderMobileRoleRow}
         actions={[
           {
             icon: "edit",

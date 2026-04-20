@@ -156,6 +156,18 @@ export interface DataTableProps<T extends { id: string | number }> {
   detailDrawer?: DataTableDetailDrawerConfig<T>;
   /** Ordenación, selección, export, columnas visibles */
   gridConfig?: DataTableGridConfig;
+  /**
+   * En viewport ≤768px: `"stacked"` (por defecto) muestra cada fila como tarjeta
+   * con pares etiqueta/valor; `"table"` mantiene la tabla con zoom horizontal.
+   */
+  mobileDisplay?: "stacked" | "table";
+  /**
+   * Móvil + apilado: una sola fila resumida (p. ej. foto + nombre + precio).
+   * El resto de columnas queda en el panel de detalle al tocar la fila (si hay `detailDrawer`).
+   * Si no se pasa y hay `detailDrawer`, se intenta una fila mínima con columnas típicas (nombre/precio).
+   * Sin `detailDrawer` y sin esto, se listan todas las columnas como antes.
+   */
+  renderMobileRowSummary?: (row: T) => React.ReactNode;
 
   defaultSort?: { key: string; dir: "asc" | "desc" };
   renderBulkToolbar?: (ctx: {
@@ -207,6 +219,62 @@ function resolveColKey<T>(
 ): string {
   if (typeof col.key === "string") return col.key;
   return `col-${index}`;
+}
+
+/** Columnas sugeridas para la fila compacta móvil (sin `renderMobileRowSummary`). */
+function pickCompactSummaryColumnEntries<T>(
+  columns: DataTableColumn<T>[],
+  hiddenColKeys: Set<string>,
+): { col: DataTableColumn<T>; colKey: string }[] {
+  const visible = columns
+    .map((col, i) => ({ col, colKey: resolveColKey(col, i) }))
+    .filter(({ colKey }) => !hiddenColKeys.has(colKey));
+  if (visible.length === 0) return [];
+
+  const kl = (col: DataTableColumn<T>) =>
+    typeof col.key === "string" ? col.key.toLowerCase() : "";
+
+  const out: { col: DataTableColumn<T>; colKey: string }[] = [];
+  const add = (e?: { col: DataTableColumn<T>; colKey: string }) => {
+    if (!e || out.some((o) => o.colKey === e.colKey)) return;
+    out.push(e);
+  };
+
+  add(
+    visible.find(({ col }) => {
+      const k = kl(col);
+      return (
+        k.includes("imagen") ||
+        k.includes("image") ||
+        k.includes("foto") ||
+        k.includes("thumb") ||
+        k.includes("avatar")
+      );
+    }),
+  );
+  add(
+    visible.find(({ col }) => {
+      const k = kl(col);
+      return ["name", "nombre", "title", "label", "folio", "code", "codigo"].includes(
+        k,
+      );
+    }),
+  );
+  add(
+    visible.find(({ col }) => {
+      const k = kl(col);
+      return (
+        k === "precio" ||
+        k === "price" ||
+        k === "total" ||
+        k === "costo" ||
+        k.includes("amount")
+      );
+    }),
+  );
+  if (out.length === 0) add(visible[0]);
+  if (out.length === 1 && visible[1]) add(visible[1]);
+  return out.slice(0, 3);
 }
 
 function formatDate(iso: string, locale = "es-ES") {
@@ -339,6 +407,8 @@ export function DataTable<T extends { id: string | number }>({
   renderBulkToolbar,
   onBulkDeleteSelected,
   onBulkSelectAll,
+  mobileDisplay = "stacked",
+  renderMobileRowSummary,
 }: DataTableProps<T>) {
   const { formatCup } = useDisplayCurrency();
   const gridEnabled = Boolean(gridConfig);
@@ -425,6 +495,14 @@ export function DataTable<T extends { id: string | number }>({
     return colWidths.map((w) => (w / sum) * 100);
   }, [colWidths]);
   const isMobileLayout = useMatchMaxWidth(DT_LAYOUT_MOBILE_MAX_PX);
+  const useStackedMobile =
+    isMobileLayout && (mobileDisplay ?? "stacked") === "stacked";
+
+  const compactSummaryEntries = useMemo(() => {
+    if (renderMobileRowSummary != null) return null;
+    if (!detailDrawer) return null;
+    return pickCompactSummaryColumnEntries(columns, hiddenColKeys);
+  }, [renderMobileRowSummary, detailDrawer, columns, hiddenColKeys]);
 
   const widthStorageKey = columnWidthsStorageKey ?? gridConfig?.storageKey;
 
@@ -660,6 +738,38 @@ export function DataTable<T extends { id: string | number }>({
     [sortedData.length],
   );
 
+  const renderActionButtons = useCallback(
+    (row: T) => {
+      if (!mergedActions?.length) return null;
+      return mergedActions.map((action, actionIdx) => {
+        if (action.hidden?.(row)) return null;
+        return (
+          <button
+            key={`${actionIdx}-${action.label}`}
+            type="button"
+            className={`dt-icon-btn${action.variant === "danger" ? " dt-icon-btn--danger" : ""}${action.disabled?.(row) ? " dt-icon-btn--disabled" : ""}`}
+            onClick={() => {
+              if (action.disabled?.(row)) return;
+              if (
+                detailDrawer &&
+                detailIndex != null &&
+                detailDrawer.onEdit === action.onClick
+              ) {
+                closeDetailDrawer();
+              }
+              action.onClick(row);
+            }}
+            title={action.label}
+            disabled={action.disabled?.(row)}
+          >
+            <Icon name={action.icon} />
+          </button>
+        );
+      });
+    },
+    [mergedActions, detailDrawer, detailIndex, closeDetailDrawer],
+  );
+
   useEffect(() => {
     const fb = computeInitialWidths(columns, { hasCheckbox, hasActions });
     if (!widthStorageKey) {
@@ -815,7 +925,9 @@ export function DataTable<T extends { id: string | number }>({
   return (
     <>
       <div className="dt-card">
-        <div className="dt-card-head">
+        <div
+          className={`dt-card-head${isMobileLayout ? " dt-card-head--mobile" : ""}`}
+        >
           <h1 className="dt-header__title">
             {titleIcon && <Icon name={titleIcon} />}
             {title}
@@ -840,6 +952,7 @@ export function DataTable<T extends { id: string | number }>({
                     <button
                       type="button"
                       className="dt-btn-ghost dt-btn-ghost--columns"
+                      aria-label="Columnas visibles"
                       onClick={() => {
                         setColumnsMenuOpen((o) => !o);
                         setExportMenuOpen(false);
@@ -921,13 +1034,14 @@ export function DataTable<T extends { id: string | number }>({
                     <button
                       type="button"
                       className="dt-btn-ghost"
+                      aria-label="Exportar tabla"
                       onClick={() => {
                         setExportMenuOpen((o) => !o);
                         setColumnsMenuOpen(false);
                       }}
                     >
                       <Icon name="download" />
-                      Exportar
+                      <span className="dt-btn-ghost__label">Exportar</span>
                     </button>
                     {exportMenuOpen ? (
                       <div
@@ -960,6 +1074,7 @@ export function DataTable<T extends { id: string | number }>({
                   disabled={addDisabled}
                   onClick={() => !addDisabled && onAdd?.()}
                   data-tutorial={addButtonDataTutorial}
+                  aria-label={addLabel}
                   title={
                     addDisabled
                       ? (addDisabledTitle ?? "Sin permiso para crear")
@@ -967,7 +1082,7 @@ export function DataTable<T extends { id: string | number }>({
                   }
                 >
                   <Icon name={addIcon} />
-                  {addLabel}
+                  <span className="dt-btn-add__label">{addLabel}</span>
                 </button>
               )}
             </div>
@@ -1031,6 +1146,7 @@ export function DataTable<T extends { id: string | number }>({
                 className="dt-btn-add"
                 disabled={addDisabled}
                 onClick={() => !addDisabled && onAdd?.()}
+                aria-label={addLabel}
                 title={
                   addDisabled
                     ? (addDisabledTitle ?? "Sin permiso para crear")
@@ -1038,14 +1154,17 @@ export function DataTable<T extends { id: string | number }>({
                 }
               >
                 <Icon name={addIcon} />
-                {addLabel}
+                <span className="dt-btn-add__label">{addLabel}</span>
               </button>
             )}
           </div>
         ) : (
           <>
-            <div ref={wrapRef} className={wrapClass}>
-              {guide ? (
+            <div
+              ref={wrapRef}
+              className={`${wrapClass}${useStackedMobile ? " dt-wrap--stacked" : ""}`}
+            >
+              {guide && !useStackedMobile ? (
                 <div
                   className="dt-resize-guide"
                   style={{
@@ -1056,65 +1175,169 @@ export function DataTable<T extends { id: string | number }>({
                   aria-hidden
                 />
               ) : null}
-              {isMobileLayout ? (
-                <div
-                  className="dt-mobile-zoom-bar"
-                  role="toolbar"
-                  aria-label="Zoom de la tabla"
-                >
-                  <span className="dt-mobile-zoom-bar__label">Tabla</span>
-                  <button
-                    type="button"
-                    className="dt-mobile-zoom-btn"
-                    aria-label="Alejar tabla"
-                    onClick={() =>
-                      setMobileTableZoom((z) =>
-                        clampMobileZoom(z - MOBILE_TABLE_ZOOM_STEP),
-                      )
-                    }
-                  >
-                    −
-                  </button>
-                  <span
-                    className="dt-mobile-zoom-bar__value"
-                    aria-live="polite"
-                  >
-                    {Math.round(mobileTableZoom * 100)}%
-                  </span>
-                  <button
-                    type="button"
-                    className="dt-mobile-zoom-btn"
-                    aria-label="Acercar tabla"
-                    onClick={() =>
-                      setMobileTableZoom((z) =>
-                        clampMobileZoom(z + MOBILE_TABLE_ZOOM_STEP),
-                      )
-                    }
-                  >
-                    +
-                  </button>
-                  <button
-                    type="button"
-                    className="dt-mobile-zoom-btn dt-mobile-zoom-btn--reset"
-                    title="Tamaño predeterminado (más filas visibles)"
-                    aria-label="Restablecer zoom de la tabla"
-                    onClick={() =>
-                      setMobileTableZoom(DEFAULT_MOBILE_TABLE_ZOOM)
-                    }
-                  >
-                    Predet.
-                  </button>
+              {useStackedMobile ? (
+                <div className="dt-stacked-list" role="list">
+                  {sortedData.map((row, idx) => (
+                    <article
+                      key={row.id}
+                      role="listitem"
+                      className={`dt-stacked-row${idx % 2 === 1 ? " dt-stacked-row--alt" : ""}${detailDrawer ? " dt-stacked-row--clickable" : ""}`.trim()}
+                      aria-label={
+                        detailDrawer ? "Abrir detalle del registro" : undefined
+                      }
+                      onClick={
+                        detailDrawer
+                          ? () => openDetailAtIndex(idx)
+                          : undefined
+                      }
+                    >
+                      {hasCheckbox || hasActions ? (
+                        <div
+                          className="dt-stacked-row__toolbar"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="dt-stacked-row__toolbar-left">
+                            {hasCheckbox ? (
+                              <input
+                                type="checkbox"
+                                className="dt-row-checkbox"
+                                checked={selectedIds.has(String(row.id))}
+                                onChange={() => toggleRowSelected(row.id)}
+                                aria-label="Seleccionar fila"
+                              />
+                            ) : null}
+                          </div>
+                          {hasActions ? (
+                            <div className="dt-stacked-row__toolbar-actions">
+                              {renderActionButtons(row)}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      {renderMobileRowSummary ? (
+                        <div className="dt-stacked-row__summary dt-stacked-row__summary--custom">
+                          {renderMobileRowSummary(row)}
+                          {detailDrawer ? (
+                            <Icon
+                              name="chevron_right"
+                              className="dt-stacked-row__chevron"
+                              aria-hidden
+                            />
+                          ) : null}
+                        </div>
+                      ) : compactSummaryEntries &&
+                        compactSummaryEntries.length > 0 ? (
+                        <div className="dt-stacked-row__summary dt-stacked-row__summary--inline">
+                          <div className="dt-stacked-summary-line">
+                            {compactSummaryEntries.map(({ col, colKey }) => (
+                              <div
+                                key={colKey}
+                                className="dt-stacked-summary-cell"
+                              >
+                                <Cell
+                                  col={col}
+                                  row={row}
+                                  formatCup={formatCup}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          {detailDrawer ? (
+                            <Icon
+                              name="chevron_right"
+                              className="dt-stacked-row__chevron"
+                              aria-hidden
+                            />
+                          ) : null}
+                        </div>
+                      ) : (
+                        <div className="dt-stacked-fields">
+                          {columns.map((col, colIdx) => {
+                            const colKey = resolveColKey(col, colIdx);
+                            if (hiddenColKeys.has(colKey)) return null;
+                            return (
+                              <div key={colKey} className="dt-stacked-field">
+                                <div className="dt-stacked-field__label">
+                                  {col.label}
+                                </div>
+                                <div className="dt-stacked-field__value">
+                                  <Cell
+                                    col={col}
+                                    row={row}
+                                    formatCup={formatCup}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </article>
+                  ))}
                 </div>
-              ) : null}
-              <div
-                className={isMobileLayout ? "dt-mobile-zoom-inner" : undefined}
-                style={
-                  isMobileLayout
-                    ? ({ zoom: mobileTableZoom } as CSSProperties)
-                    : undefined
-                }
-              >
-                <table
+              ) : (
+                <>
+                  {isMobileLayout ? (
+                    <div
+                      className="dt-mobile-zoom-bar"
+                      role="toolbar"
+                      aria-label="Zoom de la tabla"
+                    >
+                      <span className="dt-mobile-zoom-bar__label">Tabla</span>
+                      <button
+                        type="button"
+                        className="dt-mobile-zoom-btn"
+                        aria-label="Alejar tabla"
+                        onClick={() =>
+                          setMobileTableZoom((z) =>
+                            clampMobileZoom(z - MOBILE_TABLE_ZOOM_STEP),
+                          )
+                        }
+                      >
+                        −
+                      </button>
+                      <span
+                        className="dt-mobile-zoom-bar__value"
+                        aria-live="polite"
+                      >
+                        {Math.round(mobileTableZoom * 100)}%
+                      </span>
+                      <button
+                        type="button"
+                        className="dt-mobile-zoom-btn"
+                        aria-label="Acercar tabla"
+                        onClick={() =>
+                          setMobileTableZoom((z) =>
+                            clampMobileZoom(z + MOBILE_TABLE_ZOOM_STEP),
+                          )
+                        }
+                      >
+                        +
+                      </button>
+                      <button
+                        type="button"
+                        className="dt-mobile-zoom-btn dt-mobile-zoom-btn--reset"
+                        title="Tamaño predeterminado (más filas visibles)"
+                        aria-label="Restablecer zoom de la tabla"
+                        onClick={() =>
+                          setMobileTableZoom(DEFAULT_MOBILE_TABLE_ZOOM)
+                        }
+                      >
+                        Predet.
+                      </button>
+                    </div>
+                  ) : null}
+                  <div
+                    className={
+                      isMobileLayout ? "dt-mobile-zoom-inner" : undefined
+                    }
+                    style={
+                      isMobileLayout
+                        ? ({ zoom: mobileTableZoom } as CSSProperties)
+                        : undefined
+                    }
+                  >
+                    <table
                   ref={tableRef}
                   className={`dt-table${isMobileLayout ? " dt-table--mobile" : ""}`}
                   style={
@@ -1297,38 +1520,16 @@ export function DataTable<T extends { id: string | number }>({
                             )}
                             onClick={(e) => e.stopPropagation()}
                           >
-                            {mergedActions?.map((action, actionIdx) => {
-                              if (action.hidden?.(row)) return null;
-                              return (
-                                <button
-                                  key={`${actionIdx}-${action.label}`}
-                                  type="button"
-                                  className={`dt-icon-btn${action.variant === "danger" ? " dt-icon-btn--danger" : ""}${action.disabled?.(row) ? " dt-icon-btn--disabled" : ""}`}
-                                  onClick={() => {
-                                    if (action.disabled?.(row)) return;
-                                    if (
-                                      detailDrawer &&
-                                      detailIndex != null &&
-                                      detailDrawer.onEdit === action.onClick
-                                    ) {
-                                      closeDetailDrawer();
-                                    }
-                                    action.onClick(row);
-                                  }}
-                                  title={action.label}
-                                  disabled={action.disabled?.(row)}
-                                >
-                                  <Icon name={action.icon} />
-                                </button>
-                              );
-                            })}
+                            {renderActionButtons(row)}
                           </td>
                         )}
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {infiniteScroll ? (

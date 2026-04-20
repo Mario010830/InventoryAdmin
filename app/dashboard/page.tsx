@@ -298,127 +298,161 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* ── Ganancia ventas (prioridad: permiso sale.read) ─────────────────── */}
       {canSaleRead ? (
-        <section style={{ marginBottom: 8 }}>
-          <h2 className="dashboard-section-title">Ganancia de ventas</h2>
-          <div style={{ marginBottom: 4 }}>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-                marginBottom: 8,
-              }}
-            >
-              <h3
-                className="dashboard-section-title"
-                style={{
-                  margin: 0,
-                  fontSize: "1rem",
-                  fontWeight: 700,
-                }}
-              >
-                Bruto y neto
-              </h3>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: 14,
-                  color: theme.secondaryText,
-                }}
-              >
-                <span>Período</span>
-                <select
-                  value={kpiPeriod}
-                  onChange={(e) =>
-                    setKpiPeriod(e.target.value as DashboardKpiPeriod)
-                  }
+        <div className="dashboard-top-grid">
+          <div className="dashboard-top-grid__sales">
+            <section style={{ marginBottom: 0 }}>
+              <h2 className="dashboard-section-title">Ganancia de ventas</h2>
+              <div style={{ marginBottom: 4 }}>
+                <div
                   style={{
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    border: `1px solid ${theme.divider}`,
-                    fontSize: 14,
-                    minWidth: 160,
+                    display: "flex",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    marginBottom: 8,
                   }}
                 >
-                  {KPI_PERIOD_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <p
-              style={{
-                margin: "0 0 14px",
-                fontSize: 12,
-                color: theme.secondaryText,
-                lineHeight: 1.45,
-              }}
-            >
-              Solo ventas confirmadas, sin contar devoluciones.
-            </p>
-            <div className="dashboard-flex-row">
-              <StatCard
-                label="Ingreso bruto"
-                value={
-                  grossKpi.isLoading || grossKpi.isFetching
-                    ? "…"
-                    : grossKpi.isError
-                      ? "—"
-                      : formatCup(grossKpi.data?.grossProfit ?? 0)
-                }
-                icon="trending_up"
-                trend={
-                  grossKpi.data
-                    ? `${grossKpi.data.orderCount} ventas en el período`
-                    : grossKpi.isError
-                      ? "No se pudo cargar"
-                      : ""
-                }
-                trendUp
-                iconBg="#ECFDF5"
-                iconColor={theme.success}
+                  <h3
+                    className="dashboard-section-title"
+                    style={{
+                      margin: 0,
+                      fontSize: "1rem",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Bruto y neto
+                  </h3>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      fontSize: 14,
+                      color: theme.secondaryText,
+                    }}
+                  >
+                    <span>Período</span>
+                    <select
+                      value={kpiPeriod}
+                      onChange={(e) =>
+                        setKpiPeriod(e.target.value as DashboardKpiPeriod)
+                      }
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: 8,
+                        border: `1px solid ${theme.divider}`,
+                        fontSize: 14,
+                        minWidth: 160,
+                      }}
+                    >
+                      {KPI_PERIOD_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <p
+                  style={{
+                    margin: "0 0 14px",
+                    fontSize: 12,
+                    color: theme.secondaryText,
+                    lineHeight: 1.45,
+                  }}
+                >
+                  Solo ventas confirmadas, sin contar devoluciones.
+                </p>
+                <div className="dashboard-flex-row dashboard-flex-row--stats-mobile-2col">
+                  <StatCard
+                    label="Ingreso bruto"
+                    value={
+                      grossKpi.isLoading || grossKpi.isFetching
+                        ? "…"
+                        : grossKpi.isError
+                          ? "—"
+                          : formatCup(grossKpi.data?.grossProfit ?? 0)
+                    }
+                    icon="trending_up"
+                    trend={
+                      grossKpi.data
+                        ? `${grossKpi.data.orderCount} ventas en el período`
+                        : grossKpi.isError
+                          ? "No se pudo cargar"
+                          : ""
+                    }
+                    trendUp
+                    iconBg="#ECFDF5"
+                    iconColor={theme.success}
+                  />
+                  <StatCard
+                    label="Ganancia neta"
+                    value={
+                      netKpi.isLoading || netKpi.isFetching
+                        ? "…"
+                        : netKpi.isError
+                          ? "—"
+                          : formatCup(netKpi.data?.netProfit ?? 0)
+                    }
+                    icon="account_balance"
+                    trend={
+                      netKpi.data
+                        ? `${netKpi.data.orderCount} ventas (mismo criterio)`
+                        : netKpi.isError
+                          ? "No se pudo cargar"
+                          : ""
+                    }
+                    trendUp
+                    iconBg="#EEF2FF"
+                    iconColor={theme.accent}
+                  />
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div className="dashboard-top-grid__flujo">
+            <section className="dashboard-flex-row">
+              <LineChartCard
+                title="Flujo de Inventario"
+                subtitle="Entradas vs salidas (últimos 7 días)"
+                data={flow}
+                height={280}
               />
-              <StatCard
-                label="Ganancia neta"
-                value={
-                  netKpi.isLoading || netKpi.isFetching
-                    ? "…"
-                    : netKpi.isError
-                      ? "—"
-                      : formatCup(netKpi.data?.netProfit ?? 0)
-                }
-                icon="account_balance"
-                trend={
-                  netKpi.data
-                    ? `${netKpi.data.orderCount} ventas (mismo criterio)`
-                    : netKpi.isError
-                      ? "No se pudo cargar"
-                      : ""
-                }
-                trendUp
-                iconBg="#EEF2FF"
-                iconColor={theme.accent}
-              />
+            </section>
+          </div>
+
+          <div className="dashboard-top-grid__inv">
+            <h2 className="dashboard-section-title">Inventario en resumen</h2>
+            <div className="dashboard-flex-row dashboard-flex-row--stats-mobile-2col dashboard-flex-row--stats-desktop-4">
+              {kpis.map((kpi) => (
+                <StatCard key={kpi.label} {...kpi} />
+              ))}
             </div>
           </div>
-        </section>
-      ) : null}
 
-      {/* ── KPIs de inventario ─────────────────────────────────────────────── */}
-      <h2 className="dashboard-section-title">Inventario en resumen</h2>
-      <div className="dashboard-flex-row">
-        {kpis.map((kpi) => (
-          <StatCard key={kpi.label} {...kpi} />
-        ))}
-      </div>
+          <div className="dashboard-top-grid__cat">
+            <section className="dashboard-flex-row">
+              <PieChartCard
+                title="Categorías Populares"
+                data={categoryPie}
+                height={280}
+              />
+            </section>
+          </div>
+        </div>
+      ) : (
+        <>
+          <h2 className="dashboard-section-title">Inventario en resumen</h2>
+          <div className="dashboard-flex-row dashboard-flex-row--stats-mobile-2col dashboard-flex-row--stats-desktop-4">
+            {kpis.map((kpi) => (
+              <StatCard key={kpi.label} {...kpi} />
+            ))}
+          </div>
+        </>
+      )}
 
       <section className="dashboard-flex-row">
         <ListCard
@@ -430,19 +464,21 @@ export default function DashboardPage() {
         />
       </section>
 
-      <section className="dashboard-flex-row">
-        <LineChartCard
-          title="Flujo de Inventario"
-          subtitle="Entradas vs salidas (últimos 7 días)"
-          data={flow}
-          height={280}
-        />
-        <PieChartCard
-          title="Categorías Populares"
-          data={categoryPie}
-          height={280}
-        />
-      </section>
+      {!canSaleRead ? (
+        <section className="dashboard-flex-row">
+          <LineChartCard
+            title="Flujo de Inventario"
+            subtitle="Entradas vs salidas (últimos 7 días)"
+            data={flow}
+            height={280}
+          />
+          <PieChartCard
+            title="Categorías Populares"
+            data={categoryPie}
+            height={280}
+          />
+        </section>
+      ) : null}
 
       <section className="dashboard-flex-row">
         <LineChartCard
