@@ -7,6 +7,7 @@ function normalizeStatus(status: string): string {
   const s = (status ?? "").trim().toLowerCase();
   if (s === "draft") return "Draft";
   if (s === "confirmed") return "Confirmed";
+  if (s === "returned") return "Returned";
   if (s === "cancelled" || s === "canceled") return "Cancelled";
   return status;
 }
@@ -25,6 +26,11 @@ const STATUS_DISPLAY: Record<
     cls: "sale-status--cancelled",
     icon: "cancel",
     label: "Cancelada",
+  },
+  Returned: {
+    cls: "sale-status--returned",
+    icon: "undo",
+    label: "Devolución total",
   },
 };
 

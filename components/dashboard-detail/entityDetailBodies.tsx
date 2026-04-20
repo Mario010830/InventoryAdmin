@@ -11,6 +11,7 @@ import { useDisplayCurrency } from "@/contexts/DisplayCurrencyContext";
 import type { LocationResponse, UserResponse } from "@/lib/auth-types";
 import type {
   ContactResponse,
+  CustomerLoyaltyAccountResponse,
   InventoryMovementResponse,
   InventoryResponse,
   LeadResponse,
@@ -33,6 +34,7 @@ import {
 } from "@/lib/inventoryMovementUi";
 import { formatLoanMoneyDisplay } from "@/lib/loanMoneyDisplay";
 import { formatLoanInterestLine } from "@/lib/loan-interest";
+import { formatDisplayCurrency } from "@/lib/formatCurrency";
 import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import { BoolBadge, DetailField, DetailSection } from "./DetailPrimitives";
 import { LocationPublicCatalogSection } from "./LocationPublicCatalogSection";
@@ -45,15 +47,36 @@ function marginPercent(row: ProductResponse): string {
   return `${(((p - c) / p) * 100).toFixed(1)}%`;
 }
 
+function saleUnitsPerParentDisplay(row: ProductResponse): string {
+  const f = row.stockUnitsConsumedPerSaleUnit;
+  if (f != null && Number.isFinite(Number(f)) && Number(f) > 0) {
+    const inv = 1 / Number(f);
+    if (!Number.isFinite(inv)) return "—";
+    const rounded = Math.round(inv * 1e8) / 1e8;
+    return String(rounded);
+  }
+  if (
+    row.saleUnitsPerParentStockUnit != null &&
+    Number.isFinite(Number(row.saleUnitsPerParentStockUnit)) &&
+    Number(row.saleUnitsPerParentStockUnit) > 0
+  ) {
+    return String(row.saleUnitsPerParentStockUnit);
+  }
+  return "—";
+}
+
 export function ProductDetailBody({
   row,
   categoryName,
   locations = [],
+  parentProductName,
 }: {
   row: ProductResponse;
   categoryName: string;
   /** Para resolver nombres de tiendas en productos elaborados (`offerLocationIds`). */
   locations?: { id: number; name: string }[];
+  /** Nombre del SKU padre si `stockParentProductId` está definido. */
+  parentProductName?: string | null;
 }) {
   const { formatCup } = useDisplayCurrency();
   const stock = row.totalStock;
@@ -123,6 +146,12 @@ export function ProductDetailBody({
                 : "—"
             }
           />
+          {row.stockParentProductId != null && row.stockParentProductId > 0 ? (
+            <DetailField
+              label="Nota de stock"
+              value="Cantidad en unidades de venta; el bulto se controla en el producto padre."
+            />
+          ) : null}
           <DetailField
             label="Tipo"
             value={
@@ -135,6 +164,37 @@ export function ProductDetailBody({
           />
         </div>
       </DetailSection>
+      {row.stockParentProductId != null && row.stockParentProductId > 0 ? (
+        <DetailSection title="Relación de inventario">
+          <div className="gd-detail-section__grid gd-detail-section__grid--two">
+            <DetailField
+              label="Producto base"
+              value={displayDash(
+                parentProductName ?? `Producto #${row.stockParentProductId}`,
+              )}
+            />
+            <DetailField
+              label="ID interno del producto base"
+              value={String(row.stockParentProductId)}
+            />
+            <DetailField
+              label="Unidades de venta por cada 1 unidad base"
+              value={saleUnitsPerParentDisplay(row)}
+            />
+            <DetailField
+              label="Equivalencia"
+              value={`1 ${parentProductName?.trim() || "unidad base"} = ${saleUnitsPerParentDisplay(row)} ${row.name?.trim() || "unidades"}`}
+            />
+            {row.stockUnitsConsumedPerSaleUnit != null &&
+            Number.isFinite(Number(row.stockUnitsConsumedPerSaleUnit)) ? (
+              <DetailField
+                label="Factor técnico interno"
+                value={String(row.stockUnitsConsumedPerSaleUnit)}
+              />
+            ) : null}
+          </div>
+        </DetailSection>
+      ) : null}
       {row.tipo === "elaborado" && (
         <DetailSection title="Disponibilidad por tienda (elaborado)">
           <DetailField
@@ -197,13 +257,27 @@ export function CategoryDetailBody({
   );
 }
 
+function contactRoleBadges(row: ContactResponse): string {
+  const parts: string[] = [];
+  if (row.isCustomer) parts.push("Cliente");
+  if (row.isSupplier) parts.push("Proveedor");
+  if (row.leadStatus != null && String(row.leadStatus).trim() !== "")
+    parts.push("Oportunidad");
+  return parts.join(" · ");
+}
+
 export function ContactDetailBody({
   row,
   assignedUserName,
+  loyalty,
+  loyaltyLoading,
 }: {
   row: ContactResponse;
   assignedUserName?: string | null;
+  loyalty?: CustomerLoyaltyAccountResponse | null;
+  loyaltyLoading?: boolean;
 }) {
+  const rolesLabel = contactRoleBadges(row);
   return (
     <>
       <DetailSection title="General">
@@ -227,6 +301,21 @@ export function ContactDetailBody({
                   : null),
             )}
           />
+          {rolesLabel ? (
+            <DetailField label="Relación con el negocio" value={rolesLabel} />
+          ) : null}
+          {row.leadStatus != null && String(row.leadStatus).trim() !== "" ? (
+            <DetailField
+              label="Etapa del seguimiento"
+              value={displayDash(row.leadStatus)}
+            />
+          ) : null}
+          {row.leadConvertedAt ? (
+            <DetailField
+              label="Cierre como cliente"
+              value={formatDetailDate(row.leadConvertedAt)}
+            />
+          ) : null}
         </div>
       </DetailSection>
       {row.notes?.trim() ? (
@@ -251,6 +340,68 @@ export function ContactDetailBody({
           />
         </div>
       </DetailSection>
+      {row.isCustomer !== false ? (
+        <DetailSection title="Lealtad">
+          {loyaltyLoading ? (
+            <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>
+              Cargando programa de lealtad…
+            </p>
+          ) : loyalty ? (
+            <div className="gd-detail-section__grid gd-detail-section__grid--two">
+              <DetailField
+                label="Saldo de puntos"
+                value={
+                  loyalty.pointsBalance != null &&
+                  Number.isFinite(loyalty.pointsBalance)
+                    ? String(loyalty.pointsBalance)
+                    : "—"
+                }
+              />
+              <DetailField
+                label="Pedidos confirmados (total)"
+                value={
+                  loyalty.lifetimeOrders != null &&
+                  Number.isFinite(loyalty.lifetimeOrders)
+                    ? String(loyalty.lifetimeOrders)
+                    : "—"
+                }
+              />
+              <DetailField
+                label="Última compra"
+                value={
+                  loyalty.lastPurchaseAt
+                    ? formatDetailDateTime(String(loyalty.lastPurchaseAt))
+                    : "—"
+                }
+              />
+              <DetailField
+                label="Aviso cada N pedidos"
+                value={
+                  loyalty.notifyEveryNOrders != null &&
+                  Number.isFinite(loyalty.notifyEveryNOrders)
+                    ? String(loyalty.notifyEveryNOrders)
+                    : "—"
+                }
+              />
+              <DetailField
+                label="Pedidos hasta el próximo aviso"
+                value={
+                  loyalty.ordersUntilNextMilestone === null
+                    ? "—"
+                    : Number.isFinite(loyalty.ordersUntilNextMilestone)
+                      ? String(loyalty.ordersUntilNextMilestone)
+                      : "—"
+                }
+              />
+            </div>
+          ) : (
+            <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>
+              Sin datos de lealtad (habitual hasta tener ventas confirmadas con
+              este cliente).
+            </p>
+          )}
+        </DetailSection>
+      ) : null}
     </>
   );
 }
@@ -824,12 +975,20 @@ export function MovementDetailBody({
   row,
   userIdToName,
   productLabelById,
+  supplierLabel,
 }: {
   row: InventoryMovementResponse;
   userIdToName: Map<number, string>;
   productLabelById: Map<number, string>;
+  /** Nombre del contacto proveedor si se resolvió en la vista. */
+  supplierLabel?: string | null;
 }) {
   const typeLabel = movementTypeLabel(row.type);
+  const supplierIdRaw = row.supplierContactId ?? row.supplierId;
+  const supplierResolved =
+    supplierIdRaw != null && supplierIdRaw > 0
+      ? (supplierLabel?.trim() ? supplierLabel : `#${supplierIdRaw}`)
+      : null;
   return (
     <>
       <DetailSection title="General">
@@ -841,6 +1000,9 @@ export function MovementDetailBody({
             value={movementProductLabel(row, productLabelById)}
           />
           <DetailField label="Cantidad" value={String(row.quantity)} />
+          {supplierResolved ? (
+            <DetailField label="Proveedor" value={supplierResolved} />
+          ) : null}
         </div>
       </DetailSection>
       <DetailSection title="Stock">
@@ -876,9 +1038,12 @@ export function MovementDetailBody({
 export function UserDetailBody({
   row,
   roleName,
+  showSalary,
 }: {
   row: UserResponse;
   roleName: string;
+  /** Dato sensible: solo para vistas con permiso de administración de usuarios. */
+  showSalary?: boolean;
 }) {
   const active = String(row.status ?? "").toUpperCase() === "ACTIVE";
   const ext = row as UserResponse & {
@@ -887,11 +1052,24 @@ export function UserDetailBody({
     lastLogin?: string;
   };
   const last = ext.lastLoginAt ?? ext.lastAccessAt ?? ext.lastLogin;
+  const salaryVal = row.salary;
   return (
     <>
       <DetailField label="Nombre" value={displayDash(row.fullName)} />
       <DetailField label="Email" value={displayDash(row.email)} />
       <DetailField label="Rol" value={displayDash(roleName)} />
+      {showSalary ? (
+        <DetailField
+          label="Salario acordado"
+          value={
+            salaryVal != null &&
+            typeof salaryVal === "number" &&
+            Number.isFinite(salaryVal)
+              ? formatDisplayCurrency(salaryVal)
+              : "—"
+          }
+        />
+      ) : null}
       <DetailField
         label="Estado"
         value={

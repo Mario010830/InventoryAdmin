@@ -42,6 +42,12 @@ export interface ProductResponse {
   modifiedAt: string;
   /** Stock agregado (si el API lo envía en listados). */
   totalStock?: number;
+  /** Producto padre del que se descuenta stock (venta por unidad vs bulto). */
+  stockParentProductId?: number | null;
+  /** Unidades de stock del padre consumidas por cada unidad de venta del hijo (ej. 1/55 si el padre es saco de 55 lb). */
+  stockUnitsConsumedPerSaleUnit?: number | null;
+  /** Unidades de venta por 1 unidad de stock del padre (ej. 55 lb por saco); el API puede derivar el factor interno. */
+  saleUnitsPerParentStockUnit?: number | null;
   /** Galería opcional en detalle; la imagen principal sigue siendo siempre `imagenUrl`. */
   productImages?: ProductImageResponse[];
 }
@@ -59,6 +65,11 @@ export interface CreateProductRequest {
   tipo?: ProductTipo;
   tagIds?: number[];
   offerLocationIds?: number[];
+  /** Vínculo hijo → padre; usar `saleUnitsPerParentStockUnit` o `stockUnitsConsumedPerSaleUnit`, no ambos. */
+  stockParentProductId?: number;
+  stockUnitsConsumedPerSaleUnit?: number;
+  /** UX: ej. 55 si 1 saco = 55 lb de venta; el servidor calcula el factor. */
+  saleUnitsPerParentStockUnit?: number;
 }
 
 export interface UpdateProductRequest {
@@ -74,6 +85,11 @@ export interface UpdateProductRequest {
   tipo?: ProductTipo;
   tagIds?: number[];
   offerLocationIds?: number[];
+  stockParentProductId?: number;
+  stockUnitsConsumedPerSaleUnit?: number;
+  saleUnitsPerParentStockUnit?: number;
+  /** Si es true, el servidor quita el vínculo padre/hijo y el factor. */
+  clearStockParentLink?: boolean;
 }
 
 /** El Yerro Menú — vista previa (scraping, sin persistencia). */
@@ -226,6 +242,14 @@ export interface ContactResponse {
   origin?: string | null;
   isActive: boolean;
   assignedUserId?: number | null;
+  /** Rol CRM: cliente (ventas con este contactId). */
+  isCustomer?: boolean;
+  /** Rol CRM: proveedor (movimientos de entrada). */
+  isSupplier?: boolean;
+  /** Estado del pipeline de leads; null si no aplica. */
+  leadStatus?: string | null;
+  /** Fecha de conversión de lead, si aplica. */
+  leadConvertedAt?: string | null;
   createdAt: string;
   modifiedAt: string;
 }
@@ -241,6 +265,9 @@ export interface CreateContactRequest {
   origin?: string;
   isActive?: boolean;
   assignedUserId?: number | null;
+  isCustomer?: boolean;
+  isSupplier?: boolean;
+  leadStatus?: string | null;
 }
 
 export interface UpdateContactRequest {
@@ -254,7 +281,30 @@ export interface UpdateContactRequest {
   origin?: string;
   isActive?: boolean;
   assignedUserId?: number | null;
+  isCustomer?: boolean;
+  isSupplier?: boolean;
+  leadStatus?: string | null;
 }
+
+/** Roles explícitos para alta unificada (`POST /contact/counterparty`). */
+export type ContactCounterpartyRole = "customer" | "supplier" | "lead";
+
+export type CreateCounterpartyRequest = CreateContactRequest & {
+  roles: ContactCounterpartyRole[];
+};
+
+/** Respuesta de `GET /api/contact/{contactId}/loyalty` (cuerpo en ApiOkResponse). */
+export interface CustomerLoyaltyAccountResponse {
+  contactId: number;
+  pointsBalance: number;
+  lifetimeOrders: number;
+  lastPurchaseAt: string | null;
+  notifyEveryNOrders: number;
+  ordersUntilNextMilestone: number | null;
+}
+
+/** @deprecated Usar `CustomerLoyaltyAccountResponse`. */
+export type ContactLoyaltyResponse = CustomerLoyaltyAccountResponse;
 
 // ─── CRM: Lead ────────────────────────────────────────────────────────────────
 
@@ -471,6 +521,9 @@ export interface InventoryMovementResponse {
   unitCost?: number;
   unitPrice?: number;
   reason?: string;
+  /** ID del contacto con rol proveedor. */
+  supplierContactId?: number;
+  /** Respuestas antiguas; mismo significado que supplierContactId. */
   supplierId?: number;
   referenceDocument?: string;
   userId?: number;
@@ -488,7 +541,7 @@ export interface CreateInventoryMovementRequest {
   unitCost?: number;
   unitPrice?: number;
   reason?: string;
-  supplierId?: number;
+  supplierContactId?: number;
   referenceDocument?: string;
   userId?: number;
 }
@@ -534,6 +587,8 @@ export interface CreateUserRequest {
   locationId?: number;
   organizationId?: number;
   roleId?: number;
+  /** Salario u otro importe acordado; opcional. */
+  salary?: number | null;
 }
 
 export interface UpdateUserRequest {
@@ -546,6 +601,8 @@ export interface UpdateUserRequest {
   locationId?: number;
   organizationId?: number;
   roleId?: number;
+  /** Si no se envía el campo, el servidor no cambia el valor previo. */
+  salary?: number | null;
   /** Estado de cuenta (p. ej. activo / inactivo); depende del backend */
   statusId?: number;
 }
@@ -779,9 +836,11 @@ export type SaleOrderStatus =
   | "Draft"
   | "Confirmed"
   | "Cancelled"
+  | "Returned"
   | "draft"
   | "confirmed"
-  | "cancelled";
+  | "cancelled"
+  | "returned";
 
 export interface SaleOrderItemResponse {
   id: number;

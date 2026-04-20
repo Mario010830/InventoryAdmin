@@ -23,6 +23,12 @@
   border: 1px solid rgba(34, 197, 94, 0.2);
 }
 
+.sale-status--returned {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fdba74;
+}
+
 .sale-status--cancelled {
   background: rgba(239, 68, 68, 0.1);
   color: #dc2626;

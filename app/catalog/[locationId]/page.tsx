@@ -351,12 +351,18 @@ function QuickView({
               <Icon name="check_circle" /> Disponible
             </div>
           ) : low ? (
-            <div className="quickview__stock quickview__stock--low">
+            <div
+              className="quickview__stock quickview__stock--low"
+              title="Cantidad mostrada en unidades de venta (p. ej. libras si vendes por peso)."
+            >
               <Icon name="warning" /> ¡Solo quedan {item.stockAtLocation}{" "}
               unidades!
             </div>
           ) : (
-            <div className="quickview__stock quickview__stock--ok">
+            <div
+              className="quickview__stock quickview__stock--ok"
+              title="Cantidad en unidades de venta; si el producto consume stock de un bulto, el número ya viene convertido."
+            >
               <Icon name="check_circle" /> En stock ({item.stockAtLocation}{" "}
               disponibles)
             </div>

@@ -6,7 +6,10 @@ import { DataTable } from "@/components/DataTable";
 import { DeleteModal } from "@/components/DeleteModal";
 import { FormModal } from "@/components/FormModal";
 import type { UserResponse } from "@/lib/auth-types";
-import type { CreateUserRequest } from "@/lib/dashboard-types";
+import type {
+  CreateUserRequest,
+  UpdateUserRequest,
+} from "@/lib/dashboard-types";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
   SEARCH_TABLE_CHUNK_PAGE_SIZE,
@@ -30,6 +33,13 @@ import { UserDetailBody } from "@/components/dashboard-detail/entityDetailBodies
 import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 
+function parseOptionalSalary(s: string): number | undefined {
+  const t = s.trim();
+  if (t === "") return undefined;
+  const n = parseFloat(t.replace(",", "."));
+  return Number.isFinite(n) ? n : undefined;
+}
+
 const initialForm = {
   fullName: "",
   email: "",
@@ -38,6 +48,7 @@ const initialForm = {
   birthDate: "",
   locationId: 0 as number,
   roleId: 0 as number,
+  salaryStr: "",
 };
 
 export default function UsersPage() {
@@ -230,7 +241,7 @@ export default function UsersPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ ...initialForm, locationId: 0, roleId: 0 });
+    setForm({ ...initialForm, locationId: 0, roleId: 0, salaryStr: "" });
     setFormErrors({});
     setFormOpen(true);
   };
@@ -253,6 +264,10 @@ export default function UsersPage() {
       birthDate: toDateInputValue(item.birthDate),
       locationId: item.locationId ?? 0,
       roleId: item.roleId ?? 0,
+      salaryStr:
+        item.salary != null && typeof item.salary === "number"
+          ? String(item.salary)
+          : "",
     });
     setFormErrors({});
     setFormOpen(true);
@@ -268,6 +283,10 @@ export default function UsersPage() {
     if (!isEdit && !form.password) err.password = "Contrasena requerida";
     if (!isEdit && form.password.length < 6)
       err.password = "Minimo 6 caracteres";
+    if (form.salaryStr.trim() !== "") {
+      const sal = parseOptionalSalary(form.salaryStr);
+      if (sal === undefined) err.salaryStr = "Importe no valido";
+    }
     setFormErrors(err);
     return Object.keys(err).length === 0;
   };
@@ -277,20 +296,25 @@ export default function UsersPage() {
     setFormSubmitting(true);
     try {
       if (editing) {
+        const body: UpdateUserRequest = {
+          fullName: form.fullName.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim() || undefined,
+          birthDate: form.birthDate || undefined,
+          locationId: form.locationId ?? undefined,
+          roleId: form.roleId,
+          ...(form.password ? { password: form.password } : {}),
+        };
+        const sal = parseOptionalSalary(form.salaryStr);
+        if (form.salaryStr.trim() !== "" && sal !== undefined) {
+          body.salary = sal;
+        }
         await updateUser({
           id: editing.id,
-          body: {
-            fullName: form.fullName.trim(),
-            email: form.email.trim(),
-            phone: form.phone.trim() || undefined,
-            birthDate: form.birthDate || undefined,
-            locationId: form.locationId ?? undefined,
-            roleId: form.roleId,
-            ...(form.password ? { password: form.password } : {}),
-          },
+          body,
         }).unwrap();
       } else {
-        await createUser({
+        const payload: CreateUserRequest = {
           fullName: form.fullName.trim(),
           email: form.email.trim(),
           password: form.password,
@@ -299,7 +323,10 @@ export default function UsersPage() {
           organizationId,
           locationId: form.locationId || undefined,
           roleId: form.roleId || undefined,
-        } as CreateUserRequest).unwrap();
+        };
+        const sal = parseOptionalSalary(form.salaryStr);
+        if (sal !== undefined) payload.salary = sal;
+        await createUser(payload).unwrap();
         setPage(1);
       }
       closeForm();
@@ -511,6 +538,7 @@ export default function UsersPage() {
             <UserDetailBody
               row={row}
               roleName={roles.find((r) => r.id === row.roleId)?.name ?? "—"}
+              showSalary={canEditUser}
             />
           ),
           onEdit: openEdit,
@@ -631,6 +659,34 @@ export default function UsersPage() {
                 </option>
               ))}
             </select>
+          </div>
+          <div className="modal-field field-full">
+            <label htmlFor="salaryStr">Salario acordado (opcional)</label>
+            <input
+              id="salaryStr"
+              type="text"
+              inputMode="decimal"
+              placeholder="Ej. 85000 o 1250,50"
+              value={form.salaryStr}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, salaryStr: e.target.value }))
+              }
+            />
+            <p
+              style={{
+                margin: "6px 0 0",
+                fontSize: 12,
+                color: "#64748b",
+                lineHeight: 1.4,
+              }}
+            >
+              {editing
+                ? "Dejar vacío para no cambiar el valor guardado. El servidor no borra el salario enviando vacío o null desde aquí."
+                : "Importe mensual u otro acordado con la organización."}
+            </p>
+            {formErrors.salaryStr && (
+              <p className="form-error">{formErrors.salaryStr}</p>
+            )}
           </div>
           {formErrors.submit && (
             <p className="form-error" style={{ marginTop: 12 }}>

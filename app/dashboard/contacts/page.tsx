@@ -8,6 +8,7 @@ import { GridFilterBar, GridFilterSelect } from "@/components/dashboard";
 import { FormModal } from "@/components/FormModal";
 import Switch from "@/components/Switch";
 import type {
+  ContactCounterpartyRole,
   ContactResponse,
   CreateContactRequest,
 } from "@/lib/dashboard-types";
@@ -18,9 +19,12 @@ import {
   useLoadAllRemainingPages,
 } from "@/lib/useLoadAllRemainingPages";
 import { useGetUsersQuery } from "../users/_service/usersApi";
+import type { ContactListRole } from "./_service/contactsApi";
 import {
   useCreateContactMutation,
+  useCreateCounterpartyMutation,
   useDeleteContactMutation,
+  useGetContactLoyaltyQuery,
   useGetContactsQuery,
   useUpdateContactMutation,
 } from "./_service/contactsApi";
@@ -30,8 +34,24 @@ import { ContactDetailBody } from "@/components/dashboard-detail/entityDetailBod
 import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 
+function contactRolesSummary(row: ContactResponse): string {
+  const parts: string[] = [];
+  if (row.isCustomer) parts.push("Cliente");
+  if (row.isSupplier) parts.push("Proveedor");
+  if (row.leadStatus != null && String(row.leadStatus).trim() !== "")
+    parts.push("Oportunidad");
+  return parts.join(" · ");
+}
+
 const COLUMNS: DataTableColumn<ContactResponse>[] = [
   { key: "name", label: "Nombre", width: "160px" },
+  {
+    key: "roles",
+    label: "Relación",
+    width: "min(200px, 22vw)",
+    sortValue: (row) => contactRolesSummary(row),
+    render: (row) => contactRolesSummary(row) || "—",
+  },
   { key: "company", label: "Empresa" },
   { key: "contactPerson", label: "Contacto" },
   { key: "phone", label: "Teléfono", width: "120px" },
@@ -47,6 +67,31 @@ const COLUMNS: DataTableColumn<ContactResponse>[] = [
   { key: "createdAt", label: "Creado", type: "date", width: "120px" },
 ];
 
+function ContactDetailWithLoyalty({
+  row,
+  userNameById,
+}: {
+  row: ContactResponse;
+  userNameById: Map<number, string>;
+}) {
+  const { data: loyalty, isFetching: loyaltyLoading } = useGetContactLoyaltyQuery(
+    row.id,
+    { skip: row.isCustomer === false },
+  );
+  return (
+    <ContactDetailBody
+      row={row}
+      assignedUserName={
+        row.assignedUserId != null
+          ? (userNameById.get(row.assignedUserId) ?? null)
+          : null
+      }
+      loyalty={row.isCustomer === false ? undefined : loyalty}
+      loyaltyLoading={row.isCustomer === false ? false : loyaltyLoading}
+    />
+  );
+}
+
 const initialForm = {
   name: "",
   company: "",
@@ -58,6 +103,10 @@ const initialForm = {
   origin: "",
   isActive: true,
   assignedUserId: "" as number | "",
+  isCustomer: true,
+  isSupplier: false,
+  esLeadPipeline: false,
+  leadStatus: "",
 };
 
 export default function ContactsPage() {
@@ -70,6 +119,7 @@ export default function ContactsPage() {
   );
   const [filterActive, setFilterActive] = useState("");
   const [filterOrigin, setFilterOrigin] = useState("");
+  const [filterRole, setFilterRole] = useState<"" | ContactListRole>("");
   const perPage = Math.max(pageSize, SEARCH_TABLE_CHUNK_PAGE_SIZE);
   const loadNextPage = useCallback(() => setPage((p) => p + 1), []);
   const [formOpen, setFormOpen] = useState(false);
@@ -91,7 +141,11 @@ export default function ContactsPage() {
     data: result,
     isLoading,
     isFetching,
-  } = useGetContactsQuery({ page, perPage });
+  } = useGetContactsQuery({
+    page,
+    perPage,
+    ...(filterRole ? { role: filterRole } : {}),
+  });
   const { data: usersPage } = useGetUsersQuery({ page: 1, perPage: 500 });
   const users = usersPage?.data ?? [];
   const userNameById = useMemo(() => {
@@ -103,6 +157,7 @@ export default function ContactsPage() {
   }, [users]);
 
   const [createContact] = useCreateContactMutation();
+  const [createCounterparty] = useCreateCounterpartyMutation();
   const [updateContact] = useUpdateContactMutation();
   const [deleteContact] = useDeleteContactMutation();
 
@@ -133,6 +188,11 @@ export default function ContactsPage() {
     setAllRows([]);
   }, []);
 
+  useEffect(() => {
+    setPage(1);
+    setAllRows([]);
+  }, [filterRole]);
+
   const loadedRows =
     page === 1 && allRows.length === 0 ? (result?.data ?? []) : allRows;
 
@@ -149,6 +209,7 @@ export default function ContactsPage() {
     setFilterText("");
     setFilterActive("");
     setFilterOrigin("");
+    setFilterRole("");
   };
 
   const filteredData = useMemo(() => {
@@ -182,7 +243,10 @@ export default function ContactsPage() {
   }, [loadedRows, debouncedFilterText, filterActive, filterOrigin]);
 
   const gridFiltersActive =
-    filterText.trim() !== "" || filterActive !== "" || filterOrigin !== "";
+    filterText.trim() !== "" ||
+    filterActive !== "" ||
+    filterOrigin !== "" ||
+    filterRole !== "";
 
   const allPagesLoaded =
     result?.pagination != null && page >= (result.pagination.totalPages ?? 1);
@@ -196,6 +260,8 @@ export default function ContactsPage() {
 
   const openEdit = (item: ContactResponse) => {
     setEditing(item);
+    const leadStr =
+      item.leadStatus != null ? String(item.leadStatus).trim() : "";
     setForm({
       name: item.name,
       company: item.company ?? "",
@@ -207,6 +273,10 @@ export default function ContactsPage() {
       origin: item.origin ?? "",
       isActive: item.isActive,
       assignedUserId: item.assignedUserId != null ? item.assignedUserId : "",
+      isCustomer: item.isCustomer ?? true,
+      isSupplier: item.isSupplier ?? false,
+      esLeadPipeline: leadStr !== "",
+      leadStatus: leadStr,
     });
     setFormErrors({});
     setFormOpen(true);
@@ -220,6 +290,15 @@ export default function ContactsPage() {
   const validate = (): boolean => {
     const err: Record<string, string> = {};
     if (!form.name.trim()) err.name = "El nombre es requerido";
+    const roles: ContactCounterpartyRole[] = [];
+    if (form.isCustomer) roles.push("customer");
+    if (form.isSupplier) roles.push("supplier");
+    if (form.esLeadPipeline) roles.push("lead");
+    if (roles.length === 0)
+      err.roles =
+        "Indica al menos una función: cliente, proveedor u oportunidad de venta.";
+    if (form.esLeadPipeline && !form.leadStatus.trim())
+      err.leadStatus = "Describe en qué fase está el seguimiento.";
     setFormErrors(err);
     return Object.keys(err).length === 0;
   };
@@ -229,7 +308,7 @@ export default function ContactsPage() {
     if (!validate()) return;
     setFormSubmitting(true);
     try {
-      const payload: CreateContactRequest = {
+      const base: CreateContactRequest = {
         name: form.name.trim(),
         company: form.company.trim() || undefined,
         contactPerson: form.contactPerson.trim() || undefined,
@@ -242,10 +321,41 @@ export default function ContactsPage() {
         assignedUserId:
           form.assignedUserId === "" ? undefined : Number(form.assignedUserId),
       };
+      const roles: ContactCounterpartyRole[] = [];
+      if (form.isCustomer) roles.push("customer");
+      if (form.isSupplier) roles.push("supplier");
+      if (form.esLeadPipeline) roles.push("lead");
+
       if (editing) {
-        await updateContact({ id: editing.id, body: payload }).unwrap();
+        await updateContact({
+          id: editing.id,
+          body: {
+            ...base,
+            isCustomer: form.isCustomer,
+            isSupplier: form.isSupplier,
+            leadStatus: form.esLeadPipeline
+              ? form.leadStatus.trim() || null
+              : null,
+          },
+        }).unwrap();
+      } else if (roles.length > 1) {
+        await createCounterparty({
+          ...base,
+          roles,
+          leadStatus: form.esLeadPipeline
+            ? form.leadStatus.trim() || null
+            : null,
+        }).unwrap();
+        setPage(1);
       } else {
-        await createContact(payload).unwrap();
+        const only = roles[0];
+        await createContact({
+          ...base,
+          isCustomer: only === "customer",
+          isSupplier: only === "supplier",
+          leadStatus:
+            only === "lead" ? form.leadStatus.trim() || null : null,
+        }).unwrap();
         setPage(1);
       }
       closeForm();
@@ -339,6 +449,22 @@ export default function ContactsPage() {
               />
             </div>
             <div className="grid-filter-bar__field">
+              <span className="grid-filter-bar__label">Vista</span>
+              <GridFilterSelect
+                aria-label="Tipo de contraparte"
+                value={filterRole}
+                onChange={(v) => setFilterRole(v as "" | ContactListRole)}
+                active={filterRole !== ""}
+                className="grid-filter-bar__control--medium"
+                options={[
+                  { value: "", label: "Todos" },
+                  { value: "customer", label: "Clientes" },
+                  { value: "supplier", label: "Proveedores" },
+                  { value: "lead", label: "Oportunidades" },
+                ]}
+              />
+            </div>
+            <div className="grid-filter-bar__field">
               <span className="grid-filter-bar__label">Origen</span>
               <GridFilterSelect
                 aria-label="Origen"
@@ -372,9 +498,9 @@ export default function ContactsPage() {
         data={filteredData}
         columns={COLUMNS}
         loading={allRows.length === 0 && (isLoading || isFetching)}
-        title="Contactos"
+        title="Contrapartes"
         titleIcon="contacts"
-        addLabel="Nuevo contacto"
+        addLabel="Nueva contraparte"
         onAdd={openCreate}
         addDisabled={!canCreateContact}
         renderMobileRowSummary={renderMobileContactRow}
@@ -404,14 +530,7 @@ export default function ContactsPage() {
             </span>
           ),
           render: (row) => (
-            <ContactDetailBody
-              row={row}
-              assignedUserName={
-                row.assignedUserId != null
-                  ? (userNameById.get(row.assignedUserId) ?? null)
-                  : null
-              }
-            />
+            <ContactDetailWithLoyalty row={row} userNameById={userNameById} />
           ),
           onEdit: openEdit,
           showEditButton: () => canEditContact,
@@ -432,7 +551,7 @@ export default function ContactsPage() {
         <FormModal
           open={formOpen}
           onClose={closeForm}
-          title={editing ? "Editar contacto" : "Nuevo contacto"}
+          title={editing ? "Editar contraparte" : "Nueva contraparte"}
           icon={editing ? "edit" : "contacts"}
           onSubmit={handleSubmit}
           submitting={formSubmitting}
@@ -544,6 +663,69 @@ export default function ContactsPage() {
                 </option>
               ))}
             </select>
+          </div>
+          <div className="modal-field field-full">
+            <p
+              style={{
+                margin: "0 0 10px",
+                fontSize: 13,
+                color: "#64748b",
+                lineHeight: 1.45,
+              }}
+            >
+              Marca en qué se relaciona esta persona o empresa con tu negocio.
+              Puedes activar varias a la vez si aplica.
+            </p>
+            <div className="modal-field field-full modal-toggle">
+              <Switch
+                checked={form.isCustomer}
+                onChange={(checked) =>
+                  setForm((f) => ({ ...f, isCustomer: checked }))
+                }
+              />
+              <label>Cliente</label>
+            </div>
+            <div className="modal-field field-full modal-toggle">
+              <Switch
+                checked={form.isSupplier}
+                onChange={(checked) =>
+                  setForm((f) => ({ ...f, isSupplier: checked }))
+                }
+              />
+              <label>Proveedor</label>
+            </div>
+            <div className="modal-field field-full modal-toggle">
+              <Switch
+                checked={form.esLeadPipeline}
+                onChange={(checked) =>
+                  setForm((f) => ({
+                    ...f,
+                    esLeadPipeline: checked,
+                    leadStatus: checked ? f.leadStatus : "",
+                  }))
+                }
+              />
+              <label>Oportunidad de venta (en seguimiento)</label>
+            </div>
+            {form.esLeadPipeline ? (
+              <div className="modal-field field-full">
+                <label htmlFor="c-lead-status">Etapa del seguimiento</label>
+                <input
+                  id="c-lead-status"
+                  value={form.leadStatus}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, leadStatus: e.target.value }))
+                  }
+                  placeholder="Ej. primer contacto, cotización enviada, negociación…"
+                />
+                {formErrors.leadStatus && (
+                  <p className="form-error">{formErrors.leadStatus}</p>
+                )}
+              </div>
+            ) : null}
+            {formErrors.roles && (
+              <p className="form-error">{formErrors.roles}</p>
+            )}
           </div>
           <div className="modal-field field-full modal-toggle">
             <Switch

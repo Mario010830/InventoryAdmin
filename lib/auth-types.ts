@@ -58,6 +58,8 @@ export interface UserResponse {
   locationId?: number;
   organizationId?: number;
   roleId?: number;
+  /** Importe acordado (p. ej. salario mensual); precisión 18,2 en servidor. */
+  salary?: number | null;
   location?: LocationResponse;
   organization?: {
     id: number;

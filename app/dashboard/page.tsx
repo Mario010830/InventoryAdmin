@@ -280,10 +280,12 @@ export default function DashboardPage() {
           secondary: `${
             (o.status ?? "").toLowerCase() === "confirmed"
               ? "Aceptada"
-              : (o.status ?? "").toLowerCase() === "cancelled" ||
-                  (o.status ?? "").toLowerCase() === "canceled"
-                ? "Cancelada"
-                : "Pendiente"
+              : (o.status ?? "").toLowerCase() === "returned"
+                ? "Devolución total"
+                : (o.status ?? "").toLowerCase() === "cancelled" ||
+                    (o.status ?? "").toLowerCase() === "canceled"
+                  ? "Cancelada"
+                  : "Pendiente"
           } · ${formatCup(o.total ?? 0)}`,
         }))
       : [{ primary: "Sin órdenes recientes" }];

@@ -119,7 +119,27 @@ const MARGIN_COLUMN_HEADER_TOOLTIP = (
   </div>
 );
 
-function useProductColumns(): DataTableColumn<ProductResponse>[] {
+function saleUnitsPerParentStockUnitUI(row: ProductResponse): number | null {
+  const factor = Number(row.stockUnitsConsumedPerSaleUnit);
+  if (Number.isFinite(factor) && factor > 0) {
+    const inv = 1 / factor;
+    if (Number.isFinite(inv) && inv > 0) return inv;
+  }
+  const direct = Number(row.saleUnitsPerParentStockUnit);
+  if (Number.isFinite(direct) && direct > 0) return direct;
+  return null;
+}
+
+function formatSaleUnitsPerParentStockUnitUI(row: ProductResponse): string {
+  const v = saleUnitsPerParentStockUnitUI(row);
+  if (v == null) return "—";
+  const rounded = Math.round(v * 1e6) / 1e6;
+  return String(rounded);
+}
+
+function useProductColumns(
+  parentNameById: Map<number, string>,
+): DataTableColumn<ProductResponse>[] {
   const { formatCup } = useDisplayCurrency();
   return useMemo(
     () => [
@@ -190,7 +210,50 @@ function useProductColumns(): DataTableColumn<ProductResponse>[] {
         },
         headerTooltip: MARGIN_COLUMN_HEADER_TOOLTIP,
       },
-      { key: "totalStock", label: "Stock", type: "number", width: "80px" },
+      {
+        key: "totalStock",
+        label: "Stock",
+        type: "number",
+        width: "80px",
+        headerTooltip:
+          "En productos que venden por unidad y consumen bulto, el número es en unidades de venta (equivalente calculado).",
+      },
+      {
+        key: "stockParentProductId",
+        label: "Producto base",
+        width: "150px",
+        sortable: false,
+        render: (row) => {
+          if (row.stockParentProductId == null || row.stockParentProductId <= 0)
+            return "—";
+          const id = row.stockParentProductId;
+          return parentNameById.get(id)?.trim() || `#${id}`;
+        },
+        exportValue: (row) =>
+          row.stockParentProductId != null && row.stockParentProductId > 0
+            ? String(row.stockParentProductId)
+            : "",
+      },
+      {
+        key: "__stockFractionUI",
+        label: "Rinde aprox.",
+        width: "180px",
+        sortable: false,
+        render: (row) => {
+          if (row.stockParentProductId == null || row.stockParentProductId <= 0)
+            return "—";
+          const parentName =
+            parentNameById.get(row.stockParentProductId)?.trim() || "padre";
+          const units = formatSaleUnitsPerParentStockUnitUI(row);
+          if (units === "—") return "—";
+          return `1 ${parentName} = ${units} ${row.name || "unidades"}`;
+        },
+        exportValue: (row) => {
+          const units = formatSaleUnitsPerParentStockUnitUI(row);
+          if (units === "—") return "";
+          return units;
+        },
+      },
       {
         key: "offerLocationIds",
         label: "Tiendas (elab.)",
@@ -216,7 +279,7 @@ function useProductColumns(): DataTableColumn<ProductResponse>[] {
       { key: "isForSale", label: "En Venta", type: "boolean", width: "96px" },
       { key: "createdAt", label: "Creado", type: "date", width: "112px" },
     ],
-    [formatCup],
+    [formatCup, parentNameById],
   );
 }
 
@@ -224,6 +287,22 @@ const PRODUCT_TIPO_OPTIONS: { value: ProductTipo; label: string }[] = [
   { value: "inventariable", label: "Inventariable" },
   { value: "elaborado", label: "Elaborado" },
 ];
+
+function saleUnitsStrFromProduct(item: ProductResponse): string {
+  if (
+    item.saleUnitsPerParentStockUnit != null &&
+    Number.isFinite(Number(item.saleUnitsPerParentStockUnit)) &&
+    Number(item.saleUnitsPerParentStockUnit) > 0
+  ) {
+    return String(item.saleUnitsPerParentStockUnit);
+  }
+  const f = item.stockUnitsConsumedPerSaleUnit;
+  if (f != null && Number.isFinite(Number(f)) && Number(f) > 0) {
+    const inv = 1 / Number(f);
+    return Number.isFinite(inv) ? String(inv) : "";
+  }
+  return "";
+}
 
 const initialForm = {
   tipo: "inventariable" as ProductTipo,
@@ -238,6 +317,11 @@ const initialForm = {
   isForSale: false,
   tagIds: [] as number[],
   offerLocationIds: [] as number[],
+  /** Fraccionado: stock físico en otro SKU. */
+  usaStockPadre: false,
+  stockParentProductId: "" as number | string,
+  /** Unidades de venta por 1 unidad del padre (ej. 55 si 1 saco = 55 lb). */
+  saleUnitsPerParentStr: "",
 };
 
 // ─── Image Uploader ───────────────────────────────────────────────────────────
@@ -415,7 +499,6 @@ function ImageUploader({ value, onChange, disabled }: ImageUploaderProps) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ProductsPage() {
-  const productColumns = useProductColumns();
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [filterText, setFilterText] = useState("");
@@ -475,6 +558,10 @@ export default function ProductsPage() {
     perPage: 500,
     sortOrder: "asc",
   });
+  const { data: parentProductsResult } = useGetProductsQuery(
+    { page: 1, perPage: 500, sortOrder: "asc" },
+    { skip: !formOpen || form.tipo !== "inventariable" },
+  );
 
   const [createProduct] = useCreateProductMutation();
   const [updateProduct] = useUpdateProductMutation();
@@ -647,6 +734,25 @@ export default function ProductsPage() {
     priceMax,
   ]);
 
+  const rootInventariableParents = useMemo(() => {
+    const list = parentProductsResult?.data ?? [];
+    return list.filter(
+      (p) =>
+        (p.tipo ?? "inventariable") === "inventariable" &&
+        !(p.stockParentProductId != null && p.stockParentProductId > 0) &&
+        p.id !== editing?.id,
+    );
+  }, [parentProductsResult?.data, editing?.id]);
+
+  const productNameById = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const p of loadedRows) {
+      m.set(p.id, p.name?.trim() || String(p.id));
+    }
+    return m;
+  }, [loadedRows]);
+  const productColumns = useProductColumns(productNameById);
+
   const gridFiltersActive =
     filterText.trim() !== "" ||
     filterCategoryId !== "" ||
@@ -720,6 +826,13 @@ export default function ProductsPage() {
       isForSale: item.isForSale ?? false,
       tagIds: item.tagIds ?? [],
       offerLocationIds: [...(item.offerLocationIds ?? [])],
+      usaStockPadre:
+        item.stockParentProductId != null && item.stockParentProductId > 0,
+      stockParentProductId:
+        item.stockParentProductId != null && item.stockParentProductId > 0
+          ? item.stockParentProductId
+          : "",
+      saleUnitsPerParentStr: saleUnitsStrFromProduct(item),
     });
     setFormErrors({});
     setFormOpen(true);
@@ -738,6 +851,24 @@ export default function ProductsPage() {
     const costo = Number(form.costo);
     if (Number.isNaN(precio) || precio < 0) err.precio = "Precio inválido";
     if (Number.isNaN(costo) || costo < 0) err.costo = "Costo inválido";
+
+    if (form.tipo === "inventariable" && form.usaStockPadre) {
+      const pid =
+        form.stockParentProductId === ""
+          ? NaN
+          : Number(form.stockParentProductId);
+      if (!Number.isFinite(pid) || pid <= 0) {
+        err.stockParent = "Selecciona el producto base.";
+      }
+      const su = parseFloat(
+        form.saleUnitsPerParentStr.trim().replace(",", "."),
+      );
+      if (!Number.isFinite(su) || su <= 0) {
+        err.saleUnitsParent =
+          "Indica cuántas unidades de venta salen de 1 unidad del producto base (mayor que cero).";
+      }
+    }
+
     setFormErrors(err);
     return Object.keys(err).length === 0;
   };
@@ -766,11 +897,30 @@ export default function ProductsPage() {
       if (form.tipo === "elaborado" && offerLocationsSelectionTouched) {
         body.offerLocationIds = sortedOfferIds;
       }
+      if (form.tipo === "inventariable") {
+        if (form.usaStockPadre) {
+          body.stockParentProductId = Number(form.stockParentProductId);
+          body.saleUnitsPerParentStockUnit = parseFloat(
+            form.saleUnitsPerParentStr.trim().replace(",", "."),
+          );
+        } else if (
+          editing.stockParentProductId != null &&
+          editing.stockParentProductId > 0
+        ) {
+          body.clearStockParentLink = true;
+        }
+      }
       await updateProduct({ id: editing.id, body }).unwrap();
     } else {
       const body: CreateProductRequest = { ...shared };
       if (form.tipo === "elaborado") {
         body.offerLocationIds = sortedOfferIds;
+      }
+      if (form.tipo === "inventariable" && form.usaStockPadre) {
+        body.stockParentProductId = Number(form.stockParentProductId);
+        body.saleUnitsPerParentStockUnit = parseFloat(
+          form.saleUnitsPerParentStr.trim().replace(",", "."),
+        );
       }
       await createProduct(body).unwrap();
       setPage(1);
@@ -1098,6 +1248,13 @@ export default function ProductsPage() {
                   categories.find((c) => c.id === row.categoryId)?.name ?? "—"
                 }
                 locations={locationsForDetail}
+                parentProductName={
+                  row.stockParentProductId != null &&
+                  row.stockParentProductId > 0
+                    ? (productNameById.get(row.stockParentProductId) ??
+                      `Producto #${row.stockParentProductId}`)
+                    : null
+                }
               />
             ),
             onEdit: openEdit,
@@ -1149,6 +1306,9 @@ export default function ProductsPage() {
                     ...f,
                     tipo: next,
                     offerLocationIds: [...(editing.offerLocationIds ?? [])],
+                    usaStockPadre: false,
+                    stockParentProductId: "",
+                    saleUnitsPerParentStr: "",
                   };
                 }
                 if (
@@ -1163,6 +1323,9 @@ export default function ProductsPage() {
                       defaultLoc.locationId != null
                         ? [defaultLoc.locationId]
                         : [],
+                    usaStockPadre: false,
+                    stockParentProductId: "",
+                    saleUnitsPerParentStr: "",
                   };
                 }
                 if (next === "inventariable" && f.tipo === "elaborado") {
@@ -1336,6 +1499,122 @@ export default function ProductsPage() {
           />
           {formErrors.costo && <p className="form-error">{formErrors.costo}</p>}
         </div>
+
+        {form.tipo === "inventariable" ? (
+          <div className="modal-field field-full">
+            <p
+              style={{
+                margin: "0 0 10px",
+                fontSize: 13,
+                fontWeight: 600,
+                color: "#334155",
+              }}
+            >
+              Venta fraccionada desde otro producto
+            </p>
+            <p
+              style={{
+                margin: "0 0 12px",
+                fontSize: 12,
+                color: "#64748b",
+                lineHeight: 1.45,
+              }}
+            >
+              Activa esta opción cuando este producto se vende por partes
+              (por ejemplo, por libra) pero su inventario se controla en otro
+              producto (por ejemplo, un saco).
+            </p>
+            <div className="modal-field field-full modal-toggle">
+              <Switch
+                checked={form.usaStockPadre}
+                onChange={(checked) =>
+                  setForm((f) => ({ ...f, usaStockPadre: checked }))
+                }
+              />
+              <label>Este producto descuenta inventario de otro producto</label>
+            </div>
+            {editing &&
+            editing.stockParentProductId != null &&
+            editing.stockParentProductId > 0 &&
+            !form.usaStockPadre ? (
+              <p
+                style={{
+                  margin: "0 0 12px",
+                  fontSize: 12,
+                  color: "#b45309",
+                  lineHeight: 1.45,
+                }}
+              >
+                Al guardar, este producto volverá a manejar su inventario por
+                separado.
+              </p>
+            ) : null}
+            {form.usaStockPadre ? (
+              <>
+                <div className="modal-field field-full">
+                  <label htmlFor="stock-parent">
+                    Producto base (de donde se descuenta)
+                  </label>
+                  <select
+                    id="stock-parent"
+                    value={
+                      form.stockParentProductId === ""
+                        ? ""
+                        : String(form.stockParentProductId)
+                    }
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        stockParentProductId:
+                          e.target.value === "" ? "" : Number(e.target.value),
+                      }))
+                    }
+                  >
+                    <option value="">— Seleccione —</option>
+                    {rootInventariableParents.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.code} — {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  {formErrors.stockParent ? (
+                    <p className="form-error">{formErrors.stockParent}</p>
+                  ) : null}
+                </div>
+                <div className="modal-field field-full">
+                  <label htmlFor="sale-units-per-parent">
+                    ¿Cuántas unidades de venta salen de 1 unidad del producto base?
+                  </label>
+                  <input
+                    id="sale-units-per-parent"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Ej. 55"
+                    value={form.saleUnitsPerParentStr}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        saleUnitsPerParentStr: e.target.value,
+                      }))
+                    }
+                  />
+                  <p
+                    style={{
+                      margin: "6px 0 0",
+                      fontSize: 12,
+                      color: "#64748b",
+                    }}
+                  >
+                    Ejemplo: si 1 saco rinde 55 lb, escribe 55.
+                  </p>
+                  {formErrors.saleUnitsParent ? (
+                    <p className="form-error">{formErrors.saleUnitsParent}</p>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="modal-field field-full">
           <ProductImageGallery

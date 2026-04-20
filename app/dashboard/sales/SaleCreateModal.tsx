@@ -103,7 +103,7 @@ export function SaleCreateModal({
   );
 
   const { data: contactsResult } = useGetContactsQuery(
-    { page: 1, perPage: 300, sortOrder: "asc" },
+    { page: 1, perPage: 300, sortOrder: "asc", role: "customer" },
     { skip: !open },
   );
 

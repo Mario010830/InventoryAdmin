@@ -45,7 +45,12 @@ import { getProxiedImageSrc } from "@/lib/proxiedImageSrc";
 import { useDefaultLocation } from "@/lib/useDefaultLocation";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
 import { useGetUsersQuery } from "../users/_service/usersApi";
+import { useGetContactsQuery } from "../contacts/_service/contactsApi";
 import { useGetMySubscriptionQuery } from "@/app/dashboard/settings/_service/settingsApi";
+import {
+  extractRtkQueryErrorFields,
+  userFacingBusinessErrorMessage,
+} from "@/lib/apiBusinessErrors";
 import {
   isAtSubscriptionLimit,
   PRODUCT_QUOTA_TOOLTIP,
@@ -244,6 +249,7 @@ const initialForm = {
   quantity: "0",
   reason: "",
   referenceDocument: "",
+  supplierContactId: "" as number | "",
 };
 
 const initialNewProduct = {
@@ -308,6 +314,12 @@ export default function MovementsPage() {
   });
   const { data: categoriesResult } = useGetProductCategoriesQuery({
     perPage: 100,
+  });
+  const { data: supplierContactsResult } = useGetContactsQuery({
+    page: 1,
+    perPage: 500,
+    sortOrder: "asc",
+    role: "supplier",
   });
   const [createMovement] = useCreateMovementMutation();
   const [createProduct] = useCreateProductMutation();
@@ -403,6 +415,14 @@ export default function MovementsPage() {
     }
     return m;
   }, [products]);
+
+  const supplierNameById = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const c of supplierContactsResult?.data ?? []) {
+      m.set(c.id, c.name?.trim() || `Contacto #${c.id}`);
+    }
+    return m;
+  }, [supplierContactsResult?.data]);
 
   const userIdsInData = useMemo(() => {
     const s = new Set<number>();
@@ -577,6 +597,26 @@ export default function MovementsPage() {
         },
       },
       {
+        key: "supplierContactId",
+        label: "Proveedor",
+        width: "min(160px, 18vw)",
+        sortValue: (row) => {
+          const id = row.supplierContactId ?? row.supplierId;
+          if (id == null || id <= 0) return "";
+          return supplierNameById.get(id) ?? String(id);
+        },
+        exportValue: (row) => {
+          const id = row.supplierContactId ?? row.supplierId;
+          if (id == null || id <= 0) return "";
+          return supplierNameById.get(id) ?? String(id);
+        },
+        render: (row) => {
+          const id = row.supplierContactId ?? row.supplierId;
+          if (id == null || id <= 0) return "—";
+          return supplierNameById.get(id) ?? `#${id}`;
+        },
+      },
+      {
         key: "userId",
         label: "Usuario",
         width: "132px",
@@ -604,7 +644,7 @@ export default function MovementsPage() {
       },
       { key: "createdAt", label: "Fecha", type: "date", width: "108px" },
     ],
-    [products, userIdToName],
+    [products, userIdToName, supplierNameById],
   );
 
   const renderMobileMovementRow = useCallback(
@@ -696,6 +736,17 @@ export default function MovementsPage() {
       err.locationId = "Ubicación requerida";
     const q = Number(form.quantity);
     if (Number.isNaN(q) || q <= 0) err.quantity = "Cantidad inválida";
+    if (productMode === "existing" && form.productId !== "" && form.productId != null) {
+      const sp = products.find((p) => p.id === Number(form.productId));
+      if (
+        sp &&
+        sp.stockParentProductId != null &&
+        sp.stockParentProductId > 0
+      ) {
+        err.productId =
+          "Este SKU toma stock de otro producto: registra entradas/salidas/ajustes sobre el producto padre (bulto), no sobre esta unidad de venta.";
+      }
+    }
     setFormErrors(err);
     return Object.keys(err).length === 0;
   };
@@ -751,12 +802,17 @@ export default function MovementsPage() {
         reason: form.reason || undefined,
         referenceDocument: form.referenceDocument.trim() || undefined,
       };
+      if (form.type === 0 && form.supplierContactId !== "") {
+        const scid = Number(form.supplierContactId);
+        if (Number.isFinite(scid) && scid > 0) payload.supplierContactId = scid;
+      }
       await createMovement(payload).unwrap();
       setPage(1);
       closeForm();
     } catch (err) {
+      const { customStatusCode, message } = extractRtkQueryErrorFields(err);
       setFormErrors({
-        submit: err instanceof Error ? err.message : "Error al guardar",
+        submit: userFacingBusinessErrorMessage(customStatusCode, message, "es"),
       });
     } finally {
       setFormSubmitting(false);
@@ -970,13 +1026,21 @@ export default function MovementsPage() {
                 return <span className="dt-tag dt-tag--red">{label}</span>;
               return <span className="dt-tag">{label}</span>;
             },
-            render: (row) => (
-              <MovementDetailBody
-                row={row}
-                userIdToName={userIdToName}
-                productLabelById={productLabelById}
-              />
-            ),
+            render: (row) => {
+              const sid = row.supplierContactId ?? row.supplierId;
+              const supplierLabel =
+                sid != null && sid > 0
+                  ? (supplierNameById.get(sid) ?? null)
+                  : null;
+              return (
+                <MovementDetailBody
+                  row={row}
+                  userIdToName={userIdToName}
+                  productLabelById={productLabelById}
+                  supplierLabel={supplierLabel}
+                />
+              );
+            },
             showEditButton: false,
           }}
         />
@@ -1319,9 +1383,14 @@ export default function MovementsPage() {
             <select
               id="type"
               value={form.type}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, type: Number(e.target.value) }))
-              }
+              onChange={(e) => {
+                const t = Number(e.target.value);
+                setForm((f) => ({
+                  ...f,
+                  type: t,
+                  supplierContactId: t === 0 ? f.supplierContactId : "",
+                }));
+              }}
             >
               {MOVEMENT_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -1372,6 +1441,33 @@ export default function MovementsPage() {
               }
             />
           </div>
+          {form.type === 0 ? (
+            <div className="modal-field field-full">
+              <label htmlFor="mov-supplier">Proveedor (opcional)</label>
+              <select
+                id="mov-supplier"
+                value={
+                  form.supplierContactId === ""
+                    ? ""
+                    : String(form.supplierContactId)
+                }
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    supplierContactId:
+                      e.target.value === "" ? "" : Number(e.target.value),
+                  }))
+                }
+              >
+                <option value="">— Sin proveedor —</option>
+                {(supplierContactsResult?.data ?? []).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
           {formErrors.submit && (
             <p className="form-error" style={{ marginTop: 12 }}>
               {formErrors.submit}

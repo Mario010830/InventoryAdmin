@@ -1,4 +1,5 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
+import { contactsApi } from "@/app/dashboard/contacts/_service/contactsApi";
 import type { PaginatedResult } from "@/lib/api-utils";
 import { parsePaginated, parseSummaryResult } from "@/lib/api-utils";
 import baseQueryWithReauth from "@/lib/baseQuery";
@@ -128,6 +129,21 @@ export const salesApi = createApi({
         { type: "SaleOrder", id },
         { type: "SaleOrder", id: "LIST" },
       ],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          const cid = data?.contactId;
+          if (cid != null && cid > 0) {
+            dispatch(
+              contactsApi.util.invalidateTags([
+                { type: "ContactLoyalty", id: cid },
+              ]),
+            );
+          }
+        } catch {
+          /* confirmación fallida: no refrescar lealtad */
+        }
+      },
     }),
 
     cancelOrder: builder.mutation<SaleOrderResponse, number>({
@@ -217,6 +233,14 @@ export const salesApi = createApi({
         { type: "SaleOrder", id: arg.saleOrderId },
         { type: "SaleOrder", id: "LIST" },
       ],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(contactsApi.util.invalidateTags([{ type: "ContactLoyalty" }]));
+        } catch {
+          /* devolución fallida */
+        }
+      },
     }),
   }),
 });

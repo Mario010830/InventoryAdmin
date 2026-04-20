@@ -61,7 +61,7 @@ export const MAIN_SIDEBAR_ITEMS: SidebarNavItem[] = [
   },
   {
     icon: "contacts",
-    label: "Contactos",
+    label: "Contrapartes",
     route: "/dashboard/contacts",
     permission: "contact.read",
   },
