@@ -8,7 +8,7 @@ import type {
   UserResponse,
 } from "./auth-types";
 
-const BACKEND_URL = "http://162.220.165.172:5000/api";
+const BACKEND_URL = "https://api.tucuadre.com/api";
 
 /** URL base de la API.
  * Usamos siempre la URL remota (NEXT_PUBLIC_API_URL o BACKEND_URL),
