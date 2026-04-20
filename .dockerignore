@@ -1,16 +1,52 @@
+# Dependencies & caches
 node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Next.js
 .next
+out
+
+# Git & IDE
 .git
 .gitignore
-*.md
+.github
+.cursor
+.vscode
+.idea
+*.swp
+*.swo
+
+# Docker (no copiar el propio contexto de imagen)
+Dockerfile*
+.dockerignore
+
+# Env & local secrets (inyectar en runtime con -e / secrets del orquestador)
 .env
 .env.*
 !.env.example
-Dockerfile
-.dockerignore
+
+# Tests & coverage
 coverage
-.turbo
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# Docs & misc (no necesarios para el build)
+*.md
+docs
+Inv_Front-main
 .vercel
-*.log
-npm-debug.log*
+
+# OS
 .DS_Store
+Thumbs.db
+
+# TypeScript incremental (regenerable)
+*.tsbuildinfo
+
+# Carpetas de ejemplo / tutorial no usadas en producción
+components/Tutorial
