@@ -30,10 +30,7 @@ import {
   useGetStockStatusQuery,
   useGetSummaryQuery,
 } from "./_service/dashboardApi";
-import {
-  useGetOrderStatsQuery,
-  useGetOrdersQuery,
-} from "./sales/_service/salesApi";
+import { useGetOrdersQuery } from "./sales/_service/salesApi";
 
 // ─── Fallbacks estáticos (si la API no está disponible o falla) ─────────────
 
@@ -206,26 +203,11 @@ function buildKpisFromSummary(
   ];
 }
 
-function formatUtcRangeHint(fromUtc: string, toUtcExclusive: string): string {
-  try {
-    const a = new Date(fromUtc);
-    const b = new Date(toUtcExclusive);
-    const fmt = new Intl.DateTimeFormat("es-ES", {
-      dateStyle: "medium",
-      timeStyle: "short",
-      timeZone: "UTC",
-    });
-    return `${fmt.format(a)} → ${fmt.format(b)} (UTC, fin exclusivo)`;
-  } catch {
-    return `${fromUtc} → ${toUtcExclusive} (UTC)`;
-  }
-}
-
 const KPI_PERIOD_OPTIONS: { value: DashboardKpiPeriod; label: string }[] = [
-  { value: "day", label: "Diario (UTC)" },
-  { value: "week", label: "Semanal (UTC)" },
-  { value: "month", label: "Mensual (UTC)" },
-  { value: "year", label: "Anual (UTC)" },
+  { value: "day", label: "Diario" },
+  { value: "week", label: "Semanal" },
+  { value: "month", label: "Mensual" },
+  { value: "year", label: "Anual" },
 ];
 
 export default function DashboardPage() {
@@ -252,7 +234,6 @@ export default function DashboardPage() {
   const { data: listMov } = useGetListLatestMovementsQuery(undefined);
   const { data: listLoc } = useGetListValueByLocationQuery(undefined);
   const { data: listRecent } = useGetListRecentProductsQuery(undefined);
-  const { data: salesStats } = useGetOrderStatsQuery(30);
   const { data: recentOrdersResult } = useGetOrdersQuery({
     page: 1,
     perPage: 5,
@@ -291,52 +272,6 @@ export default function DashboardPage() {
     listLoc && listLoc.length > 0 ? listLoc : FALLBACK_LIST_LOC;
   const listRecentProd =
     listRecent && listRecent.length > 0 ? listRecent : FALLBACK_LIST_RECENT;
-
-  // ── Ventas ──────────────────────────────────────────────────────────────────
-  const ss = salesStats as Record<string, number> | null | undefined;
-  const fmtMoney = (n: number | undefined) => (n != null ? formatCup(n) : "—");
-  const fmtNum = (n: number | undefined) => (n != null ? String(n) : "—");
-
-  const salesKpis = [
-    {
-      label: "Órdenes (30 días)",
-      value: fmtNum(ss?.totalOrders),
-      icon: "receipt_long" as const,
-      trend:
-        ss?.confirmedOrders != null ? `${ss.confirmedOrders} confirmadas` : "",
-      trendUp: true,
-      iconBg: "#EEF2FF",
-      iconColor: theme.accent,
-    },
-    {
-      label: "Ventas confirmadas",
-      value: fmtNum(ss?.confirmedOrders),
-      icon: "check_circle" as const,
-      trend:
-        ss?.totalOrders != null && ss?.confirmedOrders != null
-          ? `${Math.round((ss.confirmedOrders / ss.totalOrders) * 100) || 0}% del total`
-          : "",
-      trendUp: true,
-      iconBg: "#F0FDF4",
-      iconColor: theme.success,
-    },
-    {
-      label: "Pendientes",
-      value: fmtNum(ss?.draftOrders),
-      icon: "edit_note" as const,
-      trend: "Por aceptar o cancelar",
-      trendUp: false,
-      iconBg: "#FFFBEB",
-      iconColor: "#F59E0B",
-    },
-    {
-      label: "Total vendido",
-      value: fmtMoney(ss?.totalRevenue ?? ss?.totalAmount),
-      icon: "point_of_sale" as const,
-      iconBg: "#F0FDF4",
-      iconColor: theme.success,
-    },
-  ];
 
   const recentOrdersList: { primary: string; secondary?: string }[] =
     recentOrdersResult?.data && recentOrdersResult.data.length > 0
@@ -427,8 +362,7 @@ export default function DashboardPage() {
                 lineHeight: 1.45,
               }}
             >
-              Suma de ventas confirmadas sin devolución. Los rangos son en UTC
-              (día / semana lunes–domingo / mes / año calendario en UTC).
+              Solo ventas confirmadas, sin contar devoluciones.
             </p>
             <div className="dashboard-flex-row">
               <StatCard
@@ -474,23 +408,6 @@ export default function DashboardPage() {
                 iconColor={theme.accent}
               />
             </div>
-            {grossKpi.data && !grossKpi.isError ? (
-              <p
-                style={{
-                  margin: "10px 0 0",
-                  fontSize: 12,
-                  color: theme.hint,
-                }}
-              >
-                Rango aplicado:{" "}
-                {formatUtcRangeHint(
-                  grossKpi.data.fromUtc,
-                  grossKpi.data.toUtcExclusive,
-                )}
-                {" · "}
-                período <code>{grossKpi.data.period}</code>
-              </p>
-            ) : null}
           </div>
         </section>
       ) : null}
@@ -501,23 +418,6 @@ export default function DashboardPage() {
         {kpis.map((kpi) => (
           <StatCard key={kpi.label} {...kpi} />
         ))}
-      </div>
-
-      {/* ── Ventas: resumen 30 días y listas ────────────────────────────────── */}
-      <div>
-        <h2 className="dashboard-section-title">Ventas</h2>
-
-        <h3
-          className="dashboard-section-title"
-          style={{ margin: "8px 0 12px", fontSize: "1rem", fontWeight: 700 }}
-        >
-          Resumen · últimos 30 días
-        </h3>
-        <div className="dashboard-flex-row">
-          {salesKpis.map((kpi) => (
-            <StatCard key={kpi.label} {...kpi} />
-          ))}
-        </div>
       </div>
 
       <section className="dashboard-flex-row">

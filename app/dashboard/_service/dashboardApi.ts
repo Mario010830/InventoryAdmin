@@ -44,7 +44,7 @@ export interface DashboardSummary {
   weeklyOrdersTrend?: number;
 }
 
-/** Query `period` para KPIs GET /dashboard/kpi/* (UTC en servidor). */
+/** Query `period` para KPIs GET /dashboard/kpi/*. */
 export type DashboardKpiPeriod = "day" | "week" | "month" | "year";
 
 /** GET /api/dashboard/kpi/gross-sales-profit */
