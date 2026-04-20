@@ -31,7 +31,14 @@ import "@/app/dashboard/dashboard.css";
 import { SETTINGS_SECTIONS } from "@/app/dashboard/settings/settingsNav";
 import { useLogoutMutation } from "@/app/login/_service/authApi";
 import { logoutSuccessfull } from "@/app/login/_slices/authSlice";
+import { MobileListLayoutOnboardingModal } from "@/components/MobileListLayoutOnboardingModal";
 import { ChatWidget } from "@/components/ChatWidget";
+import {
+  dismissMobileListLayoutOnboarding,
+  setMobileListLayout,
+  shouldShowLayoutOnboarding,
+  type MobileListLayoutValue,
+} from "@/lib/mobileListLayout";
 import { TopbarCurrencySelector } from "@/components/TopbarCurrencySelector";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 
@@ -218,12 +225,22 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const [hoverExpanded, setHoverExpanded] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [manualChatOpen, setManualChatOpen] = useState(false);
+  const [mobileListOnboardingOpen, setMobileListOnboardingOpen] =
+    useState(false);
   const user = useAppSelector((state) => state.auth) || null;
   const { has: hasPermission } = useUserPermissionCodes();
   const hiddenSidebarRoutes = useHiddenSidebarRoutes();
 
   const dispatch = useAppDispatch();
   const [logout] = useLogoutMutation();
+
+  useEffect(() => {
+    if (!isMobileNav) {
+      setMobileListOnboardingOpen(false);
+      return;
+    }
+    if (shouldShowLayoutOnboarding()) setMobileListOnboardingOpen(true);
+  }, [isMobileNav]);
 
   const visibleReportSubSections = useMemo(
     () =>
@@ -526,6 +543,18 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         hideFab
         open={manualChatOpen}
         onOpenChange={setManualChatOpen}
+      />
+
+      <MobileListLayoutOnboardingModal
+        open={mobileListOnboardingOpen}
+        onPick={(value: MobileListLayoutValue) => {
+          setMobileListLayout(value);
+          setMobileListOnboardingOpen(false);
+        }}
+        onDecideLater={() => {
+          dismissMobileListLayoutOnboarding();
+          setMobileListOnboardingOpen(false);
+        }}
       />
     </div>
   );

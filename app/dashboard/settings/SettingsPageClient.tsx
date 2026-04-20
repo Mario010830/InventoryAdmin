@@ -43,6 +43,7 @@ import {
   useUpdateGroupedSettingsMutation,
 } from "./_service/settingsApi";
 import { CurrencyDenominationsModal } from "./CurrencyDenominationsModal";
+import { MobileListLayoutSettingsSection } from "./MobileListLayoutSettingsSection";
 import { SidebarVisibilitySection } from "./SidebarVisibilitySection";
 import { SETTINGS_SECTIONS } from "./settingsNav";
 
@@ -1375,6 +1376,10 @@ export default function SettingsPageClient() {
               >
                 {savingProfile ? "Guardando…" : "Guardar"}
               </button>
+            </SettingsSection>
+
+            <SettingsSection id="vista-movil" title="Vista en móvil">
+              <MobileListLayoutSettingsSection />
             </SettingsSection>
 
             <SettingsSection id="sidebar" title="Barra lateral">

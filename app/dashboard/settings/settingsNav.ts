@@ -5,6 +5,7 @@ export const SETTINGS_SECTIONS = [
   { id: "notificaciones", label: "Notificaciones", icon: "notifications" },
   { id: "seguridad", label: "Seguridad", icon: "shield" },
   { id: "perfil", label: "Perfil de cuenta", icon: "person" },
+  { id: "vista-movil", label: "Vista en móvil", icon: "view_list" },
   { id: "sidebar", label: "Barra lateral", icon: "view_column" },
   { id: "suscripcion", label: "Suscripción", icon: "credit_card" },
 ] as const;

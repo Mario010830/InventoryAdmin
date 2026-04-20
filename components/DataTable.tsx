@@ -31,9 +31,11 @@ import {
   MIN_COL,
   measureColumnFit,
 } from "./dataTableWidths";
+import { MOBILE_LIST_LAYOUT_BREAKPOINT_PX } from "@/lib/mobileListLayout";
+import { useMobileListLayoutPreference } from "@/lib/useMobileListLayoutPreference";
 import "./data-table.css";
 
-const DT_LAYOUT_MOBILE_MAX_PX = 768;
+const DT_LAYOUT_MOBILE_MAX_PX = MOBILE_LIST_LAYOUT_BREAKPOINT_PX;
 
 /** Factor para achicar anchos en px en móvil (más columnas visibles sin scroll excesivo). */
 const MOBILE_COL_SHRINK = 0.82;
@@ -157,8 +159,9 @@ export interface DataTableProps<T extends { id: string | number }> {
   /** Ordenación, selección, export, columnas visibles */
   gridConfig?: DataTableGridConfig;
   /**
-   * En viewport ≤768px: `"stacked"` (por defecto) muestra cada fila como tarjeta
-   * con pares etiqueta/valor; `"table"` mantiene la tabla con zoom horizontal.
+   * En viewport ≤768px: `"stacked"` = tarjetas; `"table"` = tabla con zoom horizontal.
+   * Si se omite, se usa la preferencia `mobileListLayout` en localStorage
+   * (`comfortable` → apilado, `table` → tabla); si no hay valor, cómoda por defecto.
    */
   mobileDisplay?: "stacked" | "table";
   /**
@@ -407,10 +410,11 @@ export function DataTable<T extends { id: string | number }>({
   renderBulkToolbar,
   onBulkDeleteSelected,
   onBulkSelectAll,
-  mobileDisplay = "stacked",
+  mobileDisplay,
   renderMobileRowSummary,
 }: DataTableProps<T>) {
   const { formatCup } = useDisplayCurrency();
+  const mobileListLayoutPref = useMobileListLayoutPreference();
   const gridEnabled = Boolean(gridConfig);
   const hasCheckbox = gridEnabled;
 
@@ -495,8 +499,14 @@ export function DataTable<T extends { id: string | number }>({
     return colWidths.map((w) => (w / sum) * 100);
   }, [colWidths]);
   const isMobileLayout = useMatchMaxWidth(DT_LAYOUT_MOBILE_MAX_PX);
+  const resolvedMobileDisplay: "stacked" | "table" =
+    mobileDisplay !== undefined
+      ? mobileDisplay
+      : mobileListLayoutPref === "table"
+        ? "table"
+        : "stacked";
   const useStackedMobile =
-    isMobileLayout && (mobileDisplay ?? "stacked") === "stacked";
+    isMobileLayout && resolvedMobileDisplay === "stacked";
 
   const compactSummaryEntries = useMemo(() => {
     if (renderMobileRowSummary != null) return null;
