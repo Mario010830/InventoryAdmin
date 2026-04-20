@@ -10,12 +10,32 @@ import type {
 
 const BACKEND_URL = "https://api.tucuadre.com/api";
 
-/** URL base de la API.
- * Usamos siempre la URL remota (NEXT_PUBLIC_API_URL o BACKEND_URL),
- * tanto en desarrollo como en producción (Vercel).
+/**
+ * Base de la API (incluye `/api` cuando aplica).
+ * En el navegador con HTTPS, si la URL efectiva es HTTP, el browser bloquea
+ * (mixed content); usamos `/api` para mismo origen y los `rewrites` de Next.
  */
 export function getApiUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL ?? BACKEND_URL;
+  const raw = process.env.NEXT_PUBLIC_API_URL ?? BACKEND_URL;
+
+  if (typeof window !== "undefined" && window.location.protocol === "https:") {
+    if (raw.startsWith("/")) {
+      const t = raw.replace(/\/+$/, "");
+      return t.length > 0 ? t : "/api";
+    }
+    try {
+      const u = new URL(raw);
+      if (u.protocol === "http:") {
+        return "/api";
+      }
+    } catch {
+      if (raw.startsWith("http://")) {
+        return "/api";
+      }
+    }
+  }
+
+  return raw;
 }
 
 export function getToken(): string | null {

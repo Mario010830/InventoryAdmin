@@ -4,7 +4,7 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./i18n/index.ts");
 
 /** Misma convención que `getApiUrl()` en `lib/auth-api.ts`: origen del backend para `/api/*` en el rewrite. */
-const BACKEND_URL = "http://162.220.165.172:5000/api";
+const BACKEND_URL = "https://api.tucuadre.com/api";
 
 function apiRewriteOrigin(): string {
   const raw = process.env.NEXT_PUBLIC_API_URL ?? BACKEND_URL;

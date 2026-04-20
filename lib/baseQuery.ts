@@ -8,17 +8,7 @@ import {
   removeAuthCookie,
   setAuthCookie,
 } from "@/app/login/_service/sessionCookie";
-
-const BACKEND_URL = "http://162.220.165.172:5000/api";
-
-/**
- * URL base de la API.
- * Usamos siempre la URL remota (NEXT_PUBLIC_API_URL o BACKEND_URL),
- * tanto en desarrollo como en producción (Vercel).
- */
-function getApiUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL ?? BACKEND_URL;
-}
+import { getApiUrl } from "@/lib/auth-api";
 
 /**
  * Get auth token from localStorage

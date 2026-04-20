@@ -523,7 +523,6 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       </div>
 
       <ChatWidget
-        apiUrl={process.env.NEXT_PUBLIC_API_URL}
         hideFab
         open={manualChatOpen}
         onOpenChange={setManualChatOpen}
