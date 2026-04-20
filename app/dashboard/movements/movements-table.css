@@ -5,6 +5,15 @@
   max-width: 100%;
 }
 
+/* Vista tabla en móvil: scroll horizontal en .dt-wrap (no pisa la vista apilada .dt-wrap--stacked) */
+@media (max-width: 768px) {
+  .movements-table-wrap .dt-wrap:not(.dt-wrap--stacked) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+}
+
 /* Más separación visual entre Producto y Tipo (sin inflar el ancho de Producto) */
 .movements-table-wrap .dt-table th:nth-child(2),
 .movements-table-wrap .dt-table td:nth-child(2) {
