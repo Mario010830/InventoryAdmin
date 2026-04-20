@@ -1,5 +1,4 @@
-Aquí tienes el workflow. Crea el archivo .github/workflows/deploy.yml en tu repo:
-yamlname: Build and Deploy
+name: Build and Deploy
 
 on:
   push:
