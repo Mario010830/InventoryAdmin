@@ -34,7 +34,34 @@ import "./roles-modal.css";
 import { toast } from "sonner";
 import { GridFilterBar } from "@/components/dashboard";
 import { withSuppressedMutationToasts } from "@/lib/mutationToastControl";
+import { extractRtkQueryErrorFields } from "@/lib/apiBusinessErrors";
 import { useUserPermissionCodes } from "@/lib/useUserPermissionCodes";
+
+function rtkErrorStatus(err: unknown): number | undefined {
+  if (err && typeof err === "object" && "status" in err) {
+    const s = (err as { status: unknown }).status;
+    return typeof s === "number" ? s : undefined;
+  }
+  return undefined;
+}
+
+/** Mensaje típico de la API cuando el rol sigue asignado a usuarios. */
+function isRoleAssignedToUsersMessage(msg: string): boolean {
+  const m = msg.toLowerCase();
+  return [
+    "usuario",
+    "usuarios",
+    "asignad",
+    "user assigned",
+    "assigned to",
+    "in use",
+    "being used",
+    "cannot delete",
+    "no se puede eliminar",
+    "foreign key",
+    "reference constraint",
+  ].some((p) => m.includes(p));
+}
 
 const COLUMNS: DataTableColumn<RoleResponse>[] = [
   { key: "name", label: "Nombre" },
@@ -76,6 +103,9 @@ export default function RolesPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState<RoleResponse | null>(null);
   const [deleteError, setDeleteError] = useState("");
+  const [deleteErrorTone, setDeleteErrorTone] = useState<"error" | "warning">(
+    "error",
+  );
   const filtersChanged = useRef(false);
 
   // ─── Permissions ──────────────────────────────────────────────────────────
@@ -280,20 +310,50 @@ export default function RolesPage() {
     if (item.isSystem) return;
     setDeleting(item);
     setDeleteError("");
+    setDeleteErrorTone("error");
     setConfirmOpen(true);
   };
   const closeConfirm = () => {
     setConfirmOpen(false);
     setDeleting(null);
     setDeleteError("");
+    setDeleteErrorTone("error");
   };
   const handleDelete = async () => {
     if (!deleting) return;
     try {
       await deleteRole(deleting.id).unwrap();
       closeConfirm();
-    } catch {
-      setDeleteError("Error al eliminar.");
+    } catch (err) {
+      const { message } = extractRtkQueryErrorFields(err);
+      const raw = message?.trim() ?? "";
+      const status = rtkErrorStatus(err);
+      const userCount = usersPerRole.get(deleting.id) ?? 0;
+      const apiSaysInUse = isRoleAssignedToUsersMessage(raw);
+      const likelyInUse =
+        apiSaysInUse ||
+        (userCount > 0 &&
+          (status === 400 || status === 409 || status === 422));
+
+      if (likelyInUse) {
+        setDeleteErrorTone("warning");
+        if (apiSaysInUse && raw) {
+          setDeleteError(raw);
+        } else if (userCount > 0) {
+          setDeleteError(
+            userCount === 1
+              ? "Advertencia: este rol está asignado a un usuario. Cámbialo en Usuarios antes de eliminarlo."
+              : `Advertencia: este rol está asignado a ${userCount} usuarios. Cámbialo en Usuarios antes de eliminarlo.`,
+          );
+        } else {
+          setDeleteError(
+            "Advertencia: no se puede eliminar el rol mientras esté asignado a usuarios. Reasígnalos en Usuarios e inténtalo de nuevo.",
+          );
+        }
+      } else {
+        setDeleteErrorTone("error");
+        setDeleteError(raw || "Error al eliminar.");
+      }
     }
   };
 
@@ -551,6 +611,7 @@ export default function RolesPage() {
           title="Eliminar rol?"
           itemName={deleting?.name}
           error={deleteError}
+          errorTone={deleteErrorTone}
         />
       )}
     </>

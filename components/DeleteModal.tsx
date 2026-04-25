@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/ui/Icon";
+import "./delete-modal.css";
 
 interface DeleteModalProps {
   open: boolean;
@@ -13,6 +14,8 @@ interface DeleteModalProps {
   /** Extra description override — replaces the default "Se eliminará X permanentemente." */
   description?: string;
   error?: string;
+  /** Cómo mostrar `error`: error (rojo) o advertencia (ámbar). */
+  errorTone?: "error" | "warning";
   confirmLabel?: string;
   cancelLabel?: string;
   /** Si true, solo se muestra el botón de confirmar (ej. "Entendido") y se oculta Cancelar. */
@@ -31,6 +34,7 @@ export function DeleteModal({
   itemName,
   description,
   error,
+  errorTone = "error",
   confirmLabel = "Eliminar",
   cancelLabel = "Cancelar",
   singleAction = false,
@@ -60,7 +64,9 @@ export function DeleteModal({
         </div>
 
         {error && (
-          <p className="form-error" style={{ textAlign: "center" }}>
+          <p
+            className={`delete-modal__feedback delete-modal__feedback--${errorTone}`}
+          >
             {error}
           </p>
         )}

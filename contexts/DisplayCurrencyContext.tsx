@@ -11,7 +11,6 @@ import {
 } from "react";
 import { useGetCurrenciesQuery } from "@/app/dashboard/settings/_service/currencyApi";
 import { useGetGroupedSettingsQuery } from "@/app/dashboard/settings/_service/settingsApi";
-import { getToken } from "@/lib/auth-api";
 import type { CurrencyResponse } from "@/lib/dashboard-types";
 import {
   cupToDisplayAmount,
@@ -51,11 +50,16 @@ const DisplayCurrencyContext =
   createContext<DisplayCurrencyContextValue | null>(null);
 
 export function DisplayCurrencyProvider({ children }: { children: ReactNode }) {
-  const hasToken = typeof window !== "undefined" && !!getToken();
-  const skipCurrencies = typeof window === "undefined" || !hasToken;
+  /**
+   * Solo omitir en SSR. Si además usamos `!getToken()` como en skip, el primer
+   * render en cliente a veces deja la query sin suscribir y no sale GET /currency
+   * (igual que en SettingsPageClient); al entrar a Configuración otra suscripción
+   * sí cargaba las monedas.
+   */
+  const skipSsr = typeof window === "undefined";
 
   const { data: groupedSettings } = useGetGroupedSettingsQuery(undefined, {
-    skip: typeof window === "undefined" || !hasToken,
+    skip: skipSsr,
   });
   const priceDecimals = groupedSettings?.inventory?.priceRoundingDecimals ?? 2;
 
@@ -63,7 +67,7 @@ export function DisplayCurrencyProvider({ children }: { children: ReactNode }) {
     data: currencyList,
     isLoading: currenciesLoading,
     isFetching: currenciesFetching,
-  } = useGetCurrenciesQuery(undefined, { skip: skipCurrencies });
+  } = useGetCurrenciesQuery(undefined, { skip: skipSsr });
 
   const activeCurrencies = useMemo(
     () => (currencyList ?? []).filter((c) => c.isActive),

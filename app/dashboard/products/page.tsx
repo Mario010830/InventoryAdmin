@@ -1341,6 +1341,19 @@ export default function ProductsPage() {
               </option>
             ))}
           </select>
+          {form.tipo === "elaborado" ? (
+            <p
+              style={{
+                margin: "8px 0 0",
+                fontSize: 12,
+                color: "#64748b",
+                lineHeight: 1.45,
+              }}
+            >
+              La opción de <strong>venta fraccionada</strong> (inventario en otro
+              producto) solo aplica a productos <strong>Inventariable</strong>.
+            </p>
+          ) : null}
         </div>
 
         {form.tipo === "elaborado" && (
@@ -1408,99 +1421,7 @@ export default function ProductsPage() {
           </div>
         )}
 
-        <div className="modal-field">
-          <label htmlFor="code">Código *</label>
-          <input
-            id="code"
-            value={form.code}
-            onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
-            placeholder="Código"
-          />
-          {formErrors.code && <p className="form-error">{formErrors.code}</p>}
-        </div>
-
-        <div className="modal-field">
-          <label htmlFor="name">Nombre *</label>
-          <input
-            id="name"
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            placeholder="Nombre"
-          />
-          {formErrors.name && <p className="form-error">{formErrors.name}</p>}
-        </div>
-
-        <div className="modal-field field-full">
-          <label htmlFor="description">Descripción</label>
-          <textarea
-            id="description"
-            value={form.description}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, description: e.target.value }))
-            }
-            placeholder="Descripción"
-            rows={3}
-          />
-        </div>
-
-        <div className="modal-field">
-          <label htmlFor="categoryId">Categoría</label>
-          <select
-            id="categoryId"
-            value={form.categoryId}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                categoryId: e.target.value === "" ? "" : Number(e.target.value),
-              }))
-            }
-          >
-            <option value="">Sin categoría</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="modal-field field-full">
-          <label>Etiquetas</label>
-          <TagSelector
-            value={form.tagIds}
-            onChange={(tagIds) => setForm((f) => ({ ...f, tagIds }))}
-          />
-        </div>
-
-        <div className="modal-field">
-          <label htmlFor="precio">Precio *</label>
-          <input
-            id="precio"
-            type="number"
-            step="0.01"
-            min="0"
-            value={form.precio}
-            onChange={(e) => setForm((f) => ({ ...f, precio: e.target.value }))}
-          />
-          {formErrors.precio && (
-            <p className="form-error">{formErrors.precio}</p>
-          )}
-        </div>
-
-        <div className="modal-field">
-          <label htmlFor="costo">Costo *</label>
-          <input
-            id="costo"
-            type="number"
-            step="0.01"
-            min="0"
-            value={form.costo}
-            onChange={(e) => setForm((f) => ({ ...f, costo: e.target.value }))}
-          />
-          {formErrors.costo && <p className="form-error">{formErrors.costo}</p>}
-        </div>
-
-        {form.tipo === "inventariable" ? (
+        {(form.tipo ?? "inventariable") === "inventariable" ? (
           <div className="modal-field field-full">
             <p
               style={{
@@ -1615,6 +1536,98 @@ export default function ProductsPage() {
             ) : null}
           </div>
         ) : null}
+
+        <div className="modal-field">
+          <label htmlFor="code">Código *</label>
+          <input
+            id="code"
+            value={form.code}
+            onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
+            placeholder="Código"
+          />
+          {formErrors.code && <p className="form-error">{formErrors.code}</p>}
+        </div>
+
+        <div className="modal-field">
+          <label htmlFor="name">Nombre *</label>
+          <input
+            id="name"
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            placeholder="Nombre"
+          />
+          {formErrors.name && <p className="form-error">{formErrors.name}</p>}
+        </div>
+
+        <div className="modal-field field-full">
+          <label htmlFor="description">Descripción</label>
+          <textarea
+            id="description"
+            value={form.description}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, description: e.target.value }))
+            }
+            placeholder="Descripción"
+            rows={3}
+          />
+        </div>
+
+        <div className="modal-field">
+          <label htmlFor="categoryId">Categoría</label>
+          <select
+            id="categoryId"
+            value={form.categoryId}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                categoryId: e.target.value === "" ? "" : Number(e.target.value),
+              }))
+            }
+          >
+            <option value="">Sin categoría</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="modal-field field-full">
+          <label>Etiquetas</label>
+          <TagSelector
+            value={form.tagIds}
+            onChange={(tagIds) => setForm((f) => ({ ...f, tagIds }))}
+          />
+        </div>
+
+        <div className="modal-field">
+          <label htmlFor="precio">Precio *</label>
+          <input
+            id="precio"
+            type="number"
+            step="0.01"
+            min="0"
+            value={form.precio}
+            onChange={(e) => setForm((f) => ({ ...f, precio: e.target.value }))}
+          />
+          {formErrors.precio && (
+            <p className="form-error">{formErrors.precio}</p>
+          )}
+        </div>
+
+        <div className="modal-field">
+          <label htmlFor="costo">Costo *</label>
+          <input
+            id="costo"
+            type="number"
+            step="0.01"
+            min="0"
+            value={form.costo}
+            onChange={(e) => setForm((f) => ({ ...f, costo: e.target.value }))}
+          />
+          {formErrors.costo && <p className="form-error">{formErrors.costo}</p>}
+        </div>
 
         <div className="modal-field field-full">
           <ProductImageGallery

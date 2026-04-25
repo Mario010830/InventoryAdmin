@@ -1,0 +1,15 @@
+/* Avisos en DeleteModal: error (rojo) vs advertencia (ámbar). */
+.delete-modal__feedback {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  margin-top: 4px;
+  text-align: center;
+}
+
+.delete-modal__feedback--error {
+  color: #ef4444;
+}
+
+.delete-modal__feedback--warning {
+  color: #b45309;
+}

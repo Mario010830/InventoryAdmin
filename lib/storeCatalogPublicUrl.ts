@@ -3,7 +3,10 @@
  * `{CATALOG_PUBLIC_ORIGIN}/catalog/{slug}`.
  *
  * Origen: `NEXT_PUBLIC_CATALOG_URL` o `VITE_CATALOG_BASE_URL` (sin barra final).
+ * Si no vienen definidas, se usa el mismo valor que `NEXT_PUBLIC_CATALOG_URL=https://tucuadre.com`.
  */
+
+const DEFAULT_CATALOG_PUBLIC_ORIGIN = "https://tucuadre.com";
 
 export function slugifyStoreName(name: string): string {
   const s = name
@@ -24,12 +27,12 @@ export function publicStoreCatalogUrl(
   return `${origin}/catalog/${slugifyStoreName(locationName)}`;
 }
 
-/** Origen del catálogo público sin barra final, o null si no está configurado. */
+/** Origen del catálogo público sin barra final (por defecto https://tucuadre.com). */
 export function getCatalogPublicOrigin(): string | null {
   const raw =
     process.env.NEXT_PUBLIC_CATALOG_URL?.trim() ??
     process.env.VITE_CATALOG_BASE_URL?.trim() ??
-    "";
+    DEFAULT_CATALOG_PUBLIC_ORIGIN;
   if (!raw) return null;
   return raw.replace(/\/+$/, "");
 }
